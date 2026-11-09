@@ -430,6 +430,14 @@ const craftUI = new CraftUI({
   onChange: () => { renderHotbar(); dirtySave = true; },
 });
 
+mobs.onTame = (pet) => {
+  toast(`${pet.petName} is your new pet! 🐾`);
+  sfx.craft();
+  quests.emit('tame', { type: pet.type });
+  tip('pet', `${pet.petName} will follow you. Right-click (or tap) to make it sit or follow.`);
+  dirtySave = true;
+};
+
 mobs.onBaby = (baby) => {
   quests.emit('baby', { type: baby.type });
   if (baby.pos.distanceTo(player.pos) < 24) { toast(`A baby ${TYPES[baby.type].name.toLowerCase()} was born!`); sfx.craft(); }
@@ -799,7 +807,8 @@ function placeRobot() {
 function spawnFromEgg(type) {
   const x = target.x + target.normal[0], y = target.y + target.normal[1], z = target.z + target.normal[2];
   if (SOLID[world.getBlock(x, y, z)]) return;
-  const mob = mobs.spawn(type, x + 0.5, y, z + 0.5, { kept: true });
+  const mob = mobs.spawn(type, x + 0.5, y, z + 0.5, { kept: true, tamed: TYPES[type].pet });
+  if (mob?.tamed) { toast(`Say hi to ${mob.petName}!`); quests.emit('tame', { type }); }
   if (mob) { mobs.voice(mob); dirtySave = true; }
 }
 
@@ -811,9 +820,16 @@ function actMob(now) {
   const held = heldItem();
   mouse.nextAction = now + 0.45;
   if (mouse.left) {
-    mobs.pat(mob, player);
+    if (mob.tamed) { mob.wag = 2; mobs.effect(mob, mobs.happyMat); mobs.voice(mob); }
+    else mobs.pat(mob, player);
     quests.emit('pat', { type: mob.type });
     tip('animals', `${TYPES[mob.type].plural} love apples! Feed two of them and see what happens.`);
+    return;
+  }
+  if (mob.tamed && held !== I.APPLE) {
+    const sits = mobs.toggleSit(mob);
+    toast(sits ? `${mob.petName} is sitting` : `${mob.petName} is following you`);
+    dirtySave = true;
     return;
   }
   if (held === I.APPLE) {

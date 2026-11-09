@@ -10,6 +10,7 @@ export const I = {
   WOOD_AXE: 274, STONE_AXE: 275, IRON_AXE: 276, DIAMOND_AXE: 277,
   WOOD_SHOVEL: 278, STONE_SHOVEL: 279, IRON_SHOVEL: 280, DIAMOND_SHOVEL: 281,
   PIG_EGG: 290, COW_EGG: 291, SHEEP_EGG: 292, CHICKEN_EGG: 293,
+  DOG_EGG: 294, CAT_EGG: 295,
   ROBOT: 300,
 };
 
@@ -39,6 +40,8 @@ item(I.APPLE, 'Apple', { sprite: 'apple', food: 4 });
 item(I.PIG_EGG, 'Pig Spawn Egg', { sprite: 'egg', color: [240, 165, 165], spots: [200, 110, 120], spawns: 'pig', creativeOnly: true });
 item(I.COW_EGG, 'Cow Spawn Egg', { sprite: 'egg', color: [95, 62, 40], spots: [235, 235, 235], spawns: 'cow', creativeOnly: true });
 item(I.SHEEP_EGG, 'Sheep Spawn Egg', { sprite: 'egg', color: [235, 235, 235], spots: [215, 180, 160], spawns: 'sheep', creativeOnly: true });
+item(I.DOG_EGG, 'Pet Dog Egg', { sprite: 'egg', color: [205, 150, 85], spots: [120, 80, 45], spawns: 'dog', creativeOnly: true });
+item(I.CAT_EGG, 'Pet Cat Egg', { sprite: 'egg', color: [235, 150, 60], spots: [190, 100, 35], spawns: 'cat', creativeOnly: true });
 item(I.CHICKEN_EGG, 'Chicken Spawn Egg', { sprite: 'egg', color: [245, 245, 245], spots: [210, 40, 40], spawns: 'chicken', creativeOnly: true });
 
 // Bit the code robot: right-click a block to place it, right-click Bit to program it.

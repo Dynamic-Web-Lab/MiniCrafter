@@ -47,14 +47,14 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/animals.jpg" alt="A cow, pigs, a chicken and colourful sheep in a meadow, with love hearts above a pig">
       <h3>🐷 Friendly animals</h3>
-      Pigs, cows, chickens and sheep in six wool colours. Pat them, feed them apples and they'll have <b>babies</b> that grow up. Shear sheep for coloured wool. Nothing can hurt you, and you can't hurt them.
+      Pigs, cows, chickens and sheep in six wool colours. Pat them, feed them apples and they'll have <b>babies</b> that grow up. Shear sheep for coloured wool. Befriend a <b>dog or cat</b> as your named pet that follows you everywhere. Nothing can hurt you, and you can't hurt them.
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      32 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      33 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">
@@ -160,13 +160,14 @@ Switch at any time from the pause menu (`Esc`).
 - **Pat** (left click): the animal hops happily.
 - **Feed an apple** (right click): hearts appear, and two animals in love make a baby. Feeding babies helps them grow.
 - **Shear sheep** (right click without an apple): 1–3 wool in the sheep's colour, which regrows after a minute.
+- **Pets:** now and then a lone dog or cat appears. Feed it an apple and it becomes your pet with its own name tag and a red collar. It follows you and catches up if you go far. Right-click it to make it sit and stay, or follow again. Feed two pets for a puppy or kitten. Creative has dog and cat eggs.
 - Animals you've fed, bred or spawned are saved with your world.
 
 ### Quests and stars
 
 - **Quest tracker** (top right): shows the next 3 quests plus the next 🤖 coding quest. Press `Q` for the quest book.
 - **Quest list:**
-  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Animal Family, Splash!, Mountain Top, Star Gazer.
+  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Best Friend, Animal Family, Splash!, Mountain Top, Star Gazer.
   - **Survival:** Tree Puncher → Crafting Time → My First Tool → Stone Age → Snack Time → Hot Stuff → Window Maker → Iron Hunter → Diamond Dreams.
   - **Coding:** Meet Bit → First Program → Loop the Loop → Bit the Builder → Up, Up, Up → Tunnel Digger → My Own Program → Loop Inside a Loop → Smart Robot.
 
@@ -226,7 +227,6 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-- 🐶 **Pets:** a dog or cat that follows you around
 - 🗂️ **Several worlds and offline play:** a world list for siblings and classrooms, and a game that works without internet
 - 🔦 **Torches and dark caves:** real light, so caves are spooky-but-safe to explore
 - 🏘️ **Villages and trading:** friendly villagers and swapping items (counting practice!)

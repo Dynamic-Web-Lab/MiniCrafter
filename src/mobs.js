@@ -24,6 +24,8 @@ export const TYPES = {
   pig: { name: 'Pig', plural: 'Pigs', hw: 0.35, h: 0.85, speed: 1.3 },
   cow: { name: 'Cow', plural: 'Cows', hw: 0.42, h: 1.3, speed: 1.1 },
   sheep: { name: 'Sheep', plural: 'Sheep', hw: 0.4, h: 1.15, speed: 1.15 },
+  dog: { name: 'Dog', plural: 'Dogs', hw: 0.3, h: 0.85, speed: 2.4, pet: true },
+  cat: { name: 'Cat', plural: 'Cats', hw: 0.25, h: 0.7, speed: 2.6, pet: true },
   chicken: { name: 'Chicken', plural: 'Chickens', hw: 0.2, h: 0.65, speed: 1.4 },
 };
 
@@ -69,7 +71,7 @@ function buildModel(type, mat, woolColor, sheared) {
   const legs = [];
   const add = (geo, px = 0, py = 0, pz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); group.add(m); return m; };
   const leg = (w, h, rgb, x, z, top) => { const m = add(box(w, h, w, rgb, 0, -h / 2, 0), x, top, z); legs.push(m); return m; };
-  let head, wool = null;
+  let head, wool = null, tail = null, collar = null;
 
   if (type === 'pig') {
     const pink = [240, 165, 165];
@@ -105,6 +107,32 @@ function buildModel(type, mat, woolColor, sheared) {
       box(0.46, 0.2, 0.3, WOOL_RGB[woolColor] || WHITE, 0, 0.2, 0.12),
       box(0.07, 0.07, 0.02, BLACK, -0.11, 0.03, 0.4), box(0.07, 0.07, 0.02, BLACK, 0.11, 0.03, 0.4),
     ]), 0, 1.0, 0.45);
+  } else if (type === 'dog') {
+    const fur = [205, 150, 85], dark = [120, 80, 45], cream = [240, 225, 200];
+    add(merge([box(0.4, 0.38, 0.8, fur, 0, 0.55, 0), box(0.3, 0.2, 0.3, cream, 0, 0.45, 0.25)]));
+    for (const [x, z] of [[-0.12, 0.28], [0.12, 0.28], [-0.12, -0.28], [0.12, -0.28]]) leg(0.14, 0.38, fur, x, z, 0.38);
+    head = add(merge([
+      box(0.4, 0.38, 0.36, fur, 0, 0, 0.12),
+      box(0.22, 0.16, 0.18, cream, 0, -0.08, 0.36), box(0.08, 0.06, 0.04, BLACK, 0, -0.02, 0.46),
+      box(0.1, 0.18, 0.08, dark, -0.17, 0.2, 0.05), box(0.1, 0.18, 0.08, dark, 0.17, 0.2, 0.05),
+      box(0.06, 0.06, 0.02, BLACK, -0.1, 0.06, 0.31), box(0.06, 0.06, 0.02, BLACK, 0.1, 0.06, 0.31),
+    ]), 0, 0.8, 0.42);
+    tail = add(box(0.08, 0.08, 0.32, fur, 0, 0, -0.14), 0, 0.68, -0.4);
+    tail.rotation.x = -0.6;
+    collar = add(box(0.42, 0.08, 0.1, [210, 40, 40], 0, 0, 0), 0, 0.66, 0.36);
+  } else if (type === 'cat') {
+    const fur = [235, 150, 60], stripe = [190, 100, 35], pink = [240, 150, 160];
+    add(merge([box(0.3, 0.28, 0.66, fur, 0, 0.42, 0), box(0.31, 0.06, 0.5, stripe, 0, 0.53, 0)]));
+    for (const [x, z] of [[-0.09, 0.24], [0.09, 0.24], [-0.09, -0.24], [0.09, -0.24]]) leg(0.1, 0.28, fur, x, z, 0.28);
+    head = add(merge([
+      box(0.32, 0.28, 0.28, fur, 0, 0, 0.08),
+      box(0.08, 0.1, 0.06, fur, -0.1, 0.18, 0.06), box(0.08, 0.1, 0.06, fur, 0.1, 0.18, 0.06),
+      box(0.06, 0.04, 0.02, pink, 0, -0.04, 0.23),
+      box(0.06, 0.07, 0.02, [90, 200, 90], -0.08, 0.04, 0.225), box(0.06, 0.07, 0.02, [90, 200, 90], 0.08, 0.04, 0.225),
+    ]), 0, 0.62, 0.36);
+    tail = add(box(0.06, 0.06, 0.4, fur, 0, 0, -0.2), 0, 0.5, -0.32);
+    tail.rotation.x = -1.0;
+    collar = add(box(0.33, 0.06, 0.08, [210, 40, 40], 0, 0, 0), 0, 0.5, 0.3);
   } else {
     const yellow = [235, 175, 40];
     add(merge([
@@ -119,7 +147,8 @@ function buildModel(type, mat, woolColor, sheared) {
       box(0.05, 0.05, 0.02, BLACK, -0.08, 0.07, 0.1), box(0.05, 0.05, 0.02, BLACK, 0.08, 0.07, 0.1),
     ]), 0, 0.72, 0.22);
   }
-  return { group, head, legs, wool };
+  if (collar) collar.visible = false;
+  return { group, head, legs, wool, tail, collar };
 }
 
 // ---------- hearts / effect sprites ----------
@@ -133,6 +162,25 @@ function heartTexture(rgb) {
   t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
   return t;
 }
+
+function nameTag(text) {
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 30px system-ui, sans-serif';
+  const w = Math.ceil(ctx.measureText(text).width) + 24;
+  c.width = w; c.height = 44;
+  ctx.font = 'bold 30px system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath(); ctx.roundRect(0, 0, w, 44, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 12, 23);
+  const tex = new THREE.CanvasTexture(c);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  s.scale.set(w / 44 * 0.32, 0.32, 1);
+  return s;
+}
+
+export const PET_NAMES = ['Biscuit', 'Luna', 'Pepper', 'Max', 'Coco', 'Milo', 'Daisy', 'Ziggy', 'Mochi', 'Bean', 'Nala', 'Pip', 'Sunny', 'Toby', 'Waffles', 'Peanut', 'Cookie', 'Rex', 'Misty', 'Buttons'];
 
 // ---------- the herd ----------
 export class Mobs {
@@ -170,8 +218,10 @@ export class Mobs {
       sheared: !!opts.sheared, regrow: opts.regrow ?? 0, woolColor,
       kept: !!opts.kept, // bred, fed or spawned by the player: never despawns
       soundTimer: 4 + Math.random() * 10, hop: 0,
+      tamed: false, sitting: !!opts.sitting, petName: null, tag: null, wag: 0,
     };
     mob.targetYaw = mob.yaw;
+    if (opts.tamed) this.tame(mob, opts.petName);
     this.applyScale(mob);
     this.scene.add(mob.group);
     this.list.push(mob);
@@ -240,6 +290,7 @@ export class Mobs {
 
     for (const mob of this.list) {
       const d = Math.hypot(mob.pos.x - player.pos.x, mob.pos.z - player.pos.z);
+      if (mob.tamed && !mob.sitting && d > 20) this.teleportToPlayer(mob, player);
       if (d > ACTIVE_DIST || !this.isLoaded(mob.pos.x, mob.pos.z)) continue;
       this.think(mob, dt, player);
 
@@ -287,6 +338,17 @@ export class Mobs {
       mob.group.position.copy(mob.pos);
       mob.group.rotation.y = mob.yaw;
       if (mob.wool) mob.wool.visible = !mob.sheared;
+      if (mob.tail) {
+        mob.wag = Math.max(0, mob.wag - dt);
+        const wagging = mob.wag > 0 || (mob.tamed && Math.hypot(mob.pos.x - player.pos.x, mob.pos.z - player.pos.z) < 4);
+        mob.tail.rotation.y = wagging ? Math.sin(performance.now() / 70) * 0.6 : 0;
+      }
+      // Sitting pose: rear goes down, legs fold.
+      if (mob.sitting) {
+        mob.group.rotation.x = -0.45;
+        mob.group.position.y -= 0.12;
+        mob.legs.forEach((l, i) => { l.rotation.x = i >= 2 ? -1.2 : 0.35; });
+      } else mob.group.rotation.x = 0;
     }
 
     // Effects
@@ -330,12 +392,25 @@ export class Mobs {
           const baby = this.spawn(mob.type, (mob.pos.x + mate.pos.x) / 2, mob.pos.y + 0.2, (mob.pos.z + mate.pos.z) / 2,
             { baby: true, kept: true, woolColor: mob.type === 'sheep' ? (Math.random() < 0.5 ? mob.woolColor : mate.woolColor) : null });
           mob.kept = mate.kept = true;
+          if (mob.tamed) this.tame(baby);
           for (let i = 0; i < 5; i++) this.effect(baby, this.heartMat);
           this.voice(mob);
           this.onBaby?.(baby);
         }
         return;
       }
+    }
+
+    // Pets: sit when asked, otherwise follow their owner.
+    if (mob.tamed) {
+      if (mob.sitting) { mob.walking = false; return; }
+      const d = Math.hypot(player.pos.x - mob.pos.x, player.pos.z - mob.pos.z);
+      if (d > 3.2) {
+        mob.targetYaw = Math.atan2(player.pos.x - mob.pos.x, player.pos.z - mob.pos.z);
+        mob.walking = true; mob.timer = 0.5;
+        return;
+      }
+      if (d < 2) { mob.walking = false; mob.targetYaw = Math.atan2(player.pos.x - mob.pos.x, player.pos.z - mob.pos.z); }
     }
 
     // Babies follow a nearby grown-up of their kind.
@@ -381,6 +456,12 @@ export class Mobs {
       const ground = W.getBlock(x, y, z);
       if (ground !== B.GRASS && ground !== B.SNOWY_GRASS) continue;
       const roll = Math.random();
+      // Now and then a lone dog or cat appears, waiting to be befriended.
+      if (ground === B.GRASS && Math.random() < 0.18 && !this.list.some((m) => TYPES[m.type].pet && !m.tamed)) {
+        const pet = this.spawn(Math.random() < 0.5 ? 'dog' : 'cat', x + 0.5, y + 1, z + 0.5);
+        if (pet && this.collides(pet)) this.remove(pet);
+        return;
+      }
       const type = ground === B.SNOWY_GRASS ? 'sheep' : roll < 0.3 ? 'sheep' : roll < 0.55 ? 'pig' : roll < 0.8 ? 'cow' : 'chicken';
       const n = 2 + Math.floor(Math.random() * 3);
       for (let i = 0; i < n && this.list.length < MAX_MOBS; i++) {
@@ -426,6 +507,14 @@ export class Mobs {
 
   /** Feed an apple. Returns true if the animal accepted it. */
   feed(mob) {
+    if (TYPES[mob.type].pet && !mob.tamed) {
+      this.tame(mob);
+      for (let i = 0; i < 4; i++) this.effect(mob, this.heartMat);
+      mob.wag = 2;
+      this.voice(mob);
+      this.onTame?.(mob);
+      return true;
+    }
     if (mob.baby) { // feeding babies makes them grow faster
       mob.age = Math.min(GROW_TIME, mob.age + GROW_TIME * 0.2);
       for (let i = 0; i < 2; i++) this.effect(mob, this.happyMat);
@@ -447,6 +536,46 @@ export class Mobs {
     return mob.woolColor;
   }
 
+  /** Make a dog or cat your pet: collar, name tag, follows you. */
+  tame(mob, name) {
+    if (!TYPES[mob.type].pet) return false;
+    mob.tamed = true; mob.kept = true;
+    const used = new Set(this.list.filter((m) => m.petName).map((m) => m.petName));
+    const free = PET_NAMES.filter((n) => !used.has(n));
+    const pool = free.length ? free : PET_NAMES;
+    mob.petName = name || pool[Math.floor(Math.random() * pool.length)];
+    if (mob.collar) mob.collar.visible = true;
+    if (mob.tag) mob.group.remove(mob.tag);
+    mob.tag = nameTag(mob.petName);
+    mob.tag.position.set(0, TYPES[mob.type].h + 0.35, 0);
+    mob.group.add(mob.tag);
+    return true;
+  }
+
+  toggleSit(mob) {
+    if (!mob.tamed) return false;
+    mob.sitting = !mob.sitting;
+    mob.walking = false;
+    mob.wag = 1;
+    this.voice(mob);
+    return mob.sitting;
+  }
+
+  teleportToPlayer(mob, player) {
+    const W = this.world;
+    for (let i = 0; i < 8; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const x = Math.floor(player.pos.x + Math.cos(a) * 2), z = Math.floor(player.pos.z + Math.sin(a) * 2);
+      if (!this.isLoaded(x, z)) continue;
+      const y = Math.floor(player.pos.y);
+      for (const dy of [0, 1, -1, 2]) {
+        const p = new THREE.Vector3(x + 0.5, y + dy, z + 0.5);
+        if (!this.collides(mob, p) && SOLID[W.getBlock(x, y + dy - 1, z)]) { mob.pos.copy(p); mob.vel.set(0, 0, 0); return true; }
+      }
+    }
+    return false;
+  }
+
   voice(mob) { this.sfx.animal?.(mob.type, mob.baby); }
 
   effect(mob, mat) {
@@ -463,6 +592,7 @@ export class Mobs {
     return this.list.filter((m) => m.kept).map((m) => ({
       t: m.type, x: +m.pos.x.toFixed(2), y: +m.pos.y.toFixed(2), z: +m.pos.z.toFixed(2), yaw: +m.yaw.toFixed(2),
       baby: m.baby, age: Math.round(m.age), sheared: m.sheared, regrow: Math.round(m.regrow), wool: m.woolColor,
+      tamed: m.tamed || undefined, sit: m.sitting || undefined, name: m.petName || undefined,
     }));
   }
 
@@ -470,7 +600,7 @@ export class Mobs {
     if (!Array.isArray(arr)) return;
     for (const d of arr.slice(0, 64)) {
       if (!TYPES[d.t] || !Number.isFinite(d.x)) continue;
-      this.spawn(d.t, d.x, d.y, d.z, { yaw: d.yaw, baby: d.baby, age: d.age, sheared: d.sheared, regrow: d.regrow, woolColor: d.wool ?? undefined, kept: true });
+      this.spawn(d.t, d.x, d.y, d.z, { yaw: d.yaw, baby: d.baby, age: d.age, sheared: d.sheared, regrow: d.regrow, woolColor: d.wool ?? undefined, kept: true, tamed: d.tamed, sitting: d.sit, petName: d.name });
     }
   }
 }
