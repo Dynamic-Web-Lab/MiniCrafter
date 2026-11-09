@@ -322,11 +322,11 @@ function* exec(stmts, robot) {
     for (const s of list || []) {
       tick();
       switch (s.op) {
-        case 'move': for (let i = 0; i < clampN(s.n ?? 1, 50); i++) { evals = 0; yield { kind: 'move', dir: s.dir }; } break;
-        case 'turn': evals = 0; yield { kind: 'turn', dir: s.dir }; break;
-        case 'dig': evals = 0; yield { kind: 'dig', dir: s.dir || 'forward' }; break;
-        case 'place': evals = 0; yield { kind: 'place', dir: s.dir || 'forward', block: s.block }; break;
-        case 'say': evals = 0; yield { kind: 'say', text: String(s.text ?? '') }; break;
+        case 'move': for (let i = 0; i < clampN(s.n ?? 1, 50); i++) { evals = 0; yield { kind: 'move', dir: s.dir, id: s.id }; } break;
+        case 'turn': evals = 0; yield { kind: 'turn', dir: s.dir, id: s.id }; break;
+        case 'dig': evals = 0; yield { kind: 'dig', dir: s.dir || 'forward', id: s.id }; break;
+        case 'place': evals = 0; yield { kind: 'place', dir: s.dir || 'forward', block: s.block, id: s.id }; break;
+        case 'say': evals = 0; yield { kind: 'say', text: String(s.text ?? ''), id: s.id }; break;
         case 'repeat': for (let i = 0; i < clampN(s.times, 1000); i++) { tick(); yield* run(s.body); } break;
         case 'while': { let n = 0; while (robot.test(s.cond)) { tick(); if (++n > 1000) throw kidError('That loop went around 1000 times, so I stopped.'); yield* run(s.body); } break; }
         case 'if': if (robot.test(s.cond)) yield* run(s.then); else yield* run(s.else); break;

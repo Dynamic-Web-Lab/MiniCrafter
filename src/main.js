@@ -85,7 +85,7 @@ const robot = new Robot({
     dirtySave = true;
     return true;
   },
-  onAction: (a) => { if (a.kind === 'move') quests.emit('robot', { kind: 'move', dir: a.dir }); },
+  onAction: (a) => { robotUI?.highlight(a.id); if (a.kind === 'move') quests.emit('robot', { kind: 'move', dir: a.dir }); },
   onDone: (result) => { if (result === 'done') { sfx.fanfare?.(); quests.emit('robot', { kind: 'done' }); } },
 });
 
@@ -153,6 +153,7 @@ function startWorld(seedStr, saved, newMode) {
     if (Array.isArray(saved.hotbar) && saved.hotbar.length === 9) saved.hotbar.forEach((id, i) => { if (ITEMS.has(id)) creativeBar[i] = id; });
     mobs.load(saved.mobs);
     robot.load(saved.robot);
+    robotUI.setState(saved.robotCode || null);
     quests.load(saved.quests);
     selected = saved.selected | 0;
     timeOfDay = saved.time ?? timeOfDay;
@@ -170,6 +171,7 @@ function startWorld(seedStr, saved, newMode) {
   } else {
     timeOfDay = 0.08;
     mode = newMode || mode;
+    robotUI.setState(null);
     spawnPoint = null;
     spawn();
   }
@@ -204,7 +206,7 @@ function save() {
     edits: world.serializeEdits(),
     player: { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch, flying: player.flying },
     hotbar: creativeBar, selected, time: timeOfDay,
-    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(),
+    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(), robotCode: robotUI.getState(),
   });
   if (ok) dirtySave = false;
 }
@@ -486,6 +488,7 @@ function openQuestBook(fromMenu) {
 const robotUI = new RobotUI({
   getRobot: () => robot,
   onRun: () => { dirtySave = true; },
+  onChange: () => { dirtySave = true; },
   onClose: () => closeOverlay(true),
   onPutAway: () => {
     robot.remove();

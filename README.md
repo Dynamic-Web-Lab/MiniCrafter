@@ -21,7 +21,12 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 Bit is a friendly hovering robot that runs programs one visible step at a time.
 
 - **Getting Bit:** in creative, pick **Robot Bit** from the block picker. In survival, craft it at a Crafting Table from 3 Iron Ingots, 1 Glass and 1 Coal.
-- **Placing and programming:** right-click a block to place Bit; it faces the way you look. Right-click Bit to open its panel: pick a starter program (tower, wall, stairs, tunnel, walk a square, explore) and watch it work. You can run at 1×/2×/4× speed and stop any time.
+- **Placing:** right-click a block to place Bit; it faces the way you look.
+- **Programming:** right-click Bit to open its panel and build a program from drag-and-drop **code blocks** (powered by [Blockly](https://developers.google.com/blockly)). The blocks are move, turn, dig, place, say, repeat, repeat while, if/else, and the checks "there is a block", "the block is…" and "not".
+- **Running:** press **▶ Run**. The block Bit is doing lights up, and you can run at 1×/2×/4× speed and stop any time.
+- **Starter programs** (tower, wall, stairs, tunnel, walk a square, explore) load into the editor so you can change them.
+- **👀 See the code** shows the same program as JavaScript-style text for older kids.
+- Your program is saved with the world. The code blocks load from the internet the first time you open the panel; offline, the starter programs still work.
 - **Building:** Bit places the block you're holding. In survival it uses your blocks and hands you what it digs.
 - **Safety:** Bit can't break bedrock and stays within 64 blocks of you. If something is in the way, Bit shakes its head, says why, and carries on. Runaway loops are stopped with a friendly message.
 
@@ -136,7 +141,8 @@ src/mobs.js       Friendly animals: models, wandering AI, breeding, shearing
 src/touch.js      On-screen joystick, look-drag, tap/hold and buttons for tablets
 src/quests.js     Learning quests, stars and progress tracking
 src/robot.js      Bit the robot: model, program interpreter, animated actions
-src/robotui.js    Bit's side panel (starter programs, speed, stop)
+src/robotui.js    Bit's side panel: code editor, run/stop, speed, starter programs
+src/robotblocks.js Blockly blocks, workspace <-> program conversion, code view
 src/textures.js   Procedural texture atlas + hotbar icons
 src/sky.js        Day/night, sun, moon, stars, clouds
 src/particles.js  Block-break particles

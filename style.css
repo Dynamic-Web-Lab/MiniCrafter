@@ -163,7 +163,7 @@ body.touch .qt-key { display: none; }
 .qb-item .tag { font-size: .7rem; padding: 1px 6px; border-radius: 4px; background: #3a4255; margin-left: 6px; font-weight: 400; }
 
 /* Robot panel (docked so you can watch Bit work) */
-#robot-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%); z-index: 21; overflow: auto; padding: 18px; background: rgba(20, 24, 34, .94); border-left: 2px solid #3a4255; box-shadow: -10px 0 40px rgba(0,0,0,.4); }
+#robot-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(600px, 100%); z-index: 21; overflow: auto; padding: 18px; background: rgba(20, 24, 34, .94); border-left: 2px solid #3a4255; box-shadow: -10px 0 40px rgba(0,0,0,.4); }
 #robot-panel h2 { margin: 0; }
 #robot-panel h3 { margin: 14px 0 6px; font-size: .95rem; color: #cfd6e4; }
 .rb-head { display: flex; gap: 12px; align-items: center; }
@@ -176,3 +176,10 @@ body.touch .qt-key { display: none; }
 .rb-ex { text-align: left; font-size: .85rem; }
 .rb-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 12px; }
 .rb-row > button { flex: 1; }
+#rb-blockly { height: 46vh; min-height: 300px; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 2px solid #3a4255; }
+#rb-blockly.hidden { display: none; }
+button.go { background: #3f7d2a; border-color: #66b043; font-weight: 700; }
+button.go:hover { background: #4a9132; }
+#rb-code { margin: 10px 0 0; padding: 10px; background: #0e121b; border-radius: 6px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #b8f28f; white-space: pre-wrap; max-height: 24vh; overflow: auto; user-select: text; }
+.blocklyToolboxDiv { font-family: system-ui, sans-serif; }
+.blocklyWidgetDiv, .blocklyDropDownDiv, .blocklyTooltipDiv { z-index: 40 !important; }
