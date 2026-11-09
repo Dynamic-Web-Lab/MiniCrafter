@@ -79,11 +79,10 @@
         </label>
       </div>
 
-      <div class="section row">
-        <input id="seed" type="text" placeholder="World seed (text or number)" maxlength="40">
-        <button id="btn-new">New world</button>
+      <div class="section world-row">
+        <div><span class="note">World</span><div id="world-name">—</div><div class="note" id="world-info"></div></div>
+        <button id="btn-worlds" type="button">🗂 My worlds</button>
       </div>
-      <p class="note" id="world-info"></p>
 
       <details>
         <summary>Controls</summary>
@@ -134,6 +133,26 @@
       </div>
     </div>
     <div id="cursor-stack" class="hidden"></div>
+  </div>
+
+  <div id="worlds" class="overlay hidden">
+    <div class="panel wide">
+      <h2>🗂 My worlds</h2>
+      <p class="note">Each world keeps its own buildings, animals, pets, robot program and stars.</p>
+      <div id="world-list"></div>
+      <h3 class="w-h3">✨ Make a new world</h3>
+      <div class="new-world">
+        <input id="nw-name" type="text" maxlength="30" placeholder="World name">
+        <input id="nw-seed" type="text" maxlength="40" placeholder="Seed (optional: same seed = same world)">
+        <div class="seg"><button id="nw-creative" type="button" class="on">Creative</button><button id="nw-survival" type="button">Survival</button></div>
+        <button id="nw-create" class="go" type="button">Create</button>
+      </div>
+      <div class="rb-row">
+        <button id="w-import" type="button">⬆ Import a world file</button>
+        <input id="w-import-file" type="file" accept=".json,application/json" hidden>
+      </div>
+      <button id="w-done" class="primary done">Done</button>
+    </div>
   </div>
 
   <div id="questbook" class="overlay hidden">

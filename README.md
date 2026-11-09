@@ -86,7 +86,8 @@
 - 🌅 **Day and night:** sunsets, a sun and moon, stars and drifting clouds.
 - 🧱 **31 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
 - 🏊 **Swimming** with an underwater view, sprinting, jumping and flying (creative).
-- 💾 **Auto-save:** your world, inventory, animals, robot program and stars are kept in the browser.
+- 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
+- 💾 **Auto-save:** each world's buildings, inventory, animals, pets, robot program and stars are kept in the browser.
 
 ## 🧸 Made for kids
 
@@ -213,6 +214,7 @@ src/quests.js       Quests, stars and progress tracking
 src/robot.js        Bit: model, program interpreter, animated actions
 src/robotui.js      Bit's panel: code editor, run/stop, speed, starters
 src/robotblocks.js  Blockly blocks, workspace <-> program conversion, code view
+src/worlds.js       Saved worlds list, export / import
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds
 src/particles.js    Block-break particles
@@ -227,7 +229,7 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-- 🗂️ **Several worlds and offline play:** a world list for siblings and classrooms, and a game that works without internet
+- 📶 **Offline play:** install it like an app and play without internet
 - 🔦 **Torches and dark caves:** real light, so caves are spooky-but-safe to explore
 - 🏘️ **Villages and trading:** friendly villagers and swapping items (counting practice!)
 - 👫 **Play with friends:** only with strong child-safety design (private rooms, no free chat)

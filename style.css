@@ -183,3 +183,17 @@ button.go:hover { background: #4a9132; }
 #rb-code { margin: 10px 0 0; padding: 10px; background: #0e121b; border-radius: 6px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #b8f28f; white-space: pre-wrap; max-height: 24vh; overflow: auto; user-select: text; }
 .blocklyToolboxDiv { font-family: system-ui, sans-serif; }
 .blocklyWidgetDiv, .blocklyDropDownDiv, .blocklyTooltipDiv { z-index: 40 !important; }
+
+/* Worlds */
+.world-row { display: flex !important; align-items: center; justify-content: space-between; gap: 10px; }
+#world-name { font-weight: 700; font-size: 1.05rem; }
+#world-list { display: grid; gap: 6px; max-height: 42vh; overflow: auto; margin-top: 8px; }
+.w-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; background: #232a3b; border-radius: 6px; border: 2px solid transparent; }
+.w-item.current { border-color: #66b043; }
+.w-item .w-name { font-weight: 700; }
+.w-item .w-meta { font-size: .78rem; color: #aab3c5; }
+.w-item .w-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.w-item .w-actions button { padding: 5px 9px; font-size: .82rem; }
+.w-h3 { margin: 16px 0 6px; font-size: 1rem; }
+.new-world { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 6px; align-items: center; }
+@media (max-width: 700px) { .new-world { grid-template-columns: 1fr; } }

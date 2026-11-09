@@ -16,8 +16,8 @@ import { TouchControls, isTouchDevice } from './touch.js';
 import { Quests, QUESTS } from './quests.js';
 import { Robot, EXAMPLES } from './robot.js';
 import { RobotUI } from './robotui.js';
+import { WorldStore } from './worlds.js';
 
-const SAVE_KEY = 'minicrafter:save:v1';
 const SETTINGS_KEY = 'minicrafter:settings:v1';
 const REACH = 6;
 const ACTION_REPEAT = 0.22;
@@ -183,8 +183,9 @@ function startWorld(seedStr, saved, newMode) {
     spawn();
   }
   if (!spawnPoint) spawnPoint = findSpawnColumn();
-  $('seed').value = seedStr;
-  $('world-info').textContent = `Seed: ${seedStr}`;
+  const meta = worlds.get(currentWorldId);
+  $('world-name').textContent = meta?.name || 'My World';
+  $('world-info').textContent = `Seed: ${seedStr} · ${mode === 'survival' ? 'Survival' : 'Creative'}`;
   refreshMode();
 }
 
@@ -206,15 +207,18 @@ function spawn() {
   player.spawnAt(spawnPoint[0], spawnPoint[1]);
 }
 
+const worlds = new WorldStore();
+let currentWorldId = null;
+
 function save() {
-  if (!world) return;
-  const ok = store.set(SAVE_KEY, {
+  if (!world || !currentWorldId) return;
+  const ok = worlds.save(currentWorldId, {
     seed: seedText,
     edits: world.serializeEdits(),
     player: { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch, flying: player.flying },
     hotbar: creativeBar, selected, time: timeOfDay,
     mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(), robotCode: robotUI.getState(),
-  });
+  }, { mode, stars: quests.stars });
   if (ok) dirtySave = false;
 }
 setInterval(() => { if (dirtySave || state === 'playing') save(); }, 5000);
@@ -585,13 +589,107 @@ $('craft-done').addEventListener('click', () => closeOverlay(true));
 $('qb-done').addEventListener('click', () => closeOverlay(true));
 $('btn-quests').addEventListener('click', () => openQuestBook(true));
 $('qt-head').addEventListener('click', () => { if (state === 'playing') openQuestBook(false); });
-$('btn-new').addEventListener('click', () => {
-  const s = $('seed').value.trim() || String(Math.floor(Math.random() * 1e9));
-  if (world && world.edits.size && !confirm('Start a new world? Your current world will be replaced.')) return;
-  store.set(SAVE_KEY, null);
-  startWorld(s, null, mode);
+// ---------- worlds screen ----------
+/** Switches to a saved world (saving the current one first). */
+function openWorld(id) {
+  const meta = worlds.get(id);
+  if (!meta) return;
+  if (currentWorldId && currentWorldId !== id) save();
+  currentWorldId = id;
+  worlds.setCurrent(id);
+  const data = worlds.load(id);
+  if (data && data.seed != null) startWorld(String(data.seed), data);
+  else startWorld(meta.seed, null, meta.mode);
   save();
   loadingShown = true;
+}
+
+function createWorld(name, seed, newMode) {
+  const w = worlds.add({ name, seed: seed || String(Math.floor(Math.random() * 1e9)), mode: newMode });
+  openWorld(w.id);
+  return w;
+}
+
+let newWorldMode = 'creative';
+const ago = (t) => {
+  const s = (Date.now() - t) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} days ago`;
+};
+
+function renderWorlds() {
+  save();
+  const box = $('world-list');
+  box.innerHTML = '';
+  for (const w of worlds.sorted()) {
+    const el = document.createElement('div');
+    el.className = 'w-item' + (w.id === currentWorldId ? ' current' : '');
+    el.innerHTML = `<div><div class="w-name"></div><div class="w-meta">${w.mode === 'survival' ? '❤️ Survival' : '🎨 Creative'} · ⭐ ${w.stars || 0} · seed ${String(w.seed).slice(0, 14)} · ${ago(w.played)}</div></div>
+      <div class="w-actions">
+        ${w.id === currentWorldId ? '<button disabled>Playing</button>' : '<button data-a="play" class="go">▶ Play</button>'}
+        <button data-a="rename" title="Rename">✏️</button>
+        <button data-a="export" title="Download a copy">⬇</button>
+        <button data-a="delete" title="Delete">🗑</button>
+      </div>`;
+    el.querySelector('.w-name').textContent = w.name; // user text: never as HTML
+    el.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => worldAction(b.dataset.a, w)));
+    box.appendChild(el);
+  }
+  $('nw-name').placeholder = worlds.suggestName();
+  $('nw-creative').classList.toggle('on', newWorldMode === 'creative');
+  $('nw-survival').classList.toggle('on', newWorldMode === 'survival');
+}
+
+function worldAction(action, w) {
+  if (action === 'play') { openWorld(w.id); closeWorlds(); }
+  else if (action === 'rename') {
+    const name = prompt('New name for this world:', w.name);
+    if (name) { worlds.rename(w.id, name); if (w.id === currentWorldId) $('world-name').textContent = worlds.get(w.id).name; renderWorlds(); }
+  } else if (action === 'export') {
+    save();
+    const url = URL.createObjectURL(worlds.exportBlob(w.id));
+    const a = document.createElement('a');
+    a.href = url; a.download = `${w.name.replace(/[^\w -]+/g, '').trim() || 'world'}.minicrafter.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } else if (action === 'delete') {
+    if (!confirm(`Delete "${w.name}" forever? This cannot be undone.`)) return;
+    const wasCurrent = w.id === currentWorldId;
+    worlds.remove(w.id);
+    if (wasCurrent) {
+      currentWorldId = null;
+      const next = worlds.sorted()[0];
+      if (next) openWorld(next.id); else createWorld('', '', 'creative');
+    }
+    renderWorlds();
+  }
+}
+
+function openWorlds() { renderWorlds(); $('worlds').classList.remove('hidden'); }
+function closeWorlds() { $('worlds').classList.add('hidden'); }
+
+$('btn-worlds').addEventListener('click', openWorlds);
+$('w-done').addEventListener('click', closeWorlds);
+$('nw-creative').addEventListener('click', () => { newWorldMode = 'creative'; renderWorlds(); });
+$('nw-survival').addEventListener('click', () => { newWorldMode = 'survival'; renderWorlds(); });
+$('nw-create').addEventListener('click', () => {
+  createWorld($('nw-name').value || $('nw-name').placeholder, $('nw-seed').value.trim(), newWorldMode);
+  $('nw-name').value = ''; $('nw-seed').value = '';
+  closeWorlds();
+  toast('New world created!');
+});
+$('w-import').addEventListener('click', () => $('w-import-file').click());
+$('w-import-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const w = worlds.importText(await file.text());
+    renderWorlds();
+    toast(`Imported "${w.name}"`);
+  } catch { alert('That file is not a MiniCrafter world.'); }
 });
 
 // ---------- damage & death ----------
@@ -1044,16 +1142,17 @@ window.addEventListener('resize', () => {
 
 // ---------- boot ----------
 buildCreativePicker();
-const saved = store.get(SAVE_KEY);
-if (saved && saved.seed != null) startWorld(String(saved.seed), saved);
-else startWorld(String(Math.floor(Math.random() * 1e9)), null, 'creative');
+// Open the last world played (old single saves were migrated by WorldStore).
+const lastId = worlds.currentId && worlds.get(worlds.currentId) ? worlds.currentId : worlds.sorted()[0]?.id;
+if (lastId) openWorld(lastId);
+else createWorld('', '', 'creative');
 $('btn-play').disabled = true;
 requestAnimationFrame(frame);
 
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */
