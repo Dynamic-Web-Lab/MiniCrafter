@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { Perlin, fbm2, hash2, hash3, smoothstep } from './noise.js';
 import { B, BLOCKS, OPAQUE, TRANSPARENT, LIGHT } from './blocks.js';
 import { tileUV } from './textures.js';
+import { villagesNear, stampVillage } from './villages.js';
 
 export const CS = 16;   // chunk size (x, z)
 export const CH = 96;   // world height
@@ -285,6 +286,11 @@ export class World {
       }
       const density = T.forest(tx, tz) > 0.12 ? 32 : 4;
       if (roll < density) this.placeTree(chunk, tx, h, tz, r);
+    }
+
+    // Villages (deterministic per region, may span several chunks).
+    for (const v of villagesNear(T, x0, z0, x0 + CS - 1, z0 + CS - 1)) {
+      stampVillage(v, (x, y, z, id) => this.setLocal(chunk, x, y, z, id, false), (x, z) => T.column(x, z).h);
     }
 
     // Player edits win over generation.

@@ -17,6 +17,7 @@ import { Quests, QUESTS } from './quests.js';
 import { Robot, EXAMPLES } from './robot.js';
 import { RobotUI } from './robotui.js';
 import { WorldStore } from './worlds.js';
+import { TRADES, JOB_INFO } from './villages.js';
 
 const SETTINGS_KEY = 'minicrafter:settings:v1';
 const REACH = 6;
@@ -530,6 +531,55 @@ const robotUI = new RobotUI({
   },
 });
 
+// ---------- villager trading ----------
+let tradeWith = null;
+function openTrade(mob) {
+  clearInput();
+  touch?.setEnabled(false);
+  state = 'trade';
+  tradeWith = mob;
+  mobs.voice(mob);
+  quests.emit('meetVillager', { job: mob.job });
+  renderTrade();
+  $('trade').classList.remove('hidden');
+  document.exitPointerLock();
+}
+
+function renderTrade() {
+  const mob = tradeWith;
+  const info = JOB_INFO[mob.job];
+  $('tr-title').textContent = `🤝 ${mob.villagerName} the ${info.title}`;
+  $('tr-note').textContent = isSurvival()
+    ? 'Swap your things for theirs. Count carefully!'
+    : 'Trading uses your survival inventory. Switch to Survival mode to trade.';
+  const box = $('tr-list');
+  box.innerHTML = '';
+  for (const t of TRADES[mob.job]) {
+    const [gid, gn] = t.give, [rid, rn] = t.get;
+    const have = isSurvival() ? inv.count(gid) : 0;
+    const ok = isSurvival() && have >= gn && inv.canFit(rid, rn);
+    const row = document.createElement('div');
+    row.className = 'trade' + (ok ? ' ok' : '');
+    row.innerHTML = `<div class="side"><img alt="" src="${icon(gid)}"><div>${gn} × ${itemName(gid)}<div class="have ${have < gn ? 'short' : ''}">You have ${have}</div></div></div>
+      <span class="arrow">➜</span>
+      <div class="side"><img alt="" src="${icon(rid)}"><div>${rn} × ${itemName(rid)}</div></div>
+      <button class="go" ${ok ? '' : 'disabled'}>Trade</button>`;
+    row.querySelector('button').addEventListener('click', () => {
+      if (!(isSurvival() && inv.count(gid) >= gn && inv.canFit(rid, rn))) return;
+      inv.remove(gid, gn);
+      inv.add(rid, rn);
+      sfx.craft();
+      mobs.effect(mob, mobs.happyMat);
+      renderHotbar();
+      quests.emit('trade', { job: mob.job });
+      dirtySave = true;
+      renderTrade();
+    });
+    box.appendChild(row);
+  }
+}
+$('tr-done').addEventListener('click', () => closeOverlay(true));
+
 function openRobotPanel() {
   clearInput();
   touch?.setEnabled(false);
@@ -542,6 +592,7 @@ function openRobotPanel() {
 function closeOverlay(relock) {
   $('inventory').classList.add('hidden');
   if (state === 'robot') robotUI.close();
+  if (state === 'trade') { $('trade').classList.add('hidden'); tradeWith = null; }
   if (state === 'questbook') {
     $('questbook').classList.add('hidden');
     if (bookFromMenu) { state = 'menu'; return; }
@@ -723,7 +774,7 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyQ' || e.code === 'Escape') closeOverlay(e.code === 'KeyQ');
     return;
   }
-  if (state === 'robot') {
+  if (state === 'robot' || state === 'trade') {
     if (e.code === 'Escape') closeOverlay(false);
     return;
   }
@@ -919,6 +970,11 @@ function actMob(now) {
   const mob = mobTarget;
   const held = heldItem();
   mouse.nextAction = now + 0.45;
+  if (mob.type === 'villager') {
+    if (mouse.right) { mouse.right = false; openTrade(mob); }
+    else { mobs.pat(mob, player); }
+    return;
+  }
   if (mouse.left) {
     if (mob.tamed) { mob.wag = 2; mobs.effect(mob, mobs.happyMat); mobs.voice(mob); }
     else mobs.pat(mob, player);
