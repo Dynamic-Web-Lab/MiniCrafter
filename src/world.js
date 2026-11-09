@@ -374,6 +374,14 @@ export class World {
     return null;
   }
 
+  /** The block the player placed at (x,y,z), or 0 if it is natural terrain / air. */
+  placedBlock(x, y, z) {
+    if (y < 0 || y >= CH) return 0;
+    const cx = Math.floor(x / CS), cz = Math.floor(z / CS);
+    const id = this.edits.get(ckey(cx, cz))?.get(idx(x - cx * CS, y, z - cz * CS));
+    return id && id !== B.WATER ? id : 0;
+  }
+
   // ---------- persistence ----------
   serializeEdits() {
     const out = {};

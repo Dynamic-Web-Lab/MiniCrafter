@@ -16,6 +16,45 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 - **Settings.** Render distance (3–12 chunks), mouse sensitivity and FOV.
 - **Debug screen.** `F3` shows FPS, coordinates, chunk, biome, target block and draw calls.
 
+## Learning quests
+
+A quest tracker (top right) always shows the next 3 goals with progress bars. Press `Q`, or tap the tracker, to open the **quest book** with all quests and the stars you've earned. Finishing a quest plays a short celebration and awards 1–3 ⭐. Some survival quests also give apples.
+
+The 23 quests teach:
+- **Controls:** walking, jumping, swimming and climbing.
+- **Animal names:** pat a pig, a cow and a sheep.
+- **Counting:** "Count to 10" by placing blocks.
+- **Colours:** "Rainbow Builder" asks for 4 wool colours.
+- **Shapes:** a 5-tall tower and a 3 × 3 square floor.
+- **Simple maths:** "Break 3 + 4 dirt" reveals "3 + 4 = 7", and there's a "2 × 3 glass" quest.
+- **Nature:** shearing sheep, raising a baby animal, and staying up to see the stars.
+- **Survival progression (survival only):** first log → crafting table → pickaxe → stone → furnace → glass → iron → diamond.
+
+Quest progress is saved with each world.
+
+## Friendly animals
+
+Pigs, cows, sheep and chickens roam the grasslands in small herds. Nothing can hurt the player, and the animals can't be hurt either.
+
+- **Pat (left click):** the animal hops and makes a happy sound.
+- **Feed an apple (right click):** the animal falls in love (hearts). Two in love walk together and make a **baby**, which follows its parents and grows up after a few minutes. Feeding a baby makes it grow faster.
+- **Shear a sheep (right click without an apple):** you get 1–3 wool in the sheep's colour, and the wool grows back after a minute. Sheep come in white, red, blue, yellow, green and black.
+- **Saving:** animals you have fed, bred or spawned are saved with the world.
+- **Spawn eggs (creative):** right-click a block to place an animal.
+
+## Game modes
+
+Switch between modes at any time from the pause menu (`Esc`).
+
+- **Creative:** unlimited blocks, instant breaking and flying.
+- **Survival (gentle, made for kids):** there are no monsters and no hunger.
+  - **Mining:** mining takes time. Better tools mine faster, and ores need the right pickaxe (iron needs Stone, gold and diamond need Iron).
+  - **Crafting:** blocks drop items into a 36-slot inventory. Press `E` for the recipe book: click a recipe to craft it, with no grid patterns to learn. Some recipes need a Crafting Table or Furnace within 4 blocks.
+  - **Tools:** Wooden, Stone, Iron and Diamond pickaxes, axes and shovels.
+  - **Hearts:** you have 10 hearts. Only big falls (more than 4 blocks) and running out of air underwater hurt you. Hearts come back slowly, and apples (sometimes dropped by leaves) heal.
+  - **Fainting:** if you faint, you respawn and keep all your items.
+  - **Tips:** one-time tips guide new players ("hold left click on a tree trunk…").
+
 ## Controls
 
 | Action | Control |
@@ -24,14 +63,36 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 | Look | Mouse |
 | Jump / swim up / fly up | `Space` |
 | Sprint (fly down while flying) | `Shift` |
-| Toggle flying | `F` |
+| Toggle flying (creative) | `F` |
 | Break block (hold to repeat) | Left click |
 | Place block (hold to repeat) | Right click |
 | Pick block | Middle click |
+| Pat an animal / feed or shear it | Left click / right click on the animal |
 | Select hotbar slot | `1`–`9` / mouse wheel |
-| Block inventory | `E` |
+| Inventory & crafting (survival) / block picker (creative) | `E` |
+| Eat an apple (survival) | Right click with an apple |
+| Quest book | `Q` |
 | Debug info | `F3` |
 | Pause / settings | `Esc` |
+
+### Tablets and phones
+
+Touch controls switch on automatically on touch devices. You can force them with `?touch=1`, or turn them off with `?touch=0`.
+
+| Action | Touch |
+| :--- | :--- |
+| Walk | Left joystick |
+| Look | Drag anywhere on the right side |
+| Place / use / feed / shear | Quick tap |
+| Mine / pat an animal | Press and hold |
+| Jump (fly up) | ⬆ button |
+| Fly down | ⬇ button (while flying) |
+| Fly on/off (creative) | 🕊️ button |
+| Inventory & crafting | 🎒 button, then **Done** to close |
+| Pause | ⏸ button |
+| Select hotbar slot | Tap the slot |
+
+Tablets start with a render distance of 5 chunks for smoother play.
 
 ## Run locally
 
@@ -43,7 +104,7 @@ cd MiniCrafter
 python3 -m http.server 8765
 ```
 
-Then open http://localhost:8765. It needs a desktop browser with WebGL and a mouse; touch controls are not supported yet.
+Then open http://localhost:8765. It works in desktop browsers with a mouse and keyboard, and on tablets and phones with touch.
 
 ## Deploy
 
@@ -58,6 +119,13 @@ src/main.js       Boot, game loop, input, pointer lock, UI, saving
 src/world.js      Chunks, terrain generation, meshing + AO, raycast, streaming
 src/player.js     Player physics and collision
 src/blocks.js     Block registry (IDs are saved, never renumber them)
+src/items.js      Items, tools, mining rules, drops, recipes, item icons
+src/inventory.js  36-slot survival inventory
+src/survival.js   Hearts, breath, fall damage, regen, timed mining + cracks
+src/craftui.js    Inventory + recipe-book crafting screen
+src/mobs.js       Friendly animals: models, wandering AI, breeding, shearing
+src/touch.js      On-screen joystick, look-drag, tap/hold and buttons for tablets
+src/quests.js     Learning quests, stars and progress tracking
 src/textures.js   Procedural texture atlas + hotbar icons
 src/sky.js        Day/night, sun, moon, stars, clouds
 src/particles.js  Block-break particles
@@ -67,13 +135,10 @@ src/noise.js      Seeded Perlin noise and hashes
 
 To add a block, add a tile painter in `textures.js` and a `def(...)` line in `blocks.js`.
 
-In the browser console, `window.minicrafter` exposes `world`, `player` and `save()` for debugging.
+In the browser console, `window.minicrafter` exposes `world`, `player`, `inv`, `save()`, `setMode()` and `step(n)` for debugging. `step(n)` advances n frames by hand, which is useful when the tab is in the background.
 
 ## Roadmap ideas
 
-- Survival mode: health, hunger, block drops, an inventory with counts, crafting
-- Mobs (passive animals first)
 - Voxel lighting (torches, darkness in caves)
 - Flowing water
 - Generating chunks in a Web Worker for smoother streaming
-- Touch controls for mobile

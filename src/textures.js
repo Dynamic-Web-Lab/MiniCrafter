@@ -4,7 +4,7 @@ import { mulberry32 } from './noise.js';
 
 export const T = 16;          // tile size in px
 export const COLS = 8;
-export const ROWS = 4;
+export const ROWS = 6;
 export const ATLAS_W = COLS * T;
 export const ATLAS_H = ROWS * T;
 
@@ -13,6 +13,7 @@ export const TILE = {
   LEAVES: 8, PLANKS: 9, GLASS: 10, BRICK: 11, SNOW: 12, COAL: 13, IRON: 14, WATER: 15,
   BEDROCK: 16, GRAVEL: 17, CACTUS_SIDE: 18, CACTUS_TOP: 19, GOLD: 20, SNOW_SIDE: 21, SANDSTONE: 22, STONE_BRICK: 23,
   WOOL_WHITE: 24, WOOL_RED: 25, WOOL_BLUE: 26, WOOL_YELLOW: 27, WOOL_GREEN: 28, WOOL_BLACK: 29, LAMP: 30, DIAMOND: 31,
+  CRAFT_TOP: 32, CRAFT_SIDE: 33, FURNACE_FRONT: 34, FURNACE_TOP: 35,
 };
 
 export function tileUV(tile) {
@@ -147,6 +148,27 @@ export function createAtlas() {
   paint(TILE.LAMP, (x, y) => {
     const edge = x === 0 || y === 0 || x === T - 1 || y === T - 1 || x === 7 || y === 7;
     return edge ? vary([150, 110, 60], 0.1) : vary([255, 225, 140], 0.12);
+  });
+
+  // Crafting table: plank top with a tool grid; sides show saw + hammer silhouettes.
+  paint(TILE.CRAFT_TOP, (x, y) => {
+    if (x === 0 || y === 0 || x === T - 1 || y === T - 1) return vary([110, 80, 45], 0.1);
+    if (x === 5 || x === 10 || y === 5 || y === 10) return vary([95, 68, 38], 0.1);
+    return vary([175, 140, 86], 0.1);
+  });
+  paint(TILE.CRAFT_SIDE, (x, y) => {
+    if (y < 3) return vary([110, 80, 45], 0.1);
+    const saw = x >= 3 && x <= 6 && y >= 5 && y <= 12 && (y - 5) % 2 === 0;
+    const hammer = (x >= 9 && x <= 13 && y >= 5 && y <= 6) || (x === 11 && y >= 7 && y <= 12);
+    if (saw) return [170, 170, 175];
+    if (hammer) return [90, 90, 95];
+    return vary(y % 4 === 3 ? [130, 100, 60] : [160, 125, 76], 0.1);
+  });
+  paint(TILE.FURNACE_TOP, (x, y) => (x === 0 || y === 0 || x === T - 1 || y === T - 1 ? vary([95, 95, 95], 0.1) : vary([140, 140, 140], 0.15)));
+  paint(TILE.FURNACE_FRONT, (x, y) => {
+    if (x >= 4 && x <= 11 && y >= 8 && y <= 13) return y >= 11 ? vary([255, 150, 40], 0.25) : [30, 25, 25];
+    if (x >= 4 && x <= 11 && y >= 3 && y <= 5) return [45, 45, 45];
+    return vary([125, 125, 125], 0.18);
   });
 
   // Ores: stone + clusters of mineral pixels.

@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>MiniCrafter</title>
   <meta name="description" content="A browser voxel sandbox: explore procedural worlds, mine and build.">
   <link rel="stylesheet" href="style.css">
@@ -18,12 +20,33 @@
   <div id="game"></div>
 
   <div id="water-overlay" class="hidden"></div>
+  <div id="damage-flash"></div>
+
+  <div id="touch" class="hidden">
+    <div id="touch-look"></div>
+    <div id="stick"><div id="stick-knob"></div></div>
+    <button class="tbtn" id="t-pause" data-btn="pause" aria-label="Pause">⏸</button>
+    <button class="tbtn" id="t-inv" data-btn="inventory" aria-label="Inventory">🎒</button>
+    <button class="tbtn" id="t-fly" data-btn="fly" aria-label="Fly">🕊️</button>
+    <button class="tbtn big" id="t-jump" data-btn="jump" aria-label="Jump / up">⬆</button>
+    <button class="tbtn" id="t-down" data-btn="down" aria-label="Down">⬇</button>
+  </div>
 
   <div id="hud" class="hidden">
     <div id="crosshair"></div>
     <div id="debug" class="hidden"></div>
     <div id="toast"></div>
     <div id="mode-badge" class="hidden">FLYING</div>
+    <div id="hint"></div>
+    <div id="quest-tracker">
+      <button id="qt-head" type="button"><span id="qt-stars">⭐ 0</span><span class="qt-key">Quests (Q)</span></button>
+      <div id="qt-list"></div>
+    </div>
+    <div id="celebrate"><div class="c-title">Quest complete!</div><div class="c-name"></div><div class="c-stars"></div><div class="c-reveal"></div></div>
+    <div id="status" class="hidden">
+      <div id="hearts"></div>
+      <div id="bubbles"></div>
+    </div>
     <div id="hotbar"></div>
   </div>
 
@@ -33,9 +56,18 @@
       <p class="tag">Explore · Mine · Build</p>
       <p id="loading">Generating world…</p>
       <button id="btn-play" class="primary">Play</button>
+      <button id="btn-quests" class="wide-btn">⭐ Quest book <span id="menu-stars"></span></button>
       <p id="lock-note" class="note"></p>
 
       <div class="section">
+        <div class="mode-pick">
+          <span>Game mode</span>
+          <div class="seg">
+            <button id="mode-creative" type="button">Creative</button>
+            <button id="mode-survival" type="button">Survival</button>
+          </div>
+        </div>
+        <p class="note" id="mode-desc"></p>
         <label>Render distance <span id="rd-val"></span>
           <input id="rd" type="range" min="3" max="12" step="1">
         </label>
@@ -60,16 +92,19 @@
           <tr><td>Mouse</td><td>Look around</td></tr>
           <tr><td>Space</td><td>Jump / swim up / fly up</td></tr>
           <tr><td>Shift</td><td>Sprint (fly down while flying)</td></tr>
-          <tr><td>F</td><td>Toggle flying</td></tr>
+          <tr><td>F</td><td>Toggle flying (creative)</td></tr>
           <tr><td>Left click (hold)</td><td>Break block</td></tr>
           <tr><td>Right click (hold)</td><td>Place block</td></tr>
           <tr><td>Middle click</td><td>Pick block into hotbar</td></tr>
           <tr><td>1–9 / Mouse wheel</td><td>Select hotbar slot</td></tr>
-          <tr><td>E</td><td>Block inventory</td></tr>
+          <tr><td>E</td><td>Inventory &amp; crafting</td></tr>
+          <tr><td>Right click (food)</td><td>Eat an apple (survival)</td></tr>
+          <tr><td>Q</td><td>Quest book</td></tr>
           <tr><td>F3</td><td>Debug info</td></tr>
           <tr><td>Esc</td><td>Pause</td></tr>
         </table>
       </details>
+      <p class="note touch-only">Tablet: left stick walks, drag to look, tap to place, hold to mine.</p>
       <p class="note">Your world is saved automatically in this browser.</p>
     </div>
   </div>
@@ -77,8 +112,45 @@
   <div id="inventory" class="overlay hidden">
     <div class="panel wide">
       <h2>Blocks</h2>
-      <p class="note">Click a block to put it in hotbar slot <b id="inv-slot">1</b>. Press E or Esc to close.</p>
+      <p class="note">Click a block to put it in hotbar slot <b id="inv-slot">1</b>.</p>
       <div id="inv-grid"></div>
+      <button id="inv-done" class="primary done">Done</button>
+    </div>
+  </div>
+
+  <div id="craft" class="overlay hidden">
+    <div class="panel craft-panel">
+      <div class="craft-inv">
+        <h2>Inventory</h2>
+        <p class="note">Click an item to pick it up, then click a slot to put it down.</p>
+        <div id="backpack" class="slot-grid"></div>
+        <div id="craft-hotbar" class="slot-grid hotrow"></div>
+      </div>
+      <div class="craft-recipes">
+        <h2>Crafting</h2>
+        <p class="note" id="station-note"></p>
+        <div id="recipes"></div>
+        <button id="craft-done" class="primary done">Done</button>
+      </div>
+    </div>
+    <div id="cursor-stack" class="hidden"></div>
+  </div>
+
+  <div id="questbook" class="overlay hidden">
+    <div class="panel wide">
+      <h2>⭐ Quest book</h2>
+      <p class="note" id="qb-summary"></p>
+      <div id="qb-list"></div>
+      <button id="qb-done" class="primary done">Done</button>
+    </div>
+  </div>
+
+  <div id="death" class="overlay hidden">
+    <div class="panel center">
+      <h1 class="sad">Oops!</h1>
+      <p id="death-msg">You fainted.</p>
+      <p class="note">Don't worry, you keep all your items.</p>
+      <button id="btn-respawn" class="primary">Try again</button>
     </div>
   </div>
 
