@@ -20,6 +20,7 @@ export const TILE = {
   CONFETTI: 55,
   FLOWER_RED: 56, FLOWER_YELLOW: 57, FLOWER_BLUE: 58, FLOWER_PINK: 59, TALL_GRASS: 60,
   FARMLAND: 61, WHEAT_0: 62, WHEAT_1: 63, WHEAT_2: 64, WHEAT_3: 65, LANTERN: 66,
+  STAR: 67, PORTAL_BLUE: 68, PORTAL_ORANGE: 69, PORTAL_GREEN: 70, PORTAL_PURPLE: 71,
 };
 
 /** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
@@ -273,6 +274,25 @@ export function createAtlas() {
     if ((x === 5 && y === 6) || (x === 10 && y === 9) || (x === 7 && y === 11)) return [255, 255, 200];
     return vary([255, 205, 90], 0.08);
   });
+
+  // Hidden Star: a golden star on deep blue.
+  paint(TILE.STAR, (x, y) => {
+    const dx = x - 7.5, dy = y - 7.5, a = Math.atan2(dy, dx), r = Math.hypot(dx, dy);
+    const edge = 3.2 + 3.3 * Math.pow(Math.abs(Math.cos(a * 2.5 + Math.PI / 2)), 3);
+    if (r < edge) return r < 2 ? [255, 250, 200] : vary([255, 205, 50], 0.06);
+    return vary([40, 50, 120], 0.12);
+  });
+  // Portals: a swirl in each colour.
+  const swirl = (tile, col) => paint(tile, (x, y) => {
+    const dx = x - 7.5, dy = y - 7.5, r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    const band = Math.sin(a * 2 + r * 0.9);
+    if (x === 0 || y === 0 || x === T - 1 || y === T - 1) return col.map((v) => v * 0.45);
+    return band > 0.2 ? col.map((v) => Math.min(255, v * 1.25 + 30)) : col.map((v) => v * 0.75);
+  });
+  swirl(TILE.PORTAL_BLUE, [60, 120, 255]);
+  swirl(TILE.PORTAL_ORANGE, [255, 140, 30]);
+  swirl(TILE.PORTAL_GREEN, [60, 210, 90]);
+  swirl(TILE.PORTAL_PURPLE, [170, 80, 240]);
 
   // Ores: stone + clusters of mineral pixels.
   const ore = (tile, color, clusters) => {

@@ -56,7 +56,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      47 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      49 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">
@@ -120,9 +120,13 @@
 - 🌍 **Endless procedural worlds:** plains, forests, deserts, snowy mountains, beaches, oceans, caves and ores. Share a world with friends by typing the same **seed**.
 - 🌅 **Day and night:** sunsets, a sun and moon, stars and drifting clouds.
 - 🔦 **Real light and dark caves:** sunlight spreads into caves and under roofs, and **torches** (stick + coal) and lamps light up warm, cozy circles. Caves get dark, but never pitch black.
-- 🧱 **59 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
+- 🧱 **64 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
 - 🏊 **Swimming** with an underwater view, sprinting, jumping and flying (creative).
 - 📶 **Works offline and installs like an app:** after the first visit the whole game, including Bit's code editor, is cached, so it keeps working without internet (great for car trips and school Chromebooks). Use **📲 Install MiniCrafter** in the menu, or *Add to Home Screen* on iPad.
+- 🔗 **Share a world with one link:** in **My worlds**, tap 🔗 to copy a link to send to a friend or grandparent. Opening it offers to add the world as a new one; it never overwrites anything, and shared data is strictly checked.
+- ⭐ **Hidden Star treasure hunts:** hide a glowing star in a maze or castle; whoever finds it gets a celebration.
+- 🌀 **Portal doors:** place two portals of the same colour and walk through one to pop out of the other. Great for mazes and puzzle houses.
+- 💡 **Today's building idea:** the menu suggests something fun to build every day ("a spaceship for a hamster!").
 - 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
 - 💾 **Auto-save:** each world's buildings, inventory, animals, pets, robot program and stars are kept in the browser.
 
@@ -210,7 +214,7 @@ Switch at any time from the pause menu (`Esc`).
 
 - **Quest tracker** (top right): shows the next 3 quests plus the next 🤖 coding quest. Press `Q` for the quest book.
 - **Quest list:**
-  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Boing Boing!, Little Composer, Rainbow Garden, Little Farmer, Flutter By, Ribbit!, Best Friend, Animal Family, Firefly Catcher, Party Time, Light the Way, Village Visit, Splash!, Mountain Top, Star Gazer.
+  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Boing Boing!, Little Composer, Rainbow Garden, Little Farmer, Flutter By, Ribbit!, Best Friend, Animal Family, Firefly Catcher, Party Time, Treasure Hunter, Portal Jumper, Light the Way, Village Visit, Splash!, Mountain Top, Star Gazer.
   - **Survival:** Tree Puncher → Crafting Time → My First Tool → Stone Age → Snack Time → Baker → Hot Stuff → Window Maker → Fair Trader → Iron Hunter → Diamond Dreams.
   - **Coding:** Meet Bit → First Program → Loop the Loop → Bit the Builder → Up, Up, Up → Tunnel Digger → My Own Program → Loop Inside a Loop → Smart Robot.
 
@@ -264,6 +268,8 @@ src/robotblocks.js  Blockly blocks, workspace <-> program conversion, code view
 src/worlds.js       Saved worlds list, export / import
 src/tools.js        Power-tool shapes, live preview, undo / redo history
 src/critters.js     Butterflies and fireflies (instanced, near the player)
+src/share.js        Share links: gzip + base64url in the URL hash, strict validation
+src/ideas.js        Daily building ideas
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds
@@ -280,7 +286,7 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-Next up are one-click share links, a Hidden Star treasure hunt, daily building ideas, portal doors and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
+Next up are flowing water and slides, marble runs, music boxes, smoother tablets and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
 
 Have an idea? [Open an issue](https://github.com/Dynamic-Web-Lab/MiniCrafter/issues).
 

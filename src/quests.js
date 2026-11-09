@@ -41,6 +41,8 @@ export const QUESTS = [
   { id: 'baby', track: 'all', icon: '🍼', title: 'Animal Family', text: 'Feed apples to two animals of the same kind and watch what happens.', event: 'baby', count: 1, stars: 3 },
   { id: 'firefly', track: 'all', icon: '✨', title: 'Firefly Catcher', text: 'At night, fireflies blink over the grass. Click or tap 3 of them to catch them in glowing lanterns.', event: 'firefly', count: 3, stars: 2 },
   { id: 'hat', track: 'all', icon: '🎩', title: 'Party Time', text: 'Give your pet a Party Hat, Tiny Crown or Sunglasses (right-click your pet while holding it).', event: 'accessory', count: 1, stars: 2 },
+  { id: 'star', track: 'all', icon: '⭐', title: 'Treasure Hunter', text: 'Someone hides a Hidden Star block somewhere (in a maze or a castle). Find it and click it!', event: 'star', count: 1, stars: 2 },
+  { id: 'portal', track: 'all', icon: '🌀', title: 'Portal Jumper', text: 'Place two portals of the same colour, then walk into one. Where do you pop out?', event: 'portal', count: 1, stars: 2 },
   { id: 'torch', track: 'all', icon: '🔦', title: 'Light the Way', text: 'Place 5 torches to light up a dark cave. Make torches from a stick and coal.', event: 'place', test: (d) => d.id === B.TORCH, count: 5, stars: 2 },
   { id: 'village', track: 'all', icon: '🏘️', title: 'Village Visit', text: 'There is a village near where you started. Find it and say hello to a villager (right-click or tap them).', event: 'meetVillager', count: 1, stars: 2 },
   { id: 'swim', track: 'all', icon: '🏊', title: 'Splash!', text: 'Swim 10 blocks in water. Hold jump to float up.', event: 'swim', count: 10, amount: (d) => d, stars: 1 },
