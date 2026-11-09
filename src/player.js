@@ -25,6 +25,8 @@ export class Player {
     this.inWater = false;
     this.headInWater = false;
     this.hitWall = false;
+    this.fallStart = null; // highest Y since leaving the ground
+    this.onLand = null;    // callback(fallDistance)
   }
 
   get eye() { return new THREE.Vector3(this.pos.x, this.pos.y + EYE, this.pos.z); }
@@ -93,6 +95,15 @@ export class Player {
       this.moveAxis('z', dz / steps);
     }
     if (this.flying && this.onGround) this.flying = false; // land to stop flying
+
+    // Fall tracking (for gentle fall damage in survival).
+    if (this.flying || this.inWater) this.fallStart = null;
+    else if (!this.onGround) this.fallStart = Math.max(this.fallStart ?? this.pos.y, this.pos.y);
+    else if (this.fallStart !== null) {
+      const dist = this.fallStart - this.pos.y;
+      this.fallStart = null;
+      this.onLand?.(dist);
+    }
   }
 
   moveAxis(axis, amt) {
@@ -122,5 +133,6 @@ export class Player {
     let guard = 0;
     while (this.collides() && guard++ < 100) this.pos.y += 1;
     this.vel.set(0, 0, 0);
+    this.fallStart = null;
   }
 }

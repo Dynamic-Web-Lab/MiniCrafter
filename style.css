@@ -51,3 +51,48 @@ table.controls td:first-child { color: #e6c35c; white-space: nowrap; font-weight
 .inv-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; font-size: .72rem; text-align: center; background: #232a3b; }
 .inv-item img { width: 44px; height: 44px; image-rendering: pixelated; }
 .nojs { position: fixed; inset: 0; display: grid; place-items: center; }
+
+/* Game mode picker */
+.mode-pick { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .9rem; color: #cfd6e4; }
+.seg { display: flex; border: 2px solid #4b556b; border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: #1b2030; padding: 6px 12px; }
+.seg button.on { background: #3f7d2a; }
+
+/* Survival HUD */
+#status { position: absolute; bottom: 82px; left: 50%; transform: translateX(-50%); width: 488px; max-width: calc(100% - 32px); display: flex; justify-content: space-between; align-items: flex-end; }
+#hearts, #bubbles { display: flex; gap: 1px; font-size: 19px; line-height: 1; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+.heart { color: #e0302a; }
+.heart.half { background: linear-gradient(90deg, #e0302a 50%, #3a1010 50%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.heart.empty { color: #3a1010; }
+.bubble { color: #8fd3ff; }
+#damage-flash { position: fixed; inset: 0; pointer-events: none; z-index: 6; background: radial-gradient(circle, transparent 40%, rgba(220, 0, 0, .55)); opacity: 0; transition: opacity .4s; }
+#damage-flash.on { opacity: 1; transition: none; }
+#hint { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); max-width: 90%; text-align: center; font-weight: 700; color: #ffe27a; text-shadow: 2px 2px 0 #000; opacity: 0; transition: opacity .4s; }
+#hint.show { opacity: 1; transition: none; }
+.slot .count { position: absolute; right: 3px; bottom: 1px; font-size: 13px; font-weight: 700; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; }
+
+/* Inventory + crafting screen */
+.craft-panel { width: min(980px, 100%); display: grid; grid-template-columns: auto 1fr; gap: 24px; }
+@media (max-width: 860px) { .craft-panel { grid-template-columns: 1fr; } }
+.slot-grid { display: grid; grid-template-columns: repeat(9, 50px); gap: 4px; }
+.slot-grid.hotrow { margin-top: 10px; padding-top: 10px; border-top: 2px dashed #3a4255; }
+.slot-grid .slot { width: 50px; height: 50px; border-width: 2px; cursor: pointer; background: rgba(139,139,139,.25); }
+.slot-grid .slot:hover { border-color: #fff; }
+.slot-grid .slot img { width: 34px; height: 34px; }
+#cursor-stack { position: fixed; width: 44px; height: 44px; pointer-events: none; z-index: 30; transform: translate(-50%, -50%); }
+#cursor-stack img { width: 44px; height: 44px; image-rendering: pixelated; }
+#cursor-stack .count { position: absolute; right: 0; bottom: 0; font-weight: 700; text-shadow: 1px 1px 0 #000; }
+#recipes { display: grid; gap: 6px; max-height: 60vh; overflow: auto; padding-right: 4px; }
+.recipe { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; text-align: left; padding: 6px 10px; background: #232a3b; }
+.recipe img.out { width: 40px; height: 40px; image-rendering: pixelated; }
+.recipe .name { font-weight: 700; }
+.recipe .ins { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; font-size: .8rem; color: #cfd6e4; }
+.recipe .ins span { display: inline-flex; align-items: center; gap: 2px; }
+.recipe .ins img { width: 20px; height: 20px; image-rendering: pixelated; }
+.recipe .ins .missing { color: #ff8a80; }
+.recipe .badge { font-size: .7rem; padding: 2px 6px; border-radius: 4px; background: #3a4255; color: #cfd6e4; white-space: nowrap; }
+.recipe.ok { border-color: #66b043; }
+.recipe.ok .badge { background: #3f7d2a; color: #fff; }
+.recipe.no { opacity: .55; }
+.panel.center { text-align: center; }
+h1.sad { color: #ffb36b; text-shadow: 3px 3px 0 #7a3a10; }
