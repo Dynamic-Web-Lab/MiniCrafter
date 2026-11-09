@@ -56,7 +56,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      38 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      40 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">
@@ -102,6 +102,7 @@
 
 ### And there's more
 
+- 🪄 **Magic building tools (creative):** pick a block, then use the **Bridge Wand**, **Box Builder**, **House Walls** or **Dome Maker**. Right-click two points to build (left-click two points to erase) with a live preview box. The **Paint Roller** and **Rainbow Brush** repaint blocks in place. Made a mistake? **Undo / redo** with `Z` / `Y` or the ↶ button.
 - 🌍 **Endless procedural worlds:** plains, forests, deserts, snowy mountains, beaches, oceans, caves and ores. Share a world with friends by typing the same **seed**.
 - 🌅 **Day and night:** sunsets, a sun and moon, stars and drifting clouds.
 - 🔦 **Real light and dark caves:** sunlight spreads into caves and under roofs, and **torches** (stick + coal) and lamps light up warm, cozy circles. Caves get dark, but never pitch black.
@@ -155,6 +156,7 @@ MiniCrafter turns play into small, rewarding learning moments:
 | Glide (holding the Umbrella Glider) | Hold `Space` while falling | Hold ⬆ while falling |
 | Super bounce on a trampoline | Hold `Space` | Hold ⬆ |
 | Pause / settings / game mode | `Esc` | ⏸ button |
+| Undo / redo (creative) | `Z` / `Y` | ↶ button |
 | Debug info | `F3` | — |
 
 Touch controls switch on automatically. You can force them with `?touch=1`, or turn them off with `?touch=0`.
@@ -246,6 +248,7 @@ src/robot.js        Bit: model, program interpreter, animated actions
 src/robotui.js      Bit's panel: code editor, run/stop, speed, starters
 src/robotblocks.js  Blockly blocks, workspace <-> program conversion, code view
 src/worlds.js       Saved worlds list, export / import
+src/tools.js        Power-tool shapes, live preview, undo / redo history
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds
@@ -262,7 +265,7 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-Next up are magic building tools with undo, a cozy garden with frogs and butterflies, one-click share links and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
+Next up are a cozy garden with frogs and butterflies, one-click share links and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
 
 Have an idea? [Open an issue](https://github.com/Dynamic-Web-Lab/MiniCrafter/issues).
 

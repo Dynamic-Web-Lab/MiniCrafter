@@ -207,3 +207,5 @@ button.go:hover { background: #4a9132; }
 .trade .have { font-size: .75rem; color: #aab3c5; font-weight: 400; }
 .trade .have.short { color: #ff8a80; }
 .trade .arrow { font-size: 1.4rem; color: #ffe27a; }
+#t-undo { top: 74px; left: max(14px, env(safe-area-inset-left)); width: 52px; height: 52px; font-size: 24px; }
+#touch.survival #t-undo { display: none; }

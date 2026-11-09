@@ -126,6 +126,19 @@ try {
     const music = RECIPES.find((r) => r.label && r.label.startsWith('Music Stones'));
     out.musicSet = !!music && 1 + music.extra.length === 8;
 
+    // Phase 2 power tools: shapes respect the size cap, and undo restores blocks.
+    const T = await import('./src/tools.js');
+    const line = T.lineCells([0, 0, 0], [5, 0, 0]);
+    const tooBig = T.boxCells([0, 0, 0], [40, 40, 40]);
+    const dome = T.sphereCells([0, 0, 0], [3, 0, 0]);
+    m.setMode('creative');
+    const ux = x - 3, uy = y + 2;
+    W.setBlock(ux, uy, z, 0);
+    m.history.begin(); W.setBlock(ux, uy, z, B.BRICK); m.history.commit();
+    const placed = W.getBlock(ux, uy, z) === B.BRICK;
+    m.undoRedo(false);
+    out.tools = line.length === 6 && tooBig === null && dome.length > 50 && placed && W.getBlock(ux, uy, z) === 0;
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -145,6 +158,7 @@ try {
   ok(features.blockly, 'Blockly code editor loads');
   ok(features.bounce, 'trampolines bounce the player more than 3 blocks');
   ok(features.musicSet, 'music stones recipe gives all 8 notes');
+  ok(features.tools, 'power tools: shapes, size cap and undo');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });
