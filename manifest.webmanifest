@@ -1,0 +1,17 @@
+{
+  "name": "MiniCrafter",
+  "short_name": "MiniCrafter",
+  "description": "A free block-building adventure for kids: explore, build, raise animals and learn to code with Bit the robot.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0b1026",
+  "theme_color": "#3f7d2a",
+  "categories": ["games", "education", "kids"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

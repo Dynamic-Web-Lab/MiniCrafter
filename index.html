@@ -8,10 +8,14 @@
   <title>MiniCrafter</title>
   <meta name="description" content="A browser voxel sandbox: explore procedural worlds, mine and build.">
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#3f7d2a">
   <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        "three": "./vendor/three.module.js"
       }
     }
   </script>
@@ -56,6 +60,7 @@
       <p class="tag">Explore · Mine · Build</p>
       <p id="loading">Generating world…</p>
       <button id="btn-play" class="primary">Play</button>
+      <button id="btn-install" class="wide-btn hidden">📲 Install MiniCrafter as an app</button>
       <button id="btn-quests" class="wide-btn">⭐ Quest book <span id="menu-stars"></span></button>
       <p id="lock-note" class="note"></p>
 
@@ -79,11 +84,10 @@
         </label>
       </div>
 
-      <div class="section row">
-        <input id="seed" type="text" placeholder="World seed (text or number)" maxlength="40">
-        <button id="btn-new">New world</button>
+      <div class="section world-row">
+        <div><span class="note">World</span><div id="world-name">—</div><div class="note" id="world-info"></div></div>
+        <button id="btn-worlds" type="button">🗂 My worlds</button>
       </div>
-      <p class="note" id="world-info"></p>
 
       <details>
         <summary>Controls</summary>
@@ -105,7 +109,7 @@
         </table>
       </details>
       <p class="note touch-only">Tablet: left stick walks, drag to look, tap to place, hold to mine.</p>
-      <p class="note">Your world is saved automatically in this browser.</p>
+      <p class="note">Your world is saved automatically in this browser. <span id="offline-note"></span></p>
     </div>
   </div>
 
@@ -136,6 +140,35 @@
     <div id="cursor-stack" class="hidden"></div>
   </div>
 
+  <div id="worlds" class="overlay hidden">
+    <div class="panel wide">
+      <h2>🗂 My worlds</h2>
+      <p class="note">Each world keeps its own buildings, animals, pets, robot program and stars.</p>
+      <div id="world-list"></div>
+      <h3 class="w-h3">✨ Make a new world</h3>
+      <div class="new-world">
+        <input id="nw-name" type="text" maxlength="30" placeholder="World name">
+        <input id="nw-seed" type="text" maxlength="40" placeholder="Seed (optional: same seed = same world)">
+        <div class="seg"><button id="nw-creative" type="button" class="on">Creative</button><button id="nw-survival" type="button">Survival</button></div>
+        <button id="nw-create" class="go" type="button">Create</button>
+      </div>
+      <div class="rb-row">
+        <button id="w-import" type="button">⬆ Import a world file</button>
+        <input id="w-import-file" type="file" accept=".json,application/json" hidden>
+      </div>
+      <button id="w-done" class="primary done">Done</button>
+    </div>
+  </div>
+
+  <div id="trade" class="overlay hidden">
+    <div class="panel wide">
+      <h2 id="tr-title">Trade</h2>
+      <p class="note" id="tr-note"></p>
+      <div id="tr-list"></div>
+      <button id="tr-done" class="primary done">Done</button>
+    </div>
+  </div>
+
   <div id="questbook" class="overlay hidden">
     <div class="panel wide">
       <h2>⭐ Quest book</h2>
@@ -143,6 +176,36 @@
       <div id="qb-list"></div>
       <button id="qb-done" class="primary done">Done</button>
     </div>
+  </div>
+
+  <div id="robot-panel" class="hidden">
+    <div class="rb-head">
+      <span class="rb-face">🤖</span>
+      <div><h2>Bit the robot</h2><p class="note">Give Bit a program and watch it work.</p></div>
+    </div>
+    <div id="rb-status" class="rb-status idle"></div>
+    <p class="note" id="rb-editor-note"></p>
+    <div id="rb-blockly"></div>
+    <div class="rb-row">
+      <button id="rb-run" class="go" type="button">▶ Run</button>
+      <button id="rb-stop" type="button">⏹ Stop</button>
+    </div>
+    <div class="rb-row">
+      <button id="rb-code-toggle" type="button">👀 See the code</button>
+      <button id="rb-clear" type="button">🗑 Clear</button>
+    </div>
+    <pre id="rb-code" class="hidden"></pre>
+    <h3>Starter programs <span class="note">(load into the editor and run)</span></h3>
+    <div id="rb-examples"></div>
+    <div class="rb-row">
+      <span>Speed</span>
+      <div class="seg"><button data-speed="1" type="button">1×</button><button data-speed="2" type="button">2×</button><button data-speed="4" type="button">4×</button></div>
+    </div>
+    <div class="rb-row">
+      <button id="rb-away" type="button">Put Bit away</button>
+    </div>
+    <p class="note">Bit places the block you are holding. Bit can't break bedrock and stays near you.</p>
+    <button id="rb-close" class="primary done">Done</button>
   </div>
 
   <div id="death" class="overlay hidden">

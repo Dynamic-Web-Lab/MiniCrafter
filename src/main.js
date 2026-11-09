@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { B, BLOCKS, PLACEABLE, SOLID } from './blocks.js';
 import { createAtlas } from './textures.js';
-import { World, CS, SEA } from './world.js';
+import { World, CS, SEA, applyVoxelLighting, lightUniforms } from './world.js';
 import { Player, EYE } from './player.js';
 import { hashString } from './noise.js';
 import { Sky } from './sky.js';
@@ -14,8 +14,11 @@ import { CraftUI } from './craftui.js';
 import { Mobs, TYPES } from './mobs.js';
 import { TouchControls, isTouchDevice } from './touch.js';
 import { Quests, QUESTS } from './quests.js';
+import { Robot, EXAMPLES } from './robot.js';
+import { RobotUI } from './robotui.js';
+import { WorldStore } from './worlds.js';
+import { TRADES, JOB_INFO } from './villages.js';
 
-const SAVE_KEY = 'minicrafter:save:v1';
 const SETTINGS_KEY = 'minicrafter:settings:v1';
 const REACH = 6;
 const ACTION_REPEAT = 0.22;
@@ -45,8 +48,10 @@ const atlas = createAtlas();
 const materials = {
   solid: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: 0.5 }),
   water: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
-  glow: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true }),
+  glow: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: 0.5 }),
 };
+applyVoxelLighting(materials.solid);
+applyVoxelLighting(materials.water);
 
 const sky = new Sky(scene);
 const sfx = new Sfx();
@@ -54,6 +59,45 @@ const particles = new Particles(scene, atlas.avgColors);
 const survival = new Survival(scene);
 const mobs = new Mobs(scene, sfx);
 const quests = new Quests();
+const robot = new Robot({
+  world: null, scene, sfx, particles,
+  getPlayer: () => player,
+  resolveBlock: () => { const id = heldItem(); return id != null && ITEMS.get(id)?.block !== undefined ? id : null; },
+  breakBlock(x, y, z, id) {
+    removeBlock(x, y, z);
+    particles.burst(x, y, z, BLOCKS[id].side);
+    sfx.dig(id);
+    if (isSurvival()) { // Bit hands what it digs to you (it's strong: any tool tier)
+      const drop = dropFor(id);
+      if (drop != null && !inv.add(drop, 1)) renderHotbar();
+    }
+    quests.emit('robot', { kind: 'dig', id });
+    dirtySave = true;
+    return true;
+  },
+  placeBlock(x, y, z, id) {
+    if (SOLID[id] && player.intersectsBlock(x, y, z)) return 'You are standing there!';
+    if (isSurvival()) {
+      if (inv.count(id) < 1) return `I need more ${itemName(id)}!`;
+      inv.remove(id, 1); renderHotbar();
+    }
+    if (!world.setBlock(x, y, z, id)) return false;
+    world.flushDirty();
+    sfx.place(id);
+    quests.emit('robot', { kind: 'place', id, x, y, z });
+    dirtySave = true;
+    return true;
+  },
+  onAction: (a) => {
+    robotUI?.highlight(a.id);
+    if (a.kind === 'move' && a.to) { quests.emit('robot', { kind: 'move', dir: a.dir }); quests.emit('robotClimb', robot.y - robotRun.startY); }
+  },
+  onDone: (result) => {
+    if (result !== 'done') return;
+    sfx.fanfare?.();
+    quests.emit('robotDone', { program: robotRun.program, custom: robotRun.custom });
+  },
+});
 
 // Block selection outline
 const outline = new THREE.LineSegments(
@@ -111,11 +155,15 @@ function startWorld(seedStr, saved, newMode) {
   survival.reset();
   shownTips = new Set();
   mobs.reset(world);
+  robot.world = world;
+  robot.remove();
   quests.load(null);
   if (saved) {
     world.loadEdits(saved.edits);
     if (Array.isArray(saved.hotbar) && saved.hotbar.length === 9) saved.hotbar.forEach((id, i) => { if (ITEMS.has(id)) creativeBar[i] = id; });
     mobs.load(saved.mobs);
+    robot.load(saved.robot);
+    robotUI.setState(saved.robotCode || null);
     quests.load(saved.quests);
     selected = saved.selected | 0;
     timeOfDay = saved.time ?? timeOfDay;
@@ -133,12 +181,14 @@ function startWorld(seedStr, saved, newMode) {
   } else {
     timeOfDay = 0.08;
     mode = newMode || mode;
+    robotUI.setState(null);
     spawnPoint = null;
     spawn();
   }
   if (!spawnPoint) spawnPoint = findSpawnColumn();
-  $('seed').value = seedStr;
-  $('world-info').textContent = `Seed: ${seedStr}`;
+  const meta = worlds.get(currentWorldId);
+  $('world-name').textContent = meta?.name || 'My World';
+  $('world-info').textContent = `Seed: ${seedStr} · ${mode === 'survival' ? 'Survival' : 'Creative'}`;
   refreshMode();
 }
 
@@ -160,15 +210,18 @@ function spawn() {
   player.spawnAt(spawnPoint[0], spawnPoint[1]);
 }
 
+const worlds = new WorldStore();
+let currentWorldId = null;
+
 function save() {
-  if (!world) return;
-  const ok = store.set(SAVE_KEY, {
+  if (!world || !currentWorldId) return;
+  const ok = worlds.save(currentWorldId, {
     seed: seedText,
     edits: world.serializeEdits(),
     player: { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch, flying: player.flying },
     hotbar: creativeBar, selected, time: timeOfDay,
-    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(),
-  });
+    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(), robotCode: robotUI.getState(),
+  }, { mode, stars: quests.stars });
   if (ok) dirtySave = false;
 }
 setInterval(() => { if (dirtySave || state === 'playing') save(); }, 5000);
@@ -283,7 +336,7 @@ function renderQuestBook() {
     const done = quests.done.has(q.id), applies = quests.applies(q);
     const el = document.createElement('div');
     el.className = 'qb-item' + (done ? ' done' : active.has(q.id) ? ' active' : '') + (applies ? '' : ' off');
-    const tag = !applies ? '<span class="tag">Survival only</span>' : active.has(q.id) ? `<span class="tag">Now: ${quests.progress(q)} / ${q.count}</span>` : '';
+    const tag = !applies ? '<span class="tag">Survival only</span>' : active.has(q.id) ? `<span class="tag">Now: ${quests.progress(q)} / ${q.count}</span>` : q.track === 'coding' ? '<span class="tag">🤖 Coding</span>' : '';
     el.innerHTML = `<div class="qb-icon">${done ? '✅' : q.icon}</div>
       <div><div class="qb-title">${q.title}${tag}</div><div class="qb-text">${q.text}${done && q.reveal ? ` <b>${q.reveal}</b>` : ''}</div></div>
       <div class="qb-stars">${done ? starStr(q.stars) : '☆'.repeat(q.stars)}</div>`;
@@ -384,6 +437,14 @@ const craftUI = new CraftUI({
   onChange: () => { renderHotbar(); dirtySave = true; },
 });
 
+mobs.onTame = (pet) => {
+  toast(`${pet.petName} is your new pet! 🐾`);
+  sfx.craft();
+  quests.emit('tame', { type: pet.type });
+  tip('pet', `${pet.petName} will follow you. Right-click (or tap) to make it sit or follow.`);
+  dirtySave = true;
+};
+
 mobs.onBaby = (baby) => {
   quests.emit('baby', { type: baby.type });
   if (baby.pos.distanceTo(player.pos) < 24) { toast(`A baby ${TYPES[baby.type].name.toLowerCase()} was born!`); sfx.craft(); }
@@ -446,8 +507,92 @@ function openQuestBook(fromMenu) {
   if (!fromMenu) document.exitPointerLock();
 }
 
+/** What Bit is currently running (for the coding quests). */
+const robotRun = { program: [], custom: false, startY: 0 };
+const stripIds = (p) => JSON.stringify(p, (k, v) => (k === 'id' ? undefined : (k === 'else' && Array.isArray(v) && !v.length ? undefined : v)));
+const EXAMPLE_KEYS = new Set(EXAMPLES.map((e) => stripIds(e.program)));
+
+const robotUI = new RobotUI({
+  getRobot: () => robot,
+  onRun: (name, program) => {
+    robotRun.program = program;
+    robotRun.custom = !EXAMPLE_KEYS.has(stripIds(program));
+    robotRun.startY = robot.y;
+    dirtySave = true;
+  },
+  onChange: () => { dirtySave = true; },
+  onClose: () => closeOverlay(true),
+  onPutAway: () => {
+    robot.remove();
+    if (isSurvival()) { inv.add(I.ROBOT, 1); renderHotbar(); }
+    toast('Bit is back in your inventory');
+    dirtySave = true;
+    closeOverlay(true);
+  },
+});
+
+// ---------- villager trading ----------
+let tradeWith = null;
+function openTrade(mob) {
+  clearInput();
+  touch?.setEnabled(false);
+  state = 'trade';
+  tradeWith = mob;
+  mobs.voice(mob);
+  quests.emit('meetVillager', { job: mob.job });
+  renderTrade();
+  $('trade').classList.remove('hidden');
+  document.exitPointerLock();
+}
+
+function renderTrade() {
+  const mob = tradeWith;
+  const info = JOB_INFO[mob.job];
+  $('tr-title').textContent = `🤝 ${mob.villagerName} the ${info.title}`;
+  $('tr-note').textContent = isSurvival()
+    ? 'Swap your things for theirs. Count carefully!'
+    : 'Trading uses your survival inventory. Switch to Survival mode to trade.';
+  const box = $('tr-list');
+  box.innerHTML = '';
+  for (const t of TRADES[mob.job]) {
+    const [gid, gn] = t.give, [rid, rn] = t.get;
+    const have = isSurvival() ? inv.count(gid) : 0;
+    const ok = isSurvival() && have >= gn && inv.canFit(rid, rn);
+    const row = document.createElement('div');
+    row.className = 'trade' + (ok ? ' ok' : '');
+    row.innerHTML = `<div class="side"><img alt="" src="${icon(gid)}"><div>${gn} × ${itemName(gid)}<div class="have ${have < gn ? 'short' : ''}">You have ${have}</div></div></div>
+      <span class="arrow">➜</span>
+      <div class="side"><img alt="" src="${icon(rid)}"><div>${rn} × ${itemName(rid)}</div></div>
+      <button class="go" ${ok ? '' : 'disabled'}>Trade</button>`;
+    row.querySelector('button').addEventListener('click', () => {
+      if (!(isSurvival() && inv.count(gid) >= gn && inv.canFit(rid, rn))) return;
+      inv.remove(gid, gn);
+      inv.add(rid, rn);
+      sfx.craft();
+      mobs.effect(mob, mobs.happyMat);
+      renderHotbar();
+      quests.emit('trade', { job: mob.job });
+      dirtySave = true;
+      renderTrade();
+    });
+    box.appendChild(row);
+  }
+}
+$('tr-done').addEventListener('click', () => closeOverlay(true));
+
+function openRobotPanel() {
+  clearInput();
+  touch?.setEnabled(false);
+  state = 'robot';
+  robotUI.open();
+  document.exitPointerLock();
+  tip('robot', 'Pick a starter program and watch Bit work. Hold a block so Bit can build with it!');
+}
+
 function closeOverlay(relock) {
   $('inventory').classList.add('hidden');
+  if (state === 'robot') robotUI.close();
+  if (state === 'trade') { $('trade').classList.add('hidden'); tradeWith = null; }
   if (state === 'questbook') {
     $('questbook').classList.add('hidden');
     if (bookFromMenu) { state = 'menu'; return; }
@@ -497,13 +642,107 @@ $('craft-done').addEventListener('click', () => closeOverlay(true));
 $('qb-done').addEventListener('click', () => closeOverlay(true));
 $('btn-quests').addEventListener('click', () => openQuestBook(true));
 $('qt-head').addEventListener('click', () => { if (state === 'playing') openQuestBook(false); });
-$('btn-new').addEventListener('click', () => {
-  const s = $('seed').value.trim() || String(Math.floor(Math.random() * 1e9));
-  if (world && world.edits.size && !confirm('Start a new world? Your current world will be replaced.')) return;
-  store.set(SAVE_KEY, null);
-  startWorld(s, null, mode);
+// ---------- worlds screen ----------
+/** Switches to a saved world (saving the current one first). */
+function openWorld(id) {
+  const meta = worlds.get(id);
+  if (!meta) return;
+  if (currentWorldId && currentWorldId !== id) save();
+  currentWorldId = id;
+  worlds.setCurrent(id);
+  const data = worlds.load(id);
+  if (data && data.seed != null) startWorld(String(data.seed), data);
+  else startWorld(meta.seed, null, meta.mode);
   save();
   loadingShown = true;
+}
+
+function createWorld(name, seed, newMode) {
+  const w = worlds.add({ name, seed: seed || String(Math.floor(Math.random() * 1e9)), mode: newMode });
+  openWorld(w.id);
+  return w;
+}
+
+let newWorldMode = 'creative';
+const ago = (t) => {
+  const s = (Date.now() - t) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} days ago`;
+};
+
+function renderWorlds() {
+  save();
+  const box = $('world-list');
+  box.innerHTML = '';
+  for (const w of worlds.sorted()) {
+    const el = document.createElement('div');
+    el.className = 'w-item' + (w.id === currentWorldId ? ' current' : '');
+    el.innerHTML = `<div><div class="w-name"></div><div class="w-meta">${w.mode === 'survival' ? '❤️ Survival' : '🎨 Creative'} · ⭐ ${w.stars || 0} · seed ${String(w.seed).slice(0, 14)} · ${ago(w.played)}</div></div>
+      <div class="w-actions">
+        ${w.id === currentWorldId ? '<button disabled>Playing</button>' : '<button data-a="play" class="go">▶ Play</button>'}
+        <button data-a="rename" title="Rename">✏️</button>
+        <button data-a="export" title="Download a copy">⬇</button>
+        <button data-a="delete" title="Delete">🗑</button>
+      </div>`;
+    el.querySelector('.w-name').textContent = w.name; // user text: never as HTML
+    el.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => worldAction(b.dataset.a, w)));
+    box.appendChild(el);
+  }
+  $('nw-name').placeholder = worlds.suggestName();
+  $('nw-creative').classList.toggle('on', newWorldMode === 'creative');
+  $('nw-survival').classList.toggle('on', newWorldMode === 'survival');
+}
+
+function worldAction(action, w) {
+  if (action === 'play') { openWorld(w.id); closeWorlds(); }
+  else if (action === 'rename') {
+    const name = prompt('New name for this world:', w.name);
+    if (name) { worlds.rename(w.id, name); if (w.id === currentWorldId) $('world-name').textContent = worlds.get(w.id).name; renderWorlds(); }
+  } else if (action === 'export') {
+    save();
+    const url = URL.createObjectURL(worlds.exportBlob(w.id));
+    const a = document.createElement('a');
+    a.href = url; a.download = `${w.name.replace(/[^\w -]+/g, '').trim() || 'world'}.minicrafter.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } else if (action === 'delete') {
+    if (!confirm(`Delete "${w.name}" forever? This cannot be undone.`)) return;
+    const wasCurrent = w.id === currentWorldId;
+    worlds.remove(w.id);
+    if (wasCurrent) {
+      currentWorldId = null;
+      const next = worlds.sorted()[0];
+      if (next) openWorld(next.id); else createWorld('', '', 'creative');
+    }
+    renderWorlds();
+  }
+}
+
+function openWorlds() { renderWorlds(); $('worlds').classList.remove('hidden'); }
+function closeWorlds() { $('worlds').classList.add('hidden'); }
+
+$('btn-worlds').addEventListener('click', openWorlds);
+$('w-done').addEventListener('click', closeWorlds);
+$('nw-creative').addEventListener('click', () => { newWorldMode = 'creative'; renderWorlds(); });
+$('nw-survival').addEventListener('click', () => { newWorldMode = 'survival'; renderWorlds(); });
+$('nw-create').addEventListener('click', () => {
+  createWorld($('nw-name').value || $('nw-name').placeholder, $('nw-seed').value.trim(), newWorldMode);
+  $('nw-name').value = ''; $('nw-seed').value = '';
+  closeWorlds();
+  toast('New world created!');
+});
+$('w-import').addEventListener('click', () => $('w-import-file').click());
+$('w-import-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const w = worlds.importText(await file.text());
+    renderWorlds();
+    toast(`Imported "${w.name}"`);
+  } catch { alert('That file is not a MiniCrafter world.'); }
 });
 
 // ---------- damage & death ----------
@@ -533,6 +772,10 @@ $('btn-respawn').addEventListener('click', () => {
 document.addEventListener('keydown', (e) => {
   if (state === 'questbook') {
     if (e.code === 'KeyQ' || e.code === 'Escape') closeOverlay(e.code === 'KeyQ');
+    return;
+  }
+  if (state === 'robot' || state === 'trade') {
+    if (e.code === 'Escape') closeOverlay(false);
     return;
   }
   if (state === 'inventory' || state === 'craft') {
@@ -616,6 +859,7 @@ const touch = touchMode ? new TouchControls({
 // ---------- interaction ----------
 let target = null;
 let mobTarget = null;
+let robotTarget = false;
 const lookDir = new THREE.Vector3();
 
 function pickBlock() {
@@ -654,6 +898,7 @@ function placeBlock(id) {
 
 let lastHitSound = 0;
 function act(now, dt) {
+  if (robotTarget) return actRobot(now);
   if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
   if (!target || now < mouse.nextAction) return;
@@ -668,16 +913,53 @@ function act(now, dt) {
   } else if (mouse.right) {
     const held = creativeBar[selected];
     const def = ITEMS.get(held);
-    if (def?.spawns) spawnFromEgg(def.spawns);
+    if (held === I.ROBOT) placeRobot();
+    else if (def?.spawns) spawnFromEgg(def.spawns);
     else if (def?.block !== undefined) placeBlock(held);
     mouse.nextAction = now + ACTION_REPEAT;
   }
 }
 
+function rayBox(o, d, max, x0, y0, z0, x1, y1, z1) {
+  let t0 = 0, t1 = max;
+  for (const [oo, dd, a, b] of [[o.x, d.x, x0, x1], [o.y, d.y, y0, y1], [o.z, d.z, z0, z1]]) {
+    if (Math.abs(dd) < 1e-9) { if (oo < a || oo > b) return null; continue; }
+    let ta = (a - oo) / dd, tb = (b - oo) / dd;
+    if (ta > tb) [ta, tb] = [tb, ta];
+    t0 = Math.max(t0, ta); t1 = Math.min(t1, tb);
+    if (t0 > t1) return null;
+  }
+  return t0;
+}
+
+function actRobot(now) {
+  survival.stopMining();
+  if (now < mouse.nextAction || !(mouse.left || mouse.right)) return;
+  mouse.nextAction = now + 0.4;
+  if (mouse.right) { mouse.right = false; openRobotPanel(); }
+  else { robot.say(robot.running ? 'Busy working!' : 'Hi! Right-click me to give me a program.', 2); }
+}
+
+/** Places Bit on the targeted face, facing the same way as the player. */
+function placeRobot() {
+  const x = target.x + target.normal[0], y = target.y + target.normal[1], z = target.z + target.normal[2];
+  if (SOLID[world.getBlock(x, y, z)]) return false;
+  const fwd = [-Math.sin(player.yaw), -Math.cos(player.yaw)];
+  const facing = Math.abs(fwd[0]) > Math.abs(fwd[1]) ? (fwd[0] > 0 ? 1 : 3) : (fwd[1] > 0 ? 2 : 0);
+  const wasPlaced = robot.placed;
+  robot.placeAt(x, y, z, facing);
+  robot.say('Hi! I am Bit!', 2);
+  quests.emit('robotPlaced', {});
+  sfx.craft();
+  dirtySave = true;
+  return !wasPlaced;
+}
+
 function spawnFromEgg(type) {
   const x = target.x + target.normal[0], y = target.y + target.normal[1], z = target.z + target.normal[2];
   if (SOLID[world.getBlock(x, y, z)]) return;
-  const mob = mobs.spawn(type, x + 0.5, y, z + 0.5, { kept: true });
+  const mob = mobs.spawn(type, x + 0.5, y, z + 0.5, { kept: true, tamed: TYPES[type].pet });
+  if (mob?.tamed) { toast(`Say hi to ${mob.petName}!`); quests.emit('tame', { type }); }
   if (mob) { mobs.voice(mob); dirtySave = true; }
 }
 
@@ -688,10 +970,22 @@ function actMob(now) {
   const mob = mobTarget;
   const held = heldItem();
   mouse.nextAction = now + 0.45;
+  if (mob.type === 'villager') {
+    if (mouse.right) { mouse.right = false; openTrade(mob); }
+    else { mobs.pat(mob, player); }
+    return;
+  }
   if (mouse.left) {
-    mobs.pat(mob, player);
+    if (mob.tamed) { mob.wag = 2; mobs.effect(mob, mobs.happyMat); mobs.voice(mob); }
+    else mobs.pat(mob, player);
     quests.emit('pat', { type: mob.type });
     tip('animals', `${TYPES[mob.type].plural} love apples! Feed two of them and see what happens.`);
+    return;
+  }
+  if (mob.tamed && held !== I.APPLE) {
+    const sits = mobs.toggleSit(mob);
+    toast(sits ? `${mob.petName} is sitting` : `${mob.petName} is following you`);
+    dirtySave = true;
     return;
   }
   if (held === I.APPLE) {
@@ -756,7 +1050,9 @@ function actSurvival(now, dt) {
     }
   } else if (mouse.right && now >= mouse.nextAction) {
     survival.stopMining();
-    if (held != null && ITEMS.get(held)?.block !== undefined) {
+    if (held === I.ROBOT) {
+      if (placeRobot()) { inv.takeFromSlot(selected, 1); renderHotbar(); }
+    } else if (held != null && ITEMS.get(held)?.block !== undefined) {
       if (placeBlock(held)) { inv.takeFromSlot(selected, 1); renderHotbar(); dirtySave = true; }
     }
     mouse.nextAction = now + ACTION_REPEAT;
@@ -862,6 +1158,9 @@ function frame(now, manual = false) {
   if (state === 'playing') {
     const hit = mobs.raycast(camera.position, lookDir, reach);
     if (hit && (!target || hit.dist < target.dist)) { mobTarget = hit.mob; target = null; }
+    const rd = robot.placed ? rayBox(camera.position, lookDir, reach, robot.x + 0.15, robot.y, robot.z + 0.15, robot.x + 0.85, robot.y + 1.1, robot.z + 0.85) : null;
+    robotTarget = rd !== null && (!target || rd < target.dist) && (!hit || rd < hit.dist);
+    if (robotTarget) { target = null; mobTarget = null; }
   }
   if (target) { outline.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5); outline.visible = true; }
   else outline.visible = false;
@@ -871,8 +1170,7 @@ function frame(now, manual = false) {
   // Sky, fog, light level
   const viewDist = settings.renderDistance * CS;
   const light = sky.update(timeOfDay, camera, dt);
-  materials.solid.color.setScalar(light);
-  materials.water.color.setScalar(light);
+  lightUniforms.uDaylight.value = light;
   if (player.headInWater) {
     scene.fog.color.setRGB(0.1 * light + 0.02, 0.25 * light + 0.04, 0.55 * light + 0.06);
     scene.fog.near = 1; scene.fog.far = 18;
@@ -884,6 +1182,7 @@ function frame(now, manual = false) {
   $('water-overlay').classList.toggle('hidden', !(player.headInWater && state === 'playing'));
 
   mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
+  robot.update(dt, light);
   particles.update(dt, light);
   renderer.render(scene, camera);
 
@@ -900,16 +1199,41 @@ window.addEventListener('resize', () => {
 
 // ---------- boot ----------
 buildCreativePicker();
-const saved = store.get(SAVE_KEY);
-if (saved && saved.seed != null) startWorld(String(saved.seed), saved);
-else startWorld(String(Math.floor(Math.random() * 1e9)), null, 'creative');
+// Open the last world played (old single saves were migrated by WorldStore).
+const lastId = worlds.currentId && worlds.get(worlds.currentId) ? worlds.currentId : worlds.sorted()[0]?.id;
+if (lastId) openWorld(lastId);
+else createWorld('', '', 'creative');
 $('btn-play').disabled = true;
 requestAnimationFrame(frame);
+
+// ---------- offline play & install ----------
+// The service worker caches the game so it works without internet once loaded.
+// Skipped on localhost so development always sees fresh files (?sw=1 forces it).
+const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+if ('serviceWorker' in navigator && (!isLocal || new URLSearchParams(location.search).has('sw'))) {
+  navigator.serviceWorker.register('./sw.js').then(() => {
+    $('offline-note').textContent = 'It also works offline once it has loaded.';
+  }).catch(() => { /* offline support is optional */ });
+}
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $('btn-install').classList.remove('hidden');
+});
+$('btn-install').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice.catch(() => null);
+  installPrompt = null;
+  $('btn-install').classList.add('hidden');
+});
+window.addEventListener('appinstalled', () => $('btn-install').classList.add('hidden'));
 
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, get mobTarget() { return mobTarget; }, survival, mobs, quests, keys, mouse, save, setMode,
+  get inv() { return inv; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

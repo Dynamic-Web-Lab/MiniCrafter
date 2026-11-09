@@ -28,13 +28,41 @@ export const QUESTS = [
   { id: 'math2', track: 'all', icon: '✖️', title: 'Glass Times', text: 'Place 2 × 3 glass blocks. How many is that?', reveal: '2 × 3 = 6', event: 'place', test: (d) => d.id === B.GLASS, count: 6, stars: 2 },
   { id: 'glass', track: 'survival', icon: '🪟', title: 'Window Maker', text: 'Make 3 Glass from sand next to a Furnace.', event: 'craft', test: (d) => d.id === B.GLASS, amount: (d) => d.count, count: 3, stars: 2 },
   { id: 'square', track: 'all', icon: '⬛', title: 'Shape Maker', text: 'Build a flat 3 × 3 square floor. That is 9 blocks!', reveal: '3 × 3 = 9', event: 'place', value: (d, ctx) => ctx.squareFill(d), count: 9, stars: 2 },
+  { id: 'pet', track: 'all', icon: '🐶', title: 'Best Friend', text: 'Find a dog or cat and feed it an apple to make it your pet. Give it a pat!', event: 'tame', count: 1, stars: 2 },
   { id: 'baby', track: 'all', icon: '🍼', title: 'Animal Family', text: 'Feed apples to two animals of the same kind and watch what happens.', event: 'baby', count: 1, stars: 3 },
+  { id: 'torch', track: 'all', icon: '🔦', title: 'Light the Way', text: 'Place 5 torches to light up a dark cave. Make torches from a stick and coal.', event: 'place', test: (d) => d.id === B.TORCH, count: 5, stars: 2 },
+  { id: 'village', track: 'all', icon: '🏘️', title: 'Village Visit', text: 'There is a village near where you started. Find it and say hello to a villager (right-click or tap them).', event: 'meetVillager', count: 1, stars: 2 },
   { id: 'swim', track: 'all', icon: '🏊', title: 'Splash!', text: 'Swim 10 blocks in water. Hold jump to float up.', event: 'swim', count: 10, amount: (d) => d, stars: 1 },
   { id: 'climb', track: 'all', icon: '⛰️', title: 'Mountain Top', text: 'Climb up high until you reach height 60. Press F3 to see your height.', event: 'height', value: (d) => Math.floor(d), count: 60, stars: 2 },
   { id: 'night', track: 'all', icon: '⭐', title: 'Star Gazer', text: 'Stay up until night and look at the stars.', event: 'night', count: 1, stars: 1 },
+  { id: 'trade3', track: 'survival', icon: '🤝', title: 'Fair Trader', text: 'Make 3 trades with villagers. Count what you give and what you get!', event: 'trade', count: 3, stars: 2 },
   { id: 'iron', track: 'survival', icon: '🔩', title: 'Iron Hunter', text: 'Find Iron Ore in the stone (it has orange spots) and mine it with a Stone Pickaxe.', event: 'collect', test: (d) => d.id === I.IRON_INGOT, count: 1, stars: 2 },
   { id: 'diamond', track: 'survival', icon: '💎', title: 'Diamond Dreams', text: 'Dig deep, deep down and find a Diamond. You need an Iron Pickaxe!', event: 'collect', test: (d) => d.id === I.DIAMOND, count: 1, stars: 3, reward: [I.APPLE, 5] },
+
+  // ---- 🤖 Coding track (Bit the robot) ----
+  { id: 'bit1', track: 'coding', icon: '🤖', title: 'Meet Bit', text: 'Get Robot Bit (creative: block picker, survival: craft it) and place it in the world.', event: 'robotPlaced', count: 1, stars: 1 },
+  { id: 'bit2', track: 'coding', icon: '▶️', title: 'First Program', text: 'Right-click Bit, press ▶ Run, and let Bit finish a program.', event: 'robotDone', count: 1, stars: 1 },
+  { id: 'bit3', track: 'coding', icon: '🔁', title: 'Loop the Loop', text: 'Finish a program that uses a 🔁 repeat block. Loops do things again and again!', event: 'robotDone', test: (d) => usesOp(d.program, 'repeat'), count: 1, stars: 2 },
+  { id: 'bit4', track: 'coding', icon: '🧱', title: 'Bit the Builder', text: 'Have Bit place 20 blocks. Tip: hold the block you want Bit to use.', event: 'robot', test: (d) => d.kind === 'place', count: 20, stars: 2 },
+  { id: 'bit5', track: 'coding', icon: '🪜', title: 'Up, Up, Up', text: 'In one program, make Bit climb 5 blocks higher than where it started.', event: 'robotClimb', value: (d) => d, count: 5, stars: 2 },
+  { id: 'bit6', track: 'coding', icon: '⛏️', title: 'Tunnel Digger', text: 'Have Bit dig 15 blocks.', event: 'robot', test: (d) => d.kind === 'dig', count: 15, stars: 2 },
+  { id: 'bit7', track: 'coding', icon: '🎨', title: 'My Own Program', text: 'Build a program that is different from all the starter programs and run it to the end.', event: 'robotDone', test: (d) => d.custom, count: 1, stars: 2 },
+  { id: 'bit8', track: 'coding', icon: '🪆', title: 'Loop Inside a Loop', text: 'Finish a program with a repeat block inside another repeat block.', event: 'robotDone', test: (d) => nestedRepeat(d.program), count: 1, stars: 3 },
+  { id: 'bit9', track: 'coding', icon: '🧠', title: 'Smart Robot', text: 'Finish a program that uses ❓ if or 🔁 repeat while, so Bit decides what to do by itself.', event: 'robotDone', test: (d) => usesOp(d.program, 'if') || usesOp(d.program, 'while'), count: 1, stars: 3 },
 ];
+
+/** True if any statement in the program (at any depth) has this op. */
+export function usesOp(program, op) {
+  const walk = (list) => (list || []).some((s) => s.op === op || walk(s.body) || walk(s.then) || walk(s.else));
+  return walk(program);
+}
+
+/** True if a repeat block contains another repeat block. */
+export function nestedRepeat(program) {
+  const walk = (list, inRepeat) => (list || []).some((s) =>
+    (s.op === 'repeat' && inRepeat) || walk(s.body, inRepeat || s.op === 'repeat') || walk(s.then, inRepeat) || walk(s.else, inRepeat));
+  return walk(program, false);
+}
 
 export const ACTIVE_COUNT = 3;
 
@@ -49,13 +77,18 @@ export class Quests {
     this.onProgress = null; // ()
   }
 
-  applies(q) { return q.track === 'all' || q.track === this.mode; }
+  applies(q) { return q.track === 'all' || q.track === 'coding' || q.track === this.mode; }
 
   get stars() { return QUESTS.reduce((n, q) => n + (this.done.has(q.id) ? q.stars : 0), 0); }
   get maxStars() { return QUESTS.filter((q) => this.applies(q)).reduce((n, q) => n + q.stars, 0); }
 
-  /** The first few unfinished quests for the current mode. */
-  active() { return QUESTS.filter((q) => this.applies(q) && !this.done.has(q.id)).slice(0, ACTIVE_COUNT); }
+  /** The first few unfinished quests for the current mode, plus the next 🤖 coding quest. */
+  active() {
+    const open = QUESTS.filter((q) => this.applies(q) && !this.done.has(q.id));
+    const main = open.filter((q) => q.track !== 'coding').slice(0, ACTIVE_COUNT);
+    const code = open.find((q) => q.track === 'coding');
+    return code ? [...main, code] : main;
+  }
 
   progress(q) {
     if (this.done.has(q.id)) return q.count;

@@ -2,8 +2,9 @@
 // occlusion, block edits (persisted), raycasting and chunk streaming.
 import * as THREE from 'three';
 import { Perlin, fbm2, hash2, hash3, smoothstep } from './noise.js';
-import { B, BLOCKS, OPAQUE, TRANSPARENT } from './blocks.js';
+import { B, BLOCKS, OPAQUE, TRANSPARENT, LIGHT } from './blocks.js';
 import { tileUV } from './textures.js';
+import { villagesNear, stampVillage } from './villages.js';
 
 export const CS = 16;   // chunk size (x, z)
 export const CH = 96;   // world height
@@ -22,6 +23,98 @@ const FACES = [
   { dir: [0, 0, 1], kind: 'side', shade: 0.65, corners: [[0, 0, 1, 0, 0], [1, 0, 1, 1, 0], [0, 1, 1, 0, 1], [1, 1, 1, 1, 1]] },
 ];
 const AO_LEVEL = [0.45, 0.62, 0.8, 1.0];
+
+// ---------- voxel lighting ----------
+// Light is computed per chunk while meshing, over the chunk plus a 15-block
+// margin (light travels at most 15 blocks), so torches near a border light
+// the neighbour correctly. Sky light falls straight down open columns at 15
+// and spreads sideways into caves and under roofs, losing 1 per block.
+// Block light spreads from torches (14) and lamps (15) the same way.
+const LM = 15;                 // margin
+const RW = CS + 2 * LM;        // region width (x and z)
+const RA = RW * RW;            // cells per region layer
+const RN = RA * CH;
+const rOpaque = new Uint8Array(RN);
+const rSky = new Uint8Array(RN);
+const rBlk = new Uint8Array(RN);
+const rQueue = new Int32Array(RN);
+const rHeight = new Int16Array(RA);
+const ri = (x, y, z) => (y * RW + (z + LM)) * RW + (x + LM);
+
+/** Shared uniforms for the lit materials (daylight 0..1 set every frame). */
+export const lightUniforms = { uDaylight: { value: 1 } };
+
+/** Makes a chunk material use the per-vertex sky/block light ('lt' attribute). */
+export function applyVoxelLighting(material) {
+  material.onBeforeCompile = (sh) => {
+    sh.uniforms.uDaylight = lightUniforms.uDaylight;
+    sh.vertexShader = 'attribute vec2 lt;\nvarying vec2 vLt;\n' +
+      sh.vertexShader.replace('#include <color_vertex>', '#include <color_vertex>\n  vLt = lt;');
+    sh.fragmentShader = 'uniform float uDaylight;\nvarying vec2 vLt;\n' +
+      sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+  float skyL = pow(0.82, 15.0 - vLt.x * 15.0) * uDaylight;
+  float blkL = min(1.0, pow(0.84, 14.0 - vLt.y * 15.0)); // torches light a cozy circle
+  float lv = max(max(skyL, blkL), 0.1); // never pitch black: spooky but safe
+  vec3 warm = mix(vec3(1.0), vec3(1.0, 0.86, 0.66), clamp((blkL - skyL) * 2.0, 0.0, 1.0));
+  diffuseColor.rgb *= lv * warm;`);
+  };
+  material.customProgramCacheKey = () => 'voxel-light';
+  material.needsUpdate = true;
+}
+
+function spread(arr, qlen) {
+  let head = 0;
+  while (head < qlen) {
+    const i = rQueue[head++];
+    const L = arr[i] - 1;
+    if (L <= 0) continue;
+    const y = (i / RA) | 0, rem = i - y * RA, z = (rem / RW) | 0, x = rem - z * RW;
+    if (x > 0 && !rOpaque[i - 1] && arr[i - 1] < L) { arr[i - 1] = L; rQueue[qlen++] = i - 1; }
+    if (x < RW - 1 && !rOpaque[i + 1] && arr[i + 1] < L) { arr[i + 1] = L; rQueue[qlen++] = i + 1; }
+    if (z > 0 && !rOpaque[i - RW] && arr[i - RW] < L) { arr[i - RW] = L; rQueue[qlen++] = i - RW; }
+    if (z < RW - 1 && !rOpaque[i + RW] && arr[i + RW] < L) { arr[i + RW] = L; rQueue[qlen++] = i + RW; }
+    if (y > 0 && !rOpaque[i - RA] && arr[i - RA] < L) { arr[i - RA] = L; rQueue[qlen++] = i - RA; }
+    if (y < CH - 1 && !rOpaque[i + RA] && arr[i + RA] < L) { arr[i + RA] = L; rQueue[qlen++] = i + RA; }
+  }
+}
+
+/** Fills rOpaque / rSky / rBlk for the region around a chunk (ns = 3x3 chunk data). */
+function computeLight(ns) {
+  let bq = 0;
+  // Pass 1: copy opacity, sky columns and light sources.
+  for (let z = -LM; z < CS + LM; z++) for (let x = -LM; x < CS + LM; x++) {
+    const ox = x < 0 ? -1 : x >= CS ? 1 : 0, oz = z < 0 ? -1 : z >= CS ? 1 : 0;
+    const data = ns[(oz + 1) * 3 + ox + 1];
+    const base = (z - oz * CS) * CS + (x - ox * CS);
+    let open = true, h = -1;
+    for (let y = CH - 1; y >= 0; y--) {
+      const id = data[y * CS * CS + base];
+      const i = ri(x, y, z);
+      const o = OPAQUE[id];
+      rOpaque[i] = o;
+      if (open && o) { open = false; h = y; }
+      rSky[i] = open ? 15 : 0;
+      const e = LIGHT[id];
+      rBlk[i] = e;
+      if (e) rQueue[bq++] = i;
+    }
+    rHeight[(z + LM) * RW + (x + LM)] = h;
+  }
+  // Pass 2: block light from torches and lamps.
+  spread(rBlk, bq);
+  // Pass 3: sky light spreading sideways from open columns into covered spaces.
+  let sq = 0;
+  for (let z = 0; z < RW; z++) for (let x = 0; x < RW; x++) {
+    const h = rHeight[z * RW + x];
+    let nh = h;
+    if (x > 0) nh = Math.max(nh, rHeight[z * RW + x - 1]);
+    if (x < RW - 1) nh = Math.max(nh, rHeight[z * RW + x + 1]);
+    if (z > 0) nh = Math.max(nh, rHeight[(z - 1) * RW + x]);
+    if (z < RW - 1) nh = Math.max(nh, rHeight[(z + 1) * RW + x]);
+    for (let y = h + 1; y <= nh; y++) rQueue[sq++] = (y * RW + z) * RW + x;
+  }
+  spread(rSky, sq);
+}
 
 // Precompute UVs per block/face kind.
 const UVS = BLOCKS.map((b) => ({ top: tileUV(b.top), bottom: tileUV(b.bottom), side: tileUV(b.side) }));
@@ -106,8 +199,14 @@ export class World {
     const lx = x - cx * CS, lz = z - cz * CS;
     const i = idx(lx, y, lz);
     if (c.data[i] === id) return false;
+    const was = c.data[i];
     c.data[i] = id;
     c.dirty = true;
+    if (LIGHT[id] || LIGHT[was]) { // light reaches up to 15 blocks: relight all 8 neighbours
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        const n = this.chunks.get(ckey(cx + dx, cz + dz)); if (n) n.dirty = true;
+      }
+    }
     const k = ckey(cx, cz);
     if (!this.edits.has(k)) this.edits.set(k, new Map());
     this.edits.get(k).set(i, id);
@@ -189,6 +288,11 @@ export class World {
       if (roll < density) this.placeTree(chunk, tx, h, tz, r);
     }
 
+    // Villages (deterministic per region, may span several chunks).
+    for (const v of villagesNear(T, x0, z0, x0 + CS - 1, z0 + CS - 1)) {
+      stampVillage(v, (x, y, z, id) => this.setLocal(chunk, x, y, z, id, false), (x, z) => T.column(x, z).h);
+    }
+
     // Player edits win over generation.
     const e = this.edits.get(ckey(chunk.cx, chunk.cz));
     if (e) for (const [i, id] of e) d[i] = id;
@@ -239,11 +343,24 @@ export class World {
 
     const groups = { solid: newGeo(), water: newGeo(), glow: newGeo() };
     const d = chunk.data;
+    computeLight(ns);
+    // Smooth light for one vertex: average of the face cell and the (non-opaque) corner cells.
+    const lightAt = (fx, fy, fz, cells) => {
+      let s = 0, b = 0, n = 0;
+      for (const [x, y, z] of cells) {
+        if (y < 0 || y >= CH) { if (y >= CH) { s += 15; n++; } continue; }
+        const i = ri(x, y, z);
+        if (rOpaque[i] && !(x === fx && y === fy && z === fz)) continue;
+        s += rSky[i]; b += rBlk[i]; n++;
+      }
+      return n ? [s / n / 15, b / n / 15] : [0, 0];
+    };
 
     for (let y = 0; y < CH; y++) for (let z = 0; z < CS; z++) for (let x = 0; x < CS; x++) {
       const id = d[idx(x, y, z)];
       if (id === B.AIR) continue;
       const blk = BLOCKS[id];
+      if (blk.shape === 'torch') { addTorch(groups.glow, x, y, z, UVS[id].side); continue; }
       const isWater = id === B.WATER;
       const g = isWater ? groups.water : blk.emissive ? groups.glow : groups.solid;
       const waterTop = isWater && get(x, y + 1, z) !== B.WATER;
@@ -269,6 +386,15 @@ export class World {
           g.uv.push(c[3] ? uv.u1 : uv.u0, c[4] ? uv.vTop : uv.vBot);
 
           let light = 1;
+          const fx = x + dx, fy = y + dy, fz = z + dz;
+          if (!blk.emissive) {
+            const sx = c[0] * 2 - 1, sy = c[1] * 2 - 1, sz = c[2] * 2 - 1;
+            const cells = dx !== 0 ? [[fx, fy, fz], [fx, fy + sy, fz], [fx, fy, fz + sz], [fx, fy + sy, fz + sz]]
+              : dy !== 0 ? [[fx, fy, fz], [fx + sx, fy, fz], [fx, fy, fz + sz], [fx + sx, fy, fz + sz]]
+                : [[fx, fy, fz], [fx + sx, fy, fz], [fx, fy + sy, fz], [fx + sx, fy + sy, fz]];
+            const [ls, lb] = lightAt(fx, fy, fz, cells);
+            g.lt.push(ls, lb);
+          }
           if (!isWater && !blk.emissive) {
             // vertex AO from the three blocks touching this corner on the face's outer layer
             const ox = x + dx, oy = y + dy, oz = z + dz;
@@ -296,6 +422,7 @@ export class World {
       geo.setAttribute('position', new THREE.Float32BufferAttribute(g.pos, 3));
       geo.setAttribute('uv', new THREE.Float32BufferAttribute(g.uv, 2));
       geo.setAttribute('color', new THREE.Float32BufferAttribute(g.col, 3));
+      if (g.lt.length) geo.setAttribute('lt', new THREE.Float32BufferAttribute(g.lt, 2));
       geo.setIndex(g.idx);
       geo.computeBoundingSphere();
       const mesh = new THREE.Mesh(geo, this.materials[name]);
@@ -395,4 +522,24 @@ export class World {
   }
 }
 
-function newGeo() { return { pos: [], uv: [], col: [], idx: [] }; }
+function newGeo() { return { pos: [], uv: [], col: [], idx: [], lt: [] }; }
+
+/** A torch: a thin stick with a flame, using the middle columns of its tile. */
+function addTorch(g, x, y, z, uv) {
+  const x0 = 7 / 16, x1 = 9 / 16, h = 10 / 16;
+  const du = uv.u1 - uv.u0, dv = uv.vBot - uv.vTop;
+  const U0 = uv.u0 + du * 7 / 16, U1 = uv.u0 + du * 9 / 16;
+  const sideV0 = uv.vTop + dv * 6 / 16; // flame at the top of the stick
+  for (const face of FACES) {
+    const base = g.pos.length / 3;
+    const top = face.kind === 'top', bottom = face.kind === 'bottom';
+    for (const c of face.corners) {
+      g.pos.push(x + (c[0] ? x1 : x0), y + (c[1] ? h : 0), z + (c[2] ? x1 : x0));
+      const u = c[3] ? U1 : U0;
+      const v = top ? (c[4] ? sideV0 : sideV0 + dv * 2 / 16) : bottom ? uv.vBot : (c[4] ? sideV0 : uv.vBot);
+      g.uv.push(u, v);
+      g.col.push(1, 1, 1);
+    }
+    g.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
+  }
+}

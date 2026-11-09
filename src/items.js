@@ -10,6 +10,8 @@ export const I = {
   WOOD_AXE: 274, STONE_AXE: 275, IRON_AXE: 276, DIAMOND_AXE: 277,
   WOOD_SHOVEL: 278, STONE_SHOVEL: 279, IRON_SHOVEL: 280, DIAMOND_SHOVEL: 281,
   PIG_EGG: 290, COW_EGG: 291, SHEEP_EGG: 292, CHICKEN_EGG: 293,
+  DOG_EGG: 294, CAT_EGG: 295,
+  ROBOT: 300,
 };
 
 const TIERS = [
@@ -38,7 +40,12 @@ item(I.APPLE, 'Apple', { sprite: 'apple', food: 4 });
 item(I.PIG_EGG, 'Pig Spawn Egg', { sprite: 'egg', color: [240, 165, 165], spots: [200, 110, 120], spawns: 'pig', creativeOnly: true });
 item(I.COW_EGG, 'Cow Spawn Egg', { sprite: 'egg', color: [95, 62, 40], spots: [235, 235, 235], spawns: 'cow', creativeOnly: true });
 item(I.SHEEP_EGG, 'Sheep Spawn Egg', { sprite: 'egg', color: [235, 235, 235], spots: [215, 180, 160], spawns: 'sheep', creativeOnly: true });
+item(I.DOG_EGG, 'Pet Dog Egg', { sprite: 'egg', color: [205, 150, 85], spots: [120, 80, 45], spawns: 'dog', creativeOnly: true });
+item(I.CAT_EGG, 'Pet Cat Egg', { sprite: 'egg', color: [235, 150, 60], spots: [190, 100, 35], spawns: 'cat', creativeOnly: true });
 item(I.CHICKEN_EGG, 'Chicken Spawn Egg', { sprite: 'egg', color: [245, 245, 245], spots: [210, 40, 40], spawns: 'chicken', creativeOnly: true });
+
+// Bit the code robot: right-click a block to place it, right-click Bit to program it.
+item(I.ROBOT, 'Robot Bit', { sprite: 'robot', stack: 1 });
 
 TIERS.forEach((t, i) => {
   for (const [kind, label] of [['pickaxe', 'Pickaxe'], ['axe', 'Axe'], ['shovel', 'Shovel']]) {
@@ -68,6 +75,7 @@ mine([B.LOG, B.PLANKS], 2, 'axe');
 mine([B.CRAFTING_TABLE], 2.5, 'axe');
 mine([B.LEAVES], 0.2);
 mine([B.GLASS, B.LAMP], 0.3);
+mine([B.TORCH], 0.05);
 mine([B.CACTUS], 0.4);
 mine([B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK], 0.8);
 
@@ -108,6 +116,7 @@ const recipe = (out, count, inputs, station = null) => RECIPES.push({ out, count
 recipe(B.PLANKS, 4, [[B.LOG, 1]]);
 recipe(I.STICK, 4, [[B.PLANKS, 2]]);
 recipe(B.CRAFTING_TABLE, 1, [[B.PLANKS, 4]]);
+recipe(B.TORCH, 4, [[I.STICK, 1], [I.COAL, 1]]);
 const MATERIAL = [B.PLANKS, B.COBBLE, I.IRON_INGOT, I.DIAMOND];
 TIERS.forEach((t, i) => {
   recipe(I[`${t.key}_PICK`], 1, [[MATERIAL[i], 3], [I.STICK, 2]], 'table');
@@ -115,6 +124,7 @@ TIERS.forEach((t, i) => {
   recipe(I[`${t.key}_SHOVEL`], 1, [[MATERIAL[i], 1], [I.STICK, 2]], 'table');
 });
 recipe(B.FURNACE, 1, [[B.COBBLE, 8]], 'table');
+recipe(I.ROBOT, 1, [[I.IRON_INGOT, 3], [B.GLASS, 1], [I.COAL, 1]], 'table');
 recipe(B.STONE_BRICK, 4, [[B.STONE, 4]], 'table');
 recipe(B.SANDSTONE, 1, [[B.SAND, 4]], 'table');
 recipe(B.LAMP, 1, [[B.GLASS, 4], [I.COAL, 1]], 'table');
@@ -177,6 +187,12 @@ const SPRITES = {
     '...##########...', '...###s######...', '...##########...', '....####s###....',
     '.....######.....', '......####......', '................', '................',
   ],
+  robot: [
+    '................', '.......r........', '.......d........', '...##########...',
+    '...#wwwwwwww#...', '...#wcwwwwcw#...', '...#wwwwwwww#...', '...##########...',
+    '....bbbbbbbb....', '..b.bbyyyybb.b..', '..b.bbbbbbbb.b..', '....bbbbbbbb....',
+    '.....dd..dd.....', '....dddddddd....', '................', '................',
+  ],
   apple: [
     '................', '........s.......', '.......s.gg.....', '....###s###.....',
     '...##########...', '..############..', '..############..', '..############..',
@@ -191,7 +207,7 @@ function spriteIcon(def, size) {
   const ctx = c.getContext('2d');
   const px = size / 16;
   const rows = SPRITES[def.sprite];
-  const col = def.sprite === 'apple' ? [210, 40, 35] : (def.color || [150, 115, 65]);
+  const col = def.sprite === 'apple' ? [210, 40, 35] : def.sprite === 'robot' ? [223, 230, 238] : (def.color || [150, 115, 65]);
   rows.forEach((row, y) => [...row].forEach((ch, x) => {
     let rgb = null;
     if (ch === '#') {
@@ -200,6 +216,11 @@ function spriteIcon(def, size) {
     } else if (ch === 's') rgb = [120, 85, 45];
     else if (ch === 'd') rgb = col.map((v) => Math.round(v * 0.55));
     else if (ch === 'g') rgb = [70, 150, 50];
+    else if (ch === 'r') rgb = [255, 90, 90];
+    else if (ch === 'w') rgb = [16, 32, 46];
+    else if (ch === 'c') rgb = [124, 240, 255];
+    else if (ch === 'b') rgb = [61, 143, 214];
+    else if (ch === 'y') rgb = [255, 201, 74];
     if (!rgb) return;
     ctx.fillStyle = `rgb(${rgb.join(',')})`;
     ctx.fillRect(x * px, y * px, px, px);
@@ -207,11 +228,23 @@ function spriteIcon(def, size) {
   return c.toDataURL();
 }
 
+/** Flat pixel-art icon straight from a tile (for torches and other non-cube blocks). */
+function flatIcon(atlasCanvas, tile, size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(atlasCanvas, (tile % 8) * 16, Math.floor(tile / 8) * 16, 16, 16, 0, 0, size, size);
+  return c.toDataURL();
+}
+
 const iconCache = new Map();
 export function itemIcon(atlasCanvas, id, size = 64) {
   if (iconCache.has(id)) return iconCache.get(id);
   const def = ITEMS.get(id);
-  const url = !def ? '' : def.block !== undefined ? blockIcon(atlasCanvas, BLOCKS[def.block], size) : spriteIcon(def, size);
+  let url = '';
+  if (def && def.block !== undefined && BLOCKS[def.block].shape) url = flatIcon(atlasCanvas, BLOCKS[def.block].side, size);
+  else if (def) url = def.block !== undefined ? blockIcon(atlasCanvas, BLOCKS[def.block], size) : spriteIcon(def, size);
   iconCache.set(id, url);
   return url;
 }

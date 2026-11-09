@@ -13,7 +13,7 @@ export const TILE = {
   LEAVES: 8, PLANKS: 9, GLASS: 10, BRICK: 11, SNOW: 12, COAL: 13, IRON: 14, WATER: 15,
   BEDROCK: 16, GRAVEL: 17, CACTUS_SIDE: 18, CACTUS_TOP: 19, GOLD: 20, SNOW_SIDE: 21, SANDSTONE: 22, STONE_BRICK: 23,
   WOOL_WHITE: 24, WOOL_RED: 25, WOOL_BLUE: 26, WOOL_YELLOW: 27, WOOL_GREEN: 28, WOOL_BLACK: 29, LAMP: 30, DIAMOND: 31,
-  CRAFT_TOP: 32, CRAFT_SIDE: 33, FURNACE_FRONT: 34, FURNACE_TOP: 35,
+  CRAFT_TOP: 32, CRAFT_SIDE: 33, FURNACE_FRONT: 34, FURNACE_TOP: 35, TORCH: 36,
 };
 
 export function tileUV(tile) {
@@ -169,6 +169,14 @@ export function createAtlas() {
     if (x >= 4 && x <= 11 && y >= 8 && y <= 13) return y >= 11 ? vary([255, 150, 40], 0.25) : [30, 25, 25];
     if (x >= 4 && x <= 11 && y >= 3 && y <= 5) return [45, 45, 45];
     return vary([125, 125, 125], 0.18);
+  });
+
+  // Torch: a stick (columns 7-8, rows 9-15) with a flame on top (rows 6-8). Rest is transparent.
+  paint(TILE.TORCH, (x, y) => {
+    if (x < 7 || x > 8 || y < 6) return [0, 0, 0, 0];
+    if (y <= 6) return [255, 240, 150];
+    if (y <= 8) return x === 7 ? [255, 200, 60] : [255, 150, 40];
+    return vary([120, 85, 45], 0.15);
   });
 
   // Ores: stone + clusters of mineral pixels.

@@ -7,7 +7,7 @@ export const B = {
   GLASS: 9, BRICK: 10, SNOW: 11, COAL_ORE: 12, IRON_ORE: 13, WATER: 14, BEDROCK: 15,
   GRAVEL: 16, CACTUS: 17, GOLD_ORE: 18, SANDSTONE: 19, STONE_BRICK: 20, SNOWY_GRASS: 21,
   WOOL_WHITE: 22, WOOL_RED: 23, WOOL_BLUE: 24, WOOL_YELLOW: 25, WOOL_GREEN: 26, WOOL_BLACK: 27,
-  LAMP: 28, DIAMOND_ORE: 29, CRAFTING_TABLE: 30, FURNACE: 31,
+  LAMP: 28, DIAMOND_ORE: 29, CRAFTING_TABLE: 30, FURNACE: 31, TORCH: 32,
 };
 
 export const BLOCKS = [];
@@ -49,19 +49,22 @@ def(B.WOOL_BLUE, 'Blue Wool', TILE.WOOL_BLUE);
 def(B.WOOL_YELLOW, 'Yellow Wool', TILE.WOOL_YELLOW);
 def(B.WOOL_GREEN, 'Green Wool', TILE.WOOL_GREEN);
 def(B.WOOL_BLACK, 'Black Wool', TILE.WOOL_BLACK);
-def(B.LAMP, 'Lamp', TILE.LAMP, { emissive: true });
+def(B.LAMP, 'Lamp', TILE.LAMP, { emissive: true, light: 15 });
 def(B.DIAMOND_ORE, 'Diamond Ore', TILE.DIAMOND);
 def(B.CRAFTING_TABLE, 'Crafting Table', { top: TILE.CRAFT_TOP, bottom: TILE.PLANKS, side: TILE.CRAFT_SIDE });
+def(B.TORCH, 'Torch', TILE.TORCH, { solid: false, transparent: true, emissive: true, shape: 'torch', light: 14 });
 def(B.FURNACE, 'Furnace', { top: TILE.FURNACE_TOP, bottom: TILE.FURNACE_TOP, side: TILE.FURNACE_FRONT });
 
 // Fast lookup tables used in hot loops (meshing, physics).
 export const SOLID = new Uint8Array(256);
 export const OPAQUE = new Uint8Array(256);
 export const TRANSPARENT = new Uint8Array(256);
+export const LIGHT = new Uint8Array(256); // light emitted (0-15)
 BLOCKS.forEach((b) => {
   SOLID[b.id] = b.solid ? 1 : 0;
   OPAQUE[b.id] = b.solid && !b.transparent ? 1 : 0;
   TRANSPARENT[b.id] = b.transparent ? 1 : 0;
+  LIGHT[b.id] = b.light || 0;
 });
 
 export const PLACEABLE = BLOCKS.filter((b) => b.placeable).map((b) => b.id);
