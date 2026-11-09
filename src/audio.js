@@ -98,6 +98,7 @@ Sfx.prototype.animal = function (type, baby) {
   if (type === 'cow') voice(110, 0.9, 'sawtooth', { slide: -25, filter: 600, gain: 0.2 });
   else if (type === 'pig') { voice(240, 0.12, 'sawtooth', { slide: -60, filter: 900 }); voice(220, 0.14, 'sawtooth', { slide: -70, filter: 900, delay: 0.16 }); }
   else if (type === 'sheep') voice(330, 0.6, 'sawtooth', { vibrato: 25, filter: 1500, gain: 0.13 });
+  else if (type === 'villager') { voice(170, 0.18, 'triangle', { slide: 40, filter: 900, gain: 0.2 }); voice(150, 0.22, 'triangle', { slide: -30, filter: 900, gain: 0.2, delay: 0.2 }); }
   else if (type === 'dog') { voice(260, 0.09, 'sawtooth', { slide: -90, filter: 1100, gain: 0.2 }); voice(250, 0.1, 'sawtooth', { slide: -100, filter: 1100, gain: 0.2, delay: 0.16 }); }
   else if (type === 'cat') voice(620, 0.55, 'triangle', { slide: 260, vibrato: 12, filter: 2200, gain: 0.14 });
   else { for (let i = 0; i < 3; i++) voice(700 + i * 60, 0.06, 'square', { slide: 200, filter: 2500, gain: 0.08, delay: i * 0.09 }); }

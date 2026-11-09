@@ -54,7 +54,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      34 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      36 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">
@@ -76,9 +76,20 @@
   </tr>
 </table>
 
-<p align="center">
-  <img src="docs/screenshots/questbook.jpg" alt="The quest book listing quests with check marks and stars" width="80%">
-</p>
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/village.jpg" alt="A village clearing with a stone well, plank houses and four named villagers: a farmer, a builder and a smith">
+      <h3>🏘️ Villages and trading</h3>
+      Every world has a friendly village near the start: plank houses, a well, gravel paths and named villagers (farmers, builders, smiths). Swap your things for theirs, like <i>10 Cobblestone ➜ 1 Iron</i>. It's counting practice disguised as shopping.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/questbook.jpg" alt="The quest book listing quests with check marks and stars">
+      <h3>📒 Quest book</h3>
+      See every quest, the stars you've earned and what to try next. Press <code>Q</code>, or tap the ⭐ tracker on a tablet.
+    </td>
+  </tr>
+</table>
 
 ### And there's more
 
@@ -112,6 +123,7 @@ MiniCrafter turns play into small, rewarding learning moments:
 | **Shapes and space** | Towers, square floors, walls and stairs; directions (forward, left, up, down). |
 | **Colours** | Rainbow building with six wool colours. |
 | **Nature** | Animal names and babies, day and night, wool growing back. |
+| **Trading** | Swapping fixed amounts (10 dirt for 2 apples), checking "do I have enough?" and counting what you get back. |
 | **Planning** | Gathering materials, crafting tools in the right order, and choosing the right tool for each block. |
 
 ## 🎮 Controls
@@ -129,6 +141,7 @@ MiniCrafter turns play into small, rewarding learning moments:
 | Inventory & crafting (creative: block picker) | `E` | 🎒 button |
 | Quest book | `Q` | Tap the ⭐ tracker |
 | Program Bit | Right click Bit | Tap Bit |
+| Trade with a villager | Right click them | Tap them |
 | Fly on/off (creative) | `F` | 🕊️ button |
 | Pause / settings / game mode | `Esc` | ⏸ button |
 | Debug info | `F3` | — |
@@ -170,8 +183,8 @@ Switch at any time from the pause menu (`Esc`).
 
 - **Quest tracker** (top right): shows the next 3 quests plus the next 🤖 coding quest. Press `Q` for the quest book.
 - **Quest list:**
-  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Best Friend, Animal Family, Light the Way, Splash!, Mountain Top, Star Gazer.
-  - **Survival:** Tree Puncher → Crafting Time → My First Tool → Stone Age → Snack Time → Hot Stuff → Window Maker → Iron Hunter → Diamond Dreams.
+  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Best Friend, Animal Family, Light the Way, Village Visit, Splash!, Mountain Top, Star Gazer.
+  - **Survival:** Tree Puncher → Crafting Time → My First Tool → Stone Age → Snack Time → Hot Stuff → Window Maker → Fair Trader → Iron Hunter → Diamond Dreams.
   - **Coding:** Meet Bit → First Program → Loop the Loop → Bit the Builder → Up, Up, Up → Tunnel Digger → My Own Program → Loop Inside a Loop → Smart Robot.
 
 </details>
@@ -222,6 +235,7 @@ src/robot.js        Bit: model, program interpreter, animated actions
 src/robotui.js      Bit's panel: code editor, run/stop, speed, starters
 src/robotblocks.js  Blockly blocks, workspace <-> program conversion, code view
 src/worlds.js       Saved worlds list, export / import
+src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds
 src/particles.js    Block-break particles
@@ -236,8 +250,10 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-- 🏘️ **Villages and trading:** friendly villagers and swapping items (counting practice!)
 - 👫 **Play with friends:** only with strong child-safety design (private rooms, no free chat)
+- 🌊 **Flowing water** and simple farming (seeds, wheat, bread)
+- 🧵 **Smoother streaming:** generate chunks in a Web Worker for big render distances on tablets
+- 🔊 **Gentle background music** and a parent-settable play-time reminder
 
 Have an idea? [Open an issue](https://github.com/Dynamic-Web-Lab/MiniCrafter/issues).
 

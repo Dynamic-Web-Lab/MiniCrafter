@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { B, SOLID } from './blocks.js';
 import { CS } from './world.js';
+import { villagesNear, JOB_INFO } from './villages.js';
 
 const MAX_MOBS = 16;
 const SPAWN_MIN = 18, SPAWN_MAX = 42;
@@ -24,6 +25,7 @@ export const TYPES = {
   pig: { name: 'Pig', plural: 'Pigs', hw: 0.35, h: 0.85, speed: 1.3 },
   cow: { name: 'Cow', plural: 'Cows', hw: 0.42, h: 1.3, speed: 1.1 },
   sheep: { name: 'Sheep', plural: 'Sheep', hw: 0.4, h: 1.15, speed: 1.15 },
+  villager: { name: 'Villager', plural: 'Villagers', hw: 0.3, h: 1.9, speed: 0.9 },
   dog: { name: 'Dog', plural: 'Dogs', hw: 0.3, h: 0.85, speed: 2.4, pet: true },
   cat: { name: 'Cat', plural: 'Cats', hw: 0.25, h: 0.7, speed: 2.6, pet: true },
   chicken: { name: 'Chicken', plural: 'Chickens', hw: 0.2, h: 0.65, speed: 1.4 },
@@ -66,7 +68,7 @@ function merge(geos) {
 const BLACK = [20, 20, 20], WHITE = [245, 245, 245];
 
 /** Returns { group, head, legs[], wool? } facing +z. */
-function buildModel(type, mat, woolColor, sheared) {
+function buildModel(type, mat, woolColor, sheared, job = 'farmer') {
   const group = new THREE.Group();
   const legs = [];
   const add = (geo, px = 0, py = 0, pz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); group.add(m); return m; };
@@ -107,6 +109,25 @@ function buildModel(type, mat, woolColor, sheared) {
       box(0.46, 0.2, 0.3, WOOL_RGB[woolColor] || WHITE, 0, 0.2, 0.12),
       box(0.07, 0.07, 0.02, BLACK, -0.11, 0.03, 0.4), box(0.07, 0.07, 0.02, BLACK, 0.11, 0.03, 0.4),
     ]), 0, 1.0, 0.45);
+  } else if (type === 'villager') {
+    const info = JOB_INFO[job] || JOB_INFO.farmer;
+    const robe = info.robe, dark = robe.map((v) => v * 0.7), skin = [225, 180, 140];
+    add(merge([
+      box(0.5, 0.78, 0.34, robe, 0, 0.9, 0),
+      box(0.58, 0.18, 0.2, dark, 0, 1.02, 0.22),                       // crossed arms
+      ...(job === 'smith' ? [box(0.42, 0.6, 0.04, [60, 50, 45], 0, 0.85, 0.18)] : []), // apron
+    ]));
+    for (const x of [-0.12, 0.12]) leg(0.2, 0.5, dark, x, 0, 0.5);
+    const hat = job === 'farmer' ? [box(0.62, 0.06, 0.62, [230, 200, 120], 0, 0.22, 0), box(0.44, 0.12, 0.44, [230, 200, 120], 0, 0.3, 0)]
+      : job === 'builder' ? [box(0.48, 0.14, 0.48, [250, 205, 40], 0, 0.26, 0)]
+        : [box(0.46, 0.08, 0.46, [70, 60, 55], 0, 0.24, 0)];
+    head = add(merge([
+      box(0.44, 0.44, 0.42, skin, 0, 0, 0),
+      box(0.1, 0.18, 0.1, [205, 150, 115], 0, -0.06, 0.26),             // big friendly nose
+      box(0.07, 0.06, 0.02, [40, 120, 60], -0.11, 0.06, 0.215), box(0.07, 0.06, 0.02, [40, 120, 60], 0.11, 0.06, 0.215),
+      box(0.46, 0.1, 0.44, [110, 75, 45], 0, 0.2, 0),                   // hair
+      ...hat,
+    ]), 0, 1.52, 0);
   } else if (type === 'dog') {
     const fur = [205, 150, 85], dark = [120, 80, 45], cream = [240, 225, 200];
     add(merge([box(0.4, 0.38, 0.8, fur, 0, 0.55, 0), box(0.3, 0.2, 0.3, cream, 0, 0.45, 0.25)]));
@@ -208,7 +229,7 @@ export class Mobs {
   spawn(type, x, y, z, opts = {}) {
     if (!TYPES[type]) return null;
     const woolColor = opts.woolColor ?? (type === 'sheep' ? pickWool() : null);
-    const model = buildModel(type, this.mat, woolColor, !!opts.sheared);
+    const model = buildModel(type, this.mat, woolColor, !!opts.sheared, opts.job);
     const mob = {
       type, ...model,
       pos: new THREE.Vector3(x, y, z), vel: new THREE.Vector3(),
@@ -219,9 +240,15 @@ export class Mobs {
       kept: !!opts.kept, // bred, fed or spawned by the player: never despawns
       soundTimer: 4 + Math.random() * 10, hop: 0,
       tamed: false, sitting: !!opts.sitting, petName: null, tag: null, wag: 0,
+      job: opts.job || null, home: opts.home || null, villagerName: opts.villagerName || null,
     };
     mob.targetYaw = mob.yaw;
     if (opts.tamed) this.tame(mob, opts.petName);
+    if (type === 'villager') {
+      mob.tag = nameTag(`${mob.villagerName} the ${JOB_INFO[mob.job]?.title || 'Villager'}`);
+      mob.tag.position.set(0, TYPES.villager.h + 0.3, 0);
+      mob.group.add(mob.tag);
+    }
     this.applyScale(mob);
     this.scene.add(mob.group);
     this.list.push(mob);
@@ -285,8 +312,9 @@ export class Mobs {
     }
     for (const mob of [...this.list]) {
       const d = Math.hypot(mob.pos.x - player.pos.x, mob.pos.z - player.pos.z);
-      if (d > DESPAWN_DIST && !mob.kept) this.remove(mob);
+      if (d > DESPAWN_DIST && !mob.kept && !mob.home) this.remove(mob); // villagers come and go as a group
     }
+    if (allowSpawn) this.spawnVillagers(player.pos);
 
     for (const mob of this.list) {
       const d = Math.hypot(mob.pos.x - player.pos.x, mob.pos.z - player.pos.z);
@@ -413,6 +441,16 @@ export class Mobs {
       if (d < 2) { mob.walking = false; mob.targetYaw = Math.atan2(player.pos.x - mob.pos.x, player.pos.z - mob.pos.z); }
     }
 
+    // Villagers potter about but stay near their village.
+    if (mob.home && mob.timer <= 0) {
+      const dh = Math.hypot(mob.home.x + 0.5 - mob.pos.x, mob.home.z + 0.5 - mob.pos.z);
+      if (dh > 14) {
+        mob.targetYaw = Math.atan2(mob.home.x + 0.5 - mob.pos.x, mob.home.z + 0.5 - mob.pos.z);
+        mob.walking = true; mob.timer = 2;
+        return;
+      }
+    }
+
     // Babies follow a nearby grown-up of their kind.
     if (mob.baby && mob.timer <= 0) {
       const parent = this.list.find((o) => o !== mob && o.type === mob.type && !o.baby && o.pos.distanceTo(mob.pos) < 12);
@@ -472,6 +510,26 @@ export class Mobs {
         if (mob && this.collides(mob)) this.remove(mob);
       }
       return;
+    }
+  }
+
+  /** Puts one villager in each house of villages near the player (once per visit). */
+  spawnVillagers(center) {
+    const T = this.world.terrain;
+    // Villagers of villages you've left far behind go home (they come back when you return).
+    for (const m of [...this.list]) {
+      if (m.home && Math.hypot(m.home.x - center.x, m.home.z - center.z) > 110) this.remove(m);
+    }
+    for (const v of villagesNear(T, center.x - 64, center.z - 64, center.x + 64, center.z + 64)) {
+      if (Math.hypot(v.x - center.x, v.z - center.z) > 64) continue;
+      if (this.list.some((m) => m.home && m.home.id === v.id)) continue;
+      if (!this.isLoaded(v.x, v.z) || v.houses.some((h) => !this.isLoaded(h.x, h.z))) continue;
+      v.houses.forEach((h, i) => {
+        const names = JOB_INFO[h.job].names;
+        this.spawn('villager', h.x + 0.5, v.y + 1, h.z + 0.5, {
+          job: h.job, home: v, villagerName: names[(i + Math.abs(v.x)) % names.length], yaw: Math.random() * 6.28,
+        });
+      });
     }
   }
 
