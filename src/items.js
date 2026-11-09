@@ -9,6 +9,7 @@ export const I = {
   WOOD_PICK: 270, STONE_PICK: 271, IRON_PICK: 272, DIAMOND_PICK: 273,
   WOOD_AXE: 274, STONE_AXE: 275, IRON_AXE: 276, DIAMOND_AXE: 277,
   WOOD_SHOVEL: 278, STONE_SHOVEL: 279, IRON_SHOVEL: 280, DIAMOND_SHOVEL: 281,
+  PIG_EGG: 290, COW_EGG: 291, SHEEP_EGG: 292, CHICKEN_EGG: 293,
 };
 
 const TIERS = [
@@ -32,6 +33,12 @@ item(I.IRON_INGOT, 'Iron Ingot', { sprite: 'ingot', color: [220, 220, 224] });
 item(I.GOLD_INGOT, 'Gold Ingot', { sprite: 'ingot', color: [250, 210, 60] });
 item(I.DIAMOND, 'Diamond', { sprite: 'gem', color: [95, 230, 225] });
 item(I.APPLE, 'Apple', { sprite: 'apple', food: 4 });
+
+// Spawn eggs (creative only): right-click a block to place an animal on it.
+item(I.PIG_EGG, 'Pig Spawn Egg', { sprite: 'egg', color: [240, 165, 165], spots: [200, 110, 120], spawns: 'pig', creativeOnly: true });
+item(I.COW_EGG, 'Cow Spawn Egg', { sprite: 'egg', color: [95, 62, 40], spots: [235, 235, 235], spawns: 'cow', creativeOnly: true });
+item(I.SHEEP_EGG, 'Sheep Spawn Egg', { sprite: 'egg', color: [235, 235, 235], spots: [215, 180, 160], spawns: 'sheep', creativeOnly: true });
+item(I.CHICKEN_EGG, 'Chicken Spawn Egg', { sprite: 'egg', color: [245, 245, 245], spots: [210, 40, 40], spawns: 'chicken', creativeOnly: true });
 
 TIERS.forEach((t, i) => {
   for (const [kind, label] of [['pickaxe', 'Pickaxe'], ['axe', 'Axe'], ['shovel', 'Shovel']]) {
@@ -163,6 +170,12 @@ const SPRITES = {
     '...##########...', '..############..', '...##########...', '....########....',
     '.....######.....', '......####......', '.......##.......', '................',
     '................', '................', '................', '................',
+  ],
+  egg: [
+    '................', '.......##.......', '......####......', '.....##s###.....',
+    '.....######.....', '....###s####....', '....########....', '...####s#####...',
+    '...##########...', '...###s######...', '...##########...', '....####s###....',
+    '.....######.....', '......####......', '................', '................',
   ],
   apple: [
     '................', '........s.......', '.......s.gg.....', '....###s###.....',

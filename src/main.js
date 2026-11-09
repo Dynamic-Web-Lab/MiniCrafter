@@ -11,6 +11,7 @@ import { I, ITEMS, itemIcon, itemName, miningInfo, dropFor, STATION_BLOCK } from
 import { Inventory } from './inventory.js';
 import { Survival, MAX_HEALTH, MAX_AIR } from './survival.js';
 import { CraftUI } from './craftui.js';
+import { Mobs, TYPES } from './mobs.js';
 
 const SAVE_KEY = 'minicrafter:save:v1';
 const SETTINGS_KEY = 'minicrafter:settings:v1';
@@ -49,6 +50,7 @@ const sky = new Sky(scene);
 const sfx = new Sfx();
 const particles = new Particles(scene, atlas.avgColors);
 const survival = new Survival(scene);
+const mobs = new Mobs(scene, sfx);
 
 // Block selection outline
 const outline = new THREE.LineSegments(
@@ -102,9 +104,11 @@ function startWorld(seedStr, saved, newMode) {
   inv = new Inventory();
   survival.reset();
   shownTips = new Set();
+  mobs.reset(world);
   if (saved) {
     world.loadEdits(saved.edits);
-    if (Array.isArray(saved.hotbar) && saved.hotbar.length === 9) saved.hotbar.forEach((id, i) => { if (BLOCKS[id]?.placeable) creativeBar[i] = id; });
+    if (Array.isArray(saved.hotbar) && saved.hotbar.length === 9) saved.hotbar.forEach((id, i) => { if (ITEMS.has(id)) creativeBar[i] = id; });
+    mobs.load(saved.mobs);
     selected = saved.selected | 0;
     timeOfDay = saved.time ?? timeOfDay;
     mode = saved.mode === 'survival' ? 'survival' : 'creative';
@@ -155,7 +159,7 @@ function save() {
     edits: world.serializeEdits(),
     player: { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch, flying: player.flying },
     hotbar: creativeBar, selected, time: timeOfDay,
-    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips],
+    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(),
   });
   if (ok) dirtySave = false;
 }
@@ -233,10 +237,10 @@ function select(i) {
 function buildCreativePicker() {
   const grid = $('inv-grid');
   grid.innerHTML = '';
-  for (const id of PLACEABLE) {
+  for (const id of [...PLACEABLE, ...[...ITEMS.keys()].filter((k) => k >= 256)]) {
     const b = document.createElement('button');
     b.className = 'inv-item';
-    b.innerHTML = `<img alt="" src="${icon(id)}"><span>${BLOCKS[id].name}</span>`;
+    b.innerHTML = `<img alt="" src="${icon(id)}"><span>${itemName(id)}</span>`;
     b.addEventListener('click', () => {
       creativeBar[selected] = id;
       renderHotbar();
@@ -293,6 +297,11 @@ const craftUI = new CraftUI({
   },
   onChange: () => { renderHotbar(); dirtySave = true; },
 });
+
+mobs.onBaby = (baby) => {
+  if (baby.pos.distanceTo(player.pos) < 24) { toast(`A baby ${TYPES[baby.type].name.toLowerCase()} was born!`); sfx.craft(); }
+  dirtySave = true;
+};
 
 // ---------- game state & pointer lock ----------
 let state = 'menu'; // 'menu' | 'locking' | 'playing' | 'inventory' | 'craft' | 'dead'
@@ -447,6 +456,7 @@ function updateModeBadge() { $('mode-badge').classList.toggle('hidden', !player?
 
 // ---------- interaction ----------
 let target = null;
+let mobTarget = null;
 const lookDir = new THREE.Vector3();
 
 function pickBlock() {
@@ -484,6 +494,7 @@ function placeBlock(id) {
 
 let lastHitSound = 0;
 function act(now, dt) {
+  if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
   if (!target || now < mouse.nextAction) return;
   if (mouse.left) {
@@ -494,9 +505,53 @@ function act(now, dt) {
     sfx.dig(id);
     mouse.nextAction = now + ACTION_REPEAT;
   } else if (mouse.right) {
-    placeBlock(creativeBar[selected]);
+    const held = creativeBar[selected];
+    const def = ITEMS.get(held);
+    if (def?.spawns) spawnFromEgg(def.spawns);
+    else if (def?.block !== undefined) placeBlock(held);
     mouse.nextAction = now + ACTION_REPEAT;
   }
+}
+
+function spawnFromEgg(type) {
+  const x = target.x + target.normal[0], y = target.y + target.normal[1], z = target.z + target.normal[2];
+  if (SOLID[world.getBlock(x, y, z)]) return;
+  const mob = mobs.spawn(type, x + 0.5, y, z + 0.5, { kept: true });
+  if (mob) { mobs.voice(mob); dirtySave = true; }
+}
+
+/** Interacting with an animal: left = pat, right = feed apple / shear sheep / say hello. */
+function actMob(now) {
+  survival.stopMining();
+  if (now < mouse.nextAction || !(mouse.left || mouse.right)) return;
+  const mob = mobTarget;
+  const held = heldItem();
+  mouse.nextAction = now + 0.45;
+  if (mouse.left) {
+    mobs.pat(mob, player);
+    tip('animals', `${TYPES[mob.type].plural} love apples! Feed two of them and see what happens.`);
+    return;
+  }
+  if (held === I.APPLE) {
+    if (mobs.feed(mob)) {
+      if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); }
+      dirtySave = true;
+    } else toast(`This ${TYPES[mob.type].name.toLowerCase()} is not hungry right now`);
+    return;
+  }
+  if (mob.type === 'sheep') {
+    const wool = mobs.shear(mob);
+    if (wool != null) {
+      const n = 1 + Math.floor(Math.random() * 3);
+      if (isSurvival()) { inv.add(wool, n); renderHotbar(); }
+      sfx.pop(); toast(`+${n} ${itemName(wool)}`);
+      particles.burst(Math.floor(mob.pos.x), Math.floor(mob.pos.y), Math.floor(mob.pos.z), BLOCKS[wool].side);
+      dirtySave = true;
+      return;
+    }
+    if (mob.sheared) { toast('The wool will grow back soon'); return; }
+  }
+  mobs.voice(mob);
 }
 
 function actSurvival(now, dt) {
@@ -558,7 +613,7 @@ function updateDebug(pending) {
     `Chunk: ${Math.floor(p.x / CS)}, ${Math.floor(p.z / CS)}   loaded: ${world.chunks.size}  queued: ${pending}`,
     `Facing: ${facing}   Biome: ${col.desert ? 'desert' : col.h > SEA + 26 ? 'mountains' : world.terrain.forest(p.x, p.z) > 0.12 ? 'forest' : 'plains'}`,
     `Time: ${(((timeOfDay * 24) + 6) % 24).toFixed(1)}h   Seed: ${seedText}`,
-    `Target: ${target ? `${BLOCKS[target.id].name} @ ${target.x}, ${target.y}, ${target.z}` : '-'}`,
+    `Target: ${mobTarget ? TYPES[mobTarget.type].name : target ? `${BLOCKS[target.id].name} @ ${target.x}, ${target.y}, ${target.z}` : '-'}   Animals: ${mobs.list.length}`,
     `Draw calls: ${renderer.info.render.calls}  Tris: ${renderer.info.render.triangles}`,
   ].join('\n');
 }
@@ -615,7 +670,13 @@ function frame(now, manual = false) {
 
   // Target block
   camera.getWorldDirection(lookDir);
-  target = state === 'playing' ? world.raycast(camera.position, lookDir, isSurvival() ? 5 : REACH) : null;
+  const reach = isSurvival() ? 5 : REACH;
+  target = state === 'playing' ? world.raycast(camera.position, lookDir, reach) : null;
+  mobTarget = null;
+  if (state === 'playing') {
+    const hit = mobs.raycast(camera.position, lookDir, reach);
+    if (hit && (!target || hit.dist < target.dist)) { mobTarget = hit.mob; target = null; }
+  }
   if (target) { outline.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5); outline.visible = true; }
   else outline.visible = false;
   if (state === 'playing') act(simTime, dt);
@@ -635,6 +696,7 @@ function frame(now, manual = false) {
   scene.background = scene.fog.color;
   $('water-overlay').classList.toggle('hidden', !(player.headInWater && state === 'playing'));
 
+  mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
   particles.update(dt, light);
   renderer.render(scene, camera);
 
@@ -660,7 +722,7 @@ requestAnimationFrame(frame);
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, survival, keys, mouse, save, setMode,
+  get inv() { return inv; }, get mobTarget() { return mobTarget; }, survival, mobs, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

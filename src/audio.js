@@ -69,3 +69,34 @@ Sfx.prototype.hurt = function () { this.tone(220, 0.25, 'square', 0.15, -120); }
 Sfx.prototype.craft = function () { this.tone(660, 0.08, 'triangle', 0.2); setTimeout(() => this.tone(990, 0.12, 'triangle', 0.2), 70); };
 Sfx.prototype.eat = function () { this.burst(900, 1, 0.08, 0.4); setTimeout(() => this.burst(900, 1, 0.08, 0.4), 120); };
 Sfx.prototype.hit = function (id) { const [f, q] = this.profile(id); this.burst(f, q, 0.05, 0.25); };
+
+// Animal voices: tiny synthesized moos, oinks, baas and clucks.
+Sfx.prototype.animal = function (type, baby) {
+  const ctx = this.ctx;
+  if (!ctx) return;
+  const pitch = baby ? 1.6 : 1;
+  const voice = (freq, dur, wave, { slide = 0, vibrato = 0, gain = 0.16, filter = 1200, delay = 0 } = {}) => {
+    const t = ctx.currentTime + delay;
+    const o = ctx.createOscillator();
+    o.type = wave;
+    o.frequency.setValueAtTime(freq * pitch, t);
+    if (slide) o.frequency.linearRampToValueAtTime(Math.max(30, (freq + slide) * pitch), t + dur);
+    let lfo;
+    if (vibrato) {
+      lfo = ctx.createOscillator(); const lg = ctx.createGain();
+      lfo.frequency.value = 22; lg.gain.value = vibrato * pitch;
+      lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t + dur + 0.05);
+    }
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = filter;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(g).connect(ctx.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  };
+  if (type === 'cow') voice(110, 0.9, 'sawtooth', { slide: -25, filter: 600, gain: 0.2 });
+  else if (type === 'pig') { voice(240, 0.12, 'sawtooth', { slide: -60, filter: 900 }); voice(220, 0.14, 'sawtooth', { slide: -70, filter: 900, delay: 0.16 }); }
+  else if (type === 'sheep') voice(330, 0.6, 'sawtooth', { vibrato: 25, filter: 1500, gain: 0.13 });
+  else { for (let i = 0; i < 3; i++) voice(700 + i * 60, 0.06, 'square', { slide: 200, filter: 2500, gain: 0.08, delay: i * 0.09 }); }
+};

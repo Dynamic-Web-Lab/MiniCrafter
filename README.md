@@ -16,6 +16,16 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 - **Settings.** Render distance (3–12 chunks), mouse sensitivity and FOV.
 - **Debug screen.** `F3` shows FPS, coordinates, chunk, biome, target block and draw calls.
 
+## Friendly animals
+
+Pigs, cows, sheep and chickens roam the grasslands in small herds. Nothing can hurt the player, and the animals can't be hurt either.
+
+- **Pat (left click):** the animal hops and makes a happy sound.
+- **Feed an apple (right click):** the animal falls in love (hearts). Two in love walk together and make a **baby**, which follows its parents and grows up after a few minutes. Feeding a baby makes it grow faster.
+- **Shear a sheep (right click without an apple):** you get 1–3 wool in the sheep's colour, and the wool grows back after a minute. Sheep come in white, red, blue, yellow, green and black.
+- **Saving:** animals you have fed, bred or spawned are saved with the world.
+- **Spawn eggs (creative):** right-click a block to place an animal.
+
 ## Game modes
 
 Switch between modes at any time from the pause menu (`Esc`).
@@ -41,6 +51,7 @@ Switch between modes at any time from the pause menu (`Esc`).
 | Break block (hold to repeat) | Left click |
 | Place block (hold to repeat) | Right click |
 | Pick block | Middle click |
+| Pat an animal / feed or shear it | Left click / right click on the animal |
 | Select hotbar slot | `1`–`9` / mouse wheel |
 | Inventory & crafting (survival) / block picker (creative) | `E` |
 | Eat an apple (survival) | Right click with an apple |
@@ -76,6 +87,7 @@ src/items.js      Items, tools, mining rules, drops, recipes, item icons
 src/inventory.js  36-slot survival inventory
 src/survival.js   Hearts, breath, fall damage, regen, timed mining + cracks
 src/craftui.js    Inventory + recipe-book crafting screen
+src/mobs.js       Friendly animals: models, wandering AI, breeding, shearing
 src/textures.js   Procedural texture atlas + hotbar icons
 src/sky.js        Day/night, sun, moon, stars, clouds
 src/particles.js  Block-break particles
@@ -89,7 +101,6 @@ In the browser console, `window.minicrafter` exposes `world`, `player`, `inv`, `
 
 ## Roadmap ideas
 
-- Mobs (passive animals first)
 - Voxel lighting (torches, darkness in caves)
 - Flowing water
 - Generating chunks in a Web Worker for smoother streaming
