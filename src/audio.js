@@ -48,3 +48,24 @@ export class Sfx {
   dig(id) { const [f, q, d, g] = this.profile(id); this.burst(f, q, d * 1.3, g); }
   place(id) { const [f, q, d, g] = this.profile(id); this.burst(f * 0.8, q, d, g * 0.8); }
 }
+
+// Extra cues used by survival mode.
+Sfx.prototype.tone = function (freq, dur, type = 'sine', gain = 0.25, slide = 0) {
+  const ctx = this.ctx;
+  if (!ctx) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  const t = ctx.currentTime;
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), t + dur);
+  g.gain.setValueAtTime(gain, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(ctx.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+};
+Sfx.prototype.pop = function () { this.tone(520 + Math.random() * 200, 0.09, 'sine', 0.18, 300); };
+Sfx.prototype.hurt = function () { this.tone(220, 0.25, 'square', 0.15, -120); };
+Sfx.prototype.craft = function () { this.tone(660, 0.08, 'triangle', 0.2); setTimeout(() => this.tone(990, 0.12, 'triangle', 0.2), 70); };
+Sfx.prototype.eat = function () { this.burst(900, 1, 0.08, 0.4); setTimeout(() => this.burst(900, 1, 0.08, 0.4), 120); };
+Sfx.prototype.hit = function (id) { const [f, q] = this.profile(id); this.burst(f, q, 0.05, 0.25); };

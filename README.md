@@ -16,6 +16,19 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 - **Settings.** Render distance (3–12 chunks), mouse sensitivity and FOV.
 - **Debug screen.** `F3` shows FPS, coordinates, chunk, biome, target block and draw calls.
 
+## Game modes
+
+Switch between modes at any time from the pause menu (`Esc`).
+
+- **Creative:** unlimited blocks, instant breaking and flying.
+- **Survival (gentle, made for kids):** there are no monsters and no hunger.
+  - **Mining:** mining takes time. Better tools mine faster, and ores need the right pickaxe (iron needs Stone, gold and diamond need Iron).
+  - **Crafting:** blocks drop items into a 36-slot inventory. Press `E` for the recipe book: click a recipe to craft it, with no grid patterns to learn. Some recipes need a Crafting Table or Furnace within 4 blocks.
+  - **Tools:** Wooden, Stone, Iron and Diamond pickaxes, axes and shovels.
+  - **Hearts:** you have 10 hearts. Only big falls (more than 4 blocks) and running out of air underwater hurt you. Hearts come back slowly, and apples (sometimes dropped by leaves) heal.
+  - **Fainting:** if you faint, you respawn and keep all your items.
+  - **Tips:** one-time tips guide new players ("hold left click on a tree trunk…").
+
 ## Controls
 
 | Action | Control |
@@ -24,12 +37,13 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 | Look | Mouse |
 | Jump / swim up / fly up | `Space` |
 | Sprint (fly down while flying) | `Shift` |
-| Toggle flying | `F` |
+| Toggle flying (creative) | `F` |
 | Break block (hold to repeat) | Left click |
 | Place block (hold to repeat) | Right click |
 | Pick block | Middle click |
 | Select hotbar slot | `1`–`9` / mouse wheel |
-| Block inventory | `E` |
+| Inventory & crafting (survival) / block picker (creative) | `E` |
+| Eat an apple (survival) | Right click with an apple |
 | Debug info | `F3` |
 | Pause / settings | `Esc` |
 
@@ -58,6 +72,10 @@ src/main.js       Boot, game loop, input, pointer lock, UI, saving
 src/world.js      Chunks, terrain generation, meshing + AO, raycast, streaming
 src/player.js     Player physics and collision
 src/blocks.js     Block registry (IDs are saved, never renumber them)
+src/items.js      Items, tools, mining rules, drops, recipes, item icons
+src/inventory.js  36-slot survival inventory
+src/survival.js   Hearts, breath, fall damage, regen, timed mining + cracks
+src/craftui.js    Inventory + recipe-book crafting screen
 src/textures.js   Procedural texture atlas + hotbar icons
 src/sky.js        Day/night, sun, moon, stars, clouds
 src/particles.js  Block-break particles
@@ -67,11 +85,10 @@ src/noise.js      Seeded Perlin noise and hashes
 
 To add a block, add a tile painter in `textures.js` and a `def(...)` line in `blocks.js`.
 
-In the browser console, `window.minicrafter` exposes `world`, `player` and `save()` for debugging.
+In the browser console, `window.minicrafter` exposes `world`, `player`, `inv`, `save()`, `setMode()` and `step(n)` for debugging. `step(n)` advances n frames by hand, which is useful when the tab is in the background.
 
 ## Roadmap ideas
 
-- Survival mode: health, hunger, block drops, an inventory with counts, crafting
 - Mobs (passive animals first)
 - Voxel lighting (torches, darkness in caves)
 - Flowing water

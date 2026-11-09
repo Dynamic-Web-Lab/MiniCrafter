@@ -18,12 +18,18 @@
   <div id="game"></div>
 
   <div id="water-overlay" class="hidden"></div>
+  <div id="damage-flash"></div>
 
   <div id="hud" class="hidden">
     <div id="crosshair"></div>
     <div id="debug" class="hidden"></div>
     <div id="toast"></div>
     <div id="mode-badge" class="hidden">FLYING</div>
+    <div id="hint"></div>
+    <div id="status" class="hidden">
+      <div id="hearts"></div>
+      <div id="bubbles"></div>
+    </div>
     <div id="hotbar"></div>
   </div>
 
@@ -36,6 +42,14 @@
       <p id="lock-note" class="note"></p>
 
       <div class="section">
+        <div class="mode-pick">
+          <span>Game mode</span>
+          <div class="seg">
+            <button id="mode-creative" type="button">Creative</button>
+            <button id="mode-survival" type="button">Survival</button>
+          </div>
+        </div>
+        <p class="note" id="mode-desc"></p>
         <label>Render distance <span id="rd-val"></span>
           <input id="rd" type="range" min="3" max="12" step="1">
         </label>
@@ -60,12 +74,13 @@
           <tr><td>Mouse</td><td>Look around</td></tr>
           <tr><td>Space</td><td>Jump / swim up / fly up</td></tr>
           <tr><td>Shift</td><td>Sprint (fly down while flying)</td></tr>
-          <tr><td>F</td><td>Toggle flying</td></tr>
+          <tr><td>F</td><td>Toggle flying (creative)</td></tr>
           <tr><td>Left click (hold)</td><td>Break block</td></tr>
           <tr><td>Right click (hold)</td><td>Place block</td></tr>
           <tr><td>Middle click</td><td>Pick block into hotbar</td></tr>
           <tr><td>1–9 / Mouse wheel</td><td>Select hotbar slot</td></tr>
-          <tr><td>E</td><td>Block inventory</td></tr>
+          <tr><td>E</td><td>Inventory &amp; crafting</td></tr>
+          <tr><td>Right click (food)</td><td>Eat an apple (survival)</td></tr>
           <tr><td>F3</td><td>Debug info</td></tr>
           <tr><td>Esc</td><td>Pause</td></tr>
         </table>
@@ -79,6 +94,32 @@
       <h2>Blocks</h2>
       <p class="note">Click a block to put it in hotbar slot <b id="inv-slot">1</b>. Press E or Esc to close.</p>
       <div id="inv-grid"></div>
+    </div>
+  </div>
+
+  <div id="craft" class="overlay hidden">
+    <div class="panel craft-panel">
+      <div class="craft-inv">
+        <h2>Inventory</h2>
+        <p class="note">Click an item to pick it up, then click a slot to put it down.</p>
+        <div id="backpack" class="slot-grid"></div>
+        <div id="craft-hotbar" class="slot-grid hotrow"></div>
+      </div>
+      <div class="craft-recipes">
+        <h2>Crafting</h2>
+        <p class="note" id="station-note"></p>
+        <div id="recipes"></div>
+      </div>
+    </div>
+    <div id="cursor-stack" class="hidden"></div>
+  </div>
+
+  <div id="death" class="overlay hidden">
+    <div class="panel center">
+      <h1 class="sad">Oops!</h1>
+      <p id="death-msg">You fainted.</p>
+      <p class="note">Don't worry, you keep all your items.</p>
+      <button id="btn-respawn" class="primary">Try again</button>
     </div>
   </div>
 
