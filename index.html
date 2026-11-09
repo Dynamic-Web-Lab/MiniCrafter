@@ -145,6 +145,27 @@
     </div>
   </div>
 
+  <div id="robot-panel" class="hidden">
+    <div class="rb-head">
+      <span class="rb-face">🤖</span>
+      <div><h2>Bit the robot</h2><p class="note">Give Bit a program and watch it work.</p></div>
+    </div>
+    <div id="rb-status" class="rb-status idle"></div>
+    <div id="rb-editor-slot"></div>
+    <h3>Starter programs</h3>
+    <div id="rb-examples"></div>
+    <div class="rb-row">
+      <span>Speed</span>
+      <div class="seg"><button data-speed="1" type="button">1×</button><button data-speed="2" type="button">2×</button><button data-speed="4" type="button">4×</button></div>
+    </div>
+    <div class="rb-row">
+      <button id="rb-stop" type="button">⏹ Stop</button>
+      <button id="rb-away" type="button">Put Bit away</button>
+    </div>
+    <p class="note">Bit places the block you are holding. Bit can't break bedrock and stays near you.</p>
+    <button id="rb-close" class="primary done">Done</button>
+  </div>
+
   <div id="death" class="overlay hidden">
     <div class="panel center">
       <h1 class="sad">Oops!</h1>

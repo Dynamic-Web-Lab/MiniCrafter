@@ -161,3 +161,18 @@ body.touch .qt-key { display: none; }
 .qb-item.active { border-color: #ffd45a; }
 .qb-item.off { opacity: .45; }
 .qb-item .tag { font-size: .7rem; padding: 1px 6px; border-radius: 4px; background: #3a4255; margin-left: 6px; font-weight: 400; }
+
+/* Robot panel (docked so you can watch Bit work) */
+#robot-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%); z-index: 21; overflow: auto; padding: 18px; background: rgba(20, 24, 34, .94); border-left: 2px solid #3a4255; box-shadow: -10px 0 40px rgba(0,0,0,.4); }
+#robot-panel h2 { margin: 0; }
+#robot-panel h3 { margin: 14px 0 6px; font-size: .95rem; color: #cfd6e4; }
+.rb-head { display: flex; gap: 12px; align-items: center; }
+.rb-face { font-size: 2.4rem; }
+.rb-status { margin-top: 10px; padding: 8px 10px; border-radius: 6px; background: #232a3b; font-weight: 700; }
+.rb-status.running { color: #9be06a; }
+.rb-status.done { color: #ffe27a; }
+.rb-status.error { color: #ffb36b; }
+#rb-examples { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.rb-ex { text-align: left; font-size: .85rem; }
+.rb-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 12px; }
+.rb-row > button { flex: 1; }

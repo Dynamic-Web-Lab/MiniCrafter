@@ -16,6 +16,15 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 - **Settings.** Render distance (3–12 chunks), mouse sensitivity and FOV.
 - **Debug screen.** `F3` shows FPS, coordinates, chunk, biome, target block and draw calls.
 
+## Bit the code robot
+
+Bit is a friendly hovering robot that runs programs one visible step at a time.
+
+- **Getting Bit:** in creative, pick **Robot Bit** from the block picker. In survival, craft it at a Crafting Table from 3 Iron Ingots, 1 Glass and 1 Coal.
+- **Placing and programming:** right-click a block to place Bit; it faces the way you look. Right-click Bit to open its panel: pick a starter program (tower, wall, stairs, tunnel, walk a square, explore) and watch it work. You can run at 1×/2×/4× speed and stop any time.
+- **Building:** Bit places the block you're holding. In survival it uses your blocks and hands you what it digs.
+- **Safety:** Bit can't break bedrock and stays within 64 blocks of you. If something is in the way, Bit shakes its head, says why, and carries on. Runaway loops are stopped with a friendly message.
+
 ## Learning quests
 
 A quest tracker (top right) always shows the next 3 goals with progress bars. Press `Q`, or tap the tracker, to open the **quest book** with all quests and the stars you've earned. Finishing a quest plays a short celebration and awards 1–3 ⭐. Some survival quests also give apples.
@@ -126,6 +135,8 @@ src/craftui.js    Inventory + recipe-book crafting screen
 src/mobs.js       Friendly animals: models, wandering AI, breeding, shearing
 src/touch.js      On-screen joystick, look-drag, tap/hold and buttons for tablets
 src/quests.js     Learning quests, stars and progress tracking
+src/robot.js      Bit the robot: model, program interpreter, animated actions
+src/robotui.js    Bit's side panel (starter programs, speed, stop)
 src/textures.js   Procedural texture atlas + hotbar icons
 src/sky.js        Day/night, sun, moon, stars, clouds
 src/particles.js  Block-break particles

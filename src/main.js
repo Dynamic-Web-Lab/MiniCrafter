@@ -14,6 +14,8 @@ import { CraftUI } from './craftui.js';
 import { Mobs, TYPES } from './mobs.js';
 import { TouchControls, isTouchDevice } from './touch.js';
 import { Quests, QUESTS } from './quests.js';
+import { Robot } from './robot.js';
+import { RobotUI } from './robotui.js';
 
 const SAVE_KEY = 'minicrafter:save:v1';
 const SETTINGS_KEY = 'minicrafter:settings:v1';
@@ -54,6 +56,38 @@ const particles = new Particles(scene, atlas.avgColors);
 const survival = new Survival(scene);
 const mobs = new Mobs(scene, sfx);
 const quests = new Quests();
+const robot = new Robot({
+  world: null, scene, sfx, particles,
+  getPlayer: () => player,
+  resolveBlock: () => { const id = heldItem(); return id != null && ITEMS.get(id)?.block !== undefined ? id : null; },
+  breakBlock(x, y, z, id) {
+    removeBlock(x, y, z);
+    particles.burst(x, y, z, BLOCKS[id].side);
+    sfx.dig(id);
+    if (isSurvival()) { // Bit hands what it digs to you (it's strong: any tool tier)
+      const drop = dropFor(id);
+      if (drop != null && !inv.add(drop, 1)) renderHotbar();
+    }
+    quests.emit('robot', { kind: 'dig', id });
+    dirtySave = true;
+    return true;
+  },
+  placeBlock(x, y, z, id) {
+    if (SOLID[id] && player.intersectsBlock(x, y, z)) return 'You are standing there!';
+    if (isSurvival()) {
+      if (inv.count(id) < 1) return `I need more ${itemName(id)}!`;
+      inv.remove(id, 1); renderHotbar();
+    }
+    if (!world.setBlock(x, y, z, id)) return false;
+    world.flushDirty();
+    sfx.place(id);
+    quests.emit('robot', { kind: 'place', id, x, y, z });
+    dirtySave = true;
+    return true;
+  },
+  onAction: (a) => { if (a.kind === 'move') quests.emit('robot', { kind: 'move', dir: a.dir }); },
+  onDone: (result) => { if (result === 'done') { sfx.fanfare?.(); quests.emit('robot', { kind: 'done' }); } },
+});
 
 // Block selection outline
 const outline = new THREE.LineSegments(
@@ -111,11 +145,14 @@ function startWorld(seedStr, saved, newMode) {
   survival.reset();
   shownTips = new Set();
   mobs.reset(world);
+  robot.world = world;
+  robot.remove();
   quests.load(null);
   if (saved) {
     world.loadEdits(saved.edits);
     if (Array.isArray(saved.hotbar) && saved.hotbar.length === 9) saved.hotbar.forEach((id, i) => { if (ITEMS.has(id)) creativeBar[i] = id; });
     mobs.load(saved.mobs);
+    robot.load(saved.robot);
     quests.load(saved.quests);
     selected = saved.selected | 0;
     timeOfDay = saved.time ?? timeOfDay;
@@ -167,7 +204,7 @@ function save() {
     edits: world.serializeEdits(),
     player: { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch, flying: player.flying },
     hotbar: creativeBar, selected, time: timeOfDay,
-    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(),
+    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(),
   });
   if (ok) dirtySave = false;
 }
@@ -446,8 +483,31 @@ function openQuestBook(fromMenu) {
   if (!fromMenu) document.exitPointerLock();
 }
 
+const robotUI = new RobotUI({
+  getRobot: () => robot,
+  onRun: () => { dirtySave = true; },
+  onClose: () => closeOverlay(true),
+  onPutAway: () => {
+    robot.remove();
+    if (isSurvival()) { inv.add(I.ROBOT, 1); renderHotbar(); }
+    toast('Bit is back in your inventory');
+    dirtySave = true;
+    closeOverlay(true);
+  },
+});
+
+function openRobotPanel() {
+  clearInput();
+  touch?.setEnabled(false);
+  state = 'robot';
+  robotUI.open();
+  document.exitPointerLock();
+  tip('robot', 'Pick a starter program and watch Bit work. Hold a block so Bit can build with it!');
+}
+
 function closeOverlay(relock) {
   $('inventory').classList.add('hidden');
+  if (state === 'robot') robotUI.close();
   if (state === 'questbook') {
     $('questbook').classList.add('hidden');
     if (bookFromMenu) { state = 'menu'; return; }
@@ -535,6 +595,10 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyQ' || e.code === 'Escape') closeOverlay(e.code === 'KeyQ');
     return;
   }
+  if (state === 'robot') {
+    if (e.code === 'Escape') closeOverlay(false);
+    return;
+  }
   if (state === 'inventory' || state === 'craft') {
     if (e.code === 'KeyE') closeOverlay(true);
     else if (e.code === 'Escape') closeOverlay(false);
@@ -616,6 +680,7 @@ const touch = touchMode ? new TouchControls({
 // ---------- interaction ----------
 let target = null;
 let mobTarget = null;
+let robotTarget = false;
 const lookDir = new THREE.Vector3();
 
 function pickBlock() {
@@ -654,6 +719,7 @@ function placeBlock(id) {
 
 let lastHitSound = 0;
 function act(now, dt) {
+  if (robotTarget) return actRobot(now);
   if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
   if (!target || now < mouse.nextAction) return;
@@ -668,10 +734,45 @@ function act(now, dt) {
   } else if (mouse.right) {
     const held = creativeBar[selected];
     const def = ITEMS.get(held);
-    if (def?.spawns) spawnFromEgg(def.spawns);
+    if (held === I.ROBOT) placeRobot();
+    else if (def?.spawns) spawnFromEgg(def.spawns);
     else if (def?.block !== undefined) placeBlock(held);
     mouse.nextAction = now + ACTION_REPEAT;
   }
+}
+
+function rayBox(o, d, max, x0, y0, z0, x1, y1, z1) {
+  let t0 = 0, t1 = max;
+  for (const [oo, dd, a, b] of [[o.x, d.x, x0, x1], [o.y, d.y, y0, y1], [o.z, d.z, z0, z1]]) {
+    if (Math.abs(dd) < 1e-9) { if (oo < a || oo > b) return null; continue; }
+    let ta = (a - oo) / dd, tb = (b - oo) / dd;
+    if (ta > tb) [ta, tb] = [tb, ta];
+    t0 = Math.max(t0, ta); t1 = Math.min(t1, tb);
+    if (t0 > t1) return null;
+  }
+  return t0;
+}
+
+function actRobot(now) {
+  survival.stopMining();
+  if (now < mouse.nextAction || !(mouse.left || mouse.right)) return;
+  mouse.nextAction = now + 0.4;
+  if (mouse.right) { mouse.right = false; openRobotPanel(); }
+  else { robot.say(robot.running ? 'Busy working!' : 'Hi! Right-click me to give me a program.', 2); }
+}
+
+/** Places Bit on the targeted face, facing the same way as the player. */
+function placeRobot() {
+  const x = target.x + target.normal[0], y = target.y + target.normal[1], z = target.z + target.normal[2];
+  if (SOLID[world.getBlock(x, y, z)]) return false;
+  const fwd = [-Math.sin(player.yaw), -Math.cos(player.yaw)];
+  const facing = Math.abs(fwd[0]) > Math.abs(fwd[1]) ? (fwd[0] > 0 ? 1 : 3) : (fwd[1] > 0 ? 2 : 0);
+  const wasPlaced = robot.placed;
+  robot.placeAt(x, y, z, facing);
+  robot.say('Hi! I am Bit!', 2);
+  sfx.craft();
+  dirtySave = true;
+  return !wasPlaced;
 }
 
 function spawnFromEgg(type) {
@@ -756,7 +857,9 @@ function actSurvival(now, dt) {
     }
   } else if (mouse.right && now >= mouse.nextAction) {
     survival.stopMining();
-    if (held != null && ITEMS.get(held)?.block !== undefined) {
+    if (held === I.ROBOT) {
+      if (placeRobot()) { inv.takeFromSlot(selected, 1); renderHotbar(); }
+    } else if (held != null && ITEMS.get(held)?.block !== undefined) {
       if (placeBlock(held)) { inv.takeFromSlot(selected, 1); renderHotbar(); dirtySave = true; }
     }
     mouse.nextAction = now + ACTION_REPEAT;
@@ -862,6 +965,9 @@ function frame(now, manual = false) {
   if (state === 'playing') {
     const hit = mobs.raycast(camera.position, lookDir, reach);
     if (hit && (!target || hit.dist < target.dist)) { mobTarget = hit.mob; target = null; }
+    const rd = robot.placed ? rayBox(camera.position, lookDir, reach, robot.x + 0.15, robot.y, robot.z + 0.15, robot.x + 0.85, robot.y + 1.1, robot.z + 0.85) : null;
+    robotTarget = rd !== null && (!target || rd < target.dist) && (!hit || rd < hit.dist);
+    if (robotTarget) { target = null; mobTarget = null; }
   }
   if (target) { outline.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5); outline.visible = true; }
   else outline.visible = false;
@@ -884,6 +990,7 @@ function frame(now, manual = false) {
   $('water-overlay').classList.toggle('hidden', !(player.headInWater && state === 'playing'));
 
   mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
+  robot.update(dt, light);
   particles.update(dt, light);
   renderer.render(scene, camera);
 
@@ -909,7 +1016,7 @@ requestAnimationFrame(frame);
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, get mobTarget() { return mobTarget; }, survival, mobs, quests, keys, mouse, save, setMode,
+  get inv() { return inv; }, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */
