@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Voxel Builder</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: sans-serif; user-select: none; }
+        
+        /* UI Overlays */
+        #blocker { position: absolute; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 10; cursor: pointer; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; }
+        #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.8); }
+        #crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
+        #crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+        
+        /* Hotbar */
+        #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; z-index: 5; }
+        .slot { width: 48px; height: 48px; border: 3px solid #555; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem; border-radius: 4px; transition: 0.1s; }
+        .slot.active { border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,0.8); transform: scale(1.1); }
+        
+        /* Block Colors in UI */
+        #slot-1 { background-color: #556B2F; } /* Grass */
+        #slot-2 { background-color: #8B4513; } /* Dirt */
+        #slot-3 { background-color: #808080; } /* Stone */
+        #slot-4 { background-color: #A0522D; } /* Wood */
+    </style>
+</head>
+<body>
+    <div id="blocker">
+        <h1 style="font-size: 3rem; margin-bottom: 0;">Mini Voxel Game</h1>
+        <p style="font-size: 1.5rem;">Click anywhere to play</p>
+        <div style="margin-top: 20px; text-align: center; line-height: 1.8;">
+            <p><b>W, A, S, D</b> = Move &nbsp;|&nbsp; <b>SPACE</b> = Jump</p>
+            <p><b>Left Click</b> = Break Block &nbsp;|&nbsp; <b>Right Click</b> = Place Block</p>
+            <p><b>1, 2, 3, 4</b> = Select Material</p>
+        </div>
+    </div>
+    
+    <div id="crosshair"></div>
+    
+    <div id="hotbar">
+        <div class="slot active" id="slot-1">1</div>
+        <div class="slot" id="slot-2">2</div>
+        <div class="slot" id="slot-3">3</div>
+        <div class="slot" id="slot-4">4</div>
+    </div>
+
+    <!-- Import Maps Polyfill for older browsers -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    
+    <!-- Load Three.js and modules from unpkg -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- 1. SCENE SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 80);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.y = 2; // Player eye level
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // --- 2. LIGHTING ---
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        hemiLight.position.set(0, 200, 0);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(20, 50, 20);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- 3. MATERIALS & BLOCKS ---
+        const objects = []; // Array to store all blocks for raycasting
+        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+        
+        // Define materials mapped to keys 1-4
+        const materials = {
+            1: new THREE.MeshLambertMaterial({ color: 0x556B2F }), // Grass
+            2: new THREE.MeshLambertMaterial({ color: 0x8B4513 }), // Dirt
+            3: new THREE.MeshLambertMaterial({ color: 0x808080 }), // Stone
+            4: new THREE.MeshLambertMaterial({ color: 0xA0522D })  // Wood
+        };
+        let currentMaterial = 1;
+
+        // Create the ground plane
+        const groundGeo = new THREE.PlaneGeometry(200, 200);
+        groundGeo.rotateX(-Math.PI / 2);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x4B5F29 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.receiveShadow = true;
+        scene.add(ground);
+        objects.push(ground);
+
+        // --- 4. CONTROLS & PHYSICS ---
+        const controls = new PointerLockControls(camera, document.body);
+        const blocker = document.getElementById('blocker');
+
+        // Lock mouse when clicking the start screen
+        blocker.addEventListener('click', () => controls.lock());
+        controls.addEventListener('lock', () => blocker.style.display = 'none');
+        controls.addEventListener('unlock', () => blocker.style.display = 'flex');
+        scene.add(controls.getObject());
+
+        // Physics variables
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let canJump = false;
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        const raycaster = new THREE.Raycaster();
+
+        // Keyboard inputs
+        const onKeyDown = (event) => {
+            switch (event.code) {
+                case 'ArrowUp': case 'KeyW': moveForward = true; break;
+                case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
+                case 'ArrowDown': case 'KeyS': moveBackward = true; break;
+                case 'ArrowRight': case 'KeyD': moveRight = true; break;
+                case 'Space': if (canJump === true) velocity.y += 10; canJump = false; break;
+                case 'Digit1': updateHotbar(1); break;
+                case 'Digit2': updateHotbar(2); break;
+                case 'Digit3': updateHotbar(3); break;
+                case 'Digit4': updateHotbar(4); break;
+            }
+        };
+
+        const onKeyUp = (event) => {
+            switch (event.code) {
+                case 'ArrowUp': case 'KeyW': moveForward = false; break;
+                case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
+                case 'ArrowDown': case 'KeyS': moveBackward = false; break;
+                case 'ArrowRight': case 'KeyD': moveRight = false; break;
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
+        // Update UI Hotbar
+        function updateHotbar(slot) {
+            currentMaterial = slot;
+            document.querySelectorAll('.slot').forEach(el => el.classList.remove('active'));
+            document.getElementById(`slot-${slot}`).classList.add('active');
+        }
+
+        // --- 5. BUILD & DESTROY LOGIC ---
+        document.addEventListener('mousedown', (event) => {
+            if (!controls.isLocked) return;
+
+            // Shoot a ray from the center of the camera
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(objects, false);
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                
+                // Don't interact with blocks that are too far away
+                if (intersect.distance > 7) return; 
+
+                if (event.button === 0) {
+                    // Left Click: Destroy block (if it isn't the ground)
+                    if (intersect.object !== ground) {
+                        scene.remove(intersect.object);
+                        objects.splice(objects.indexOf(intersect.object), 1);
+                    }
+                } else if (event.button === 2) {
+                    // Right Click: Place block
+                    const voxel = new THREE.Mesh(blockGeometry, materials[currentMaterial]);
+                    // Get intersection point and add the face normal to place it *on* the block
+                    voxel.position.copy(intersect.point).add(intersect.face.normal);
+                    // Snap position to a 1x1x1 grid
+                    voxel.position.divideScalar(1).floor().multiplyScalar(1).addScalar(0.5); 
+                    
+                    voxel.castShadow = true;
+                    voxel.receiveShadow = true;
+                    scene.add(voxel);
+                    objects.push(voxel);
+                }
+            }
+        });
+
+        // Prevent right-click context menu from popping up
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // --- 6. GAME LOOP ---
+        let prevTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+
+            if (controls.isLocked === true) {
+                const delta = (time - prevTime) / 1000;
+
+                // Friction / Damping
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+                velocity.y -= 9.8 * 3.0 * delta; // Gravity (9.8 * mass)
+
+                // Calculate direction based on WASD keys
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize(); // Ensure consistent speed in all directions
+
+                // Apply acceleration
+                if (moveForward || moveBackward) velocity.z -= direction.z * 40.0 * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * 40.0 * delta;
+
+                // Apply velocity to camera
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+                controls.getObject().position.y += (velocity.y * delta);
+
+                // Simple floor collision (Player height is 2 units)
+                if (controls.getObject().position.y < 2) {
+                    velocity.y = 0;
+                    controls.getObject().position.y = 2;
+                    canJump = true;
+                }
+            }
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate(); // Start the loop
+    </script>
+</body>
+</html>
