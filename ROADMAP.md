@@ -52,13 +52,13 @@ Building big things one click at a time is tiring for kids. Magic tools make cas
 
 **Watch out:** cap each action (for example 2,000 blocks) so saves don't balloon and chunk rebuilds don't freeze tablets. Batch chunk rebuilds after a big edit.
 
-## Phase 3 · Cozy nature and critters (M–L)
+## Phase 3 · Cozy nature and critters (M–L) 🌱 garden and farming done (3a); critters next (3b)
 
 Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 
-- [ ] **Flowers and tall grass:** cross-shaped plant blocks. This needs a new "plant" mesh shape in the mesher.
-- [ ] **Watering can / bloom wand:** dirt becomes grass, flowers sprout, and vines grow up stone walls.
-- [ ] **Farming:** seeds, wheat that grows in stages, and bread. (Already on the roadmap.)
+- [x] **Flowers and tall grass:** cross-shaped plant blocks. This needs a new "plant" mesh shape in the mesher.
+- [x] **Watering can:** dirt becomes grass, flowers bloom around you, and crops grow a stage. *(Vines on walls are still to do.)*
+- [x] **Farming:** seeds, wheat that grows in stages, and bread. (Already on the roadmap.)
 - [ ] **Habitat wildlife:**
   - a 3×3 pond brings frogs and lily pads
   - 5 flowers bring butterflies
@@ -104,4 +104,4 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 
 **Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5.**
 
-Phases 1 and 2 are done. Phase 3 (cozy nature and critters) is next. Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.
+Phases 1 and 2 and the garden half of Phase 3 are done. Next: Phase 3b critters (butterflies, frogs, fireflies, pet hats). Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.

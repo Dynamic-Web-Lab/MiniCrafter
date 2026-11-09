@@ -1,7 +1,7 @@
 // Learning quests: small goals that teach the controls, animal names, counting,
 // colours, shapes and simple maths, plus a survival track from first log to diamond.
 // Each quest awards 1–3 stars. Progress is driven by game events (see emit()).
-import { B } from './blocks.js';
+import { B, FLOWERS } from './blocks.js';
 import { I } from './items.js';
 import { WOOL } from './mobs.js';
 
@@ -32,6 +32,9 @@ export const QUESTS = [
   { id: 'math2', track: 'all', icon: '✖️', title: 'Glass Times', text: 'Place 2 × 3 glass blocks. How many is that?', reveal: '2 × 3 = 6', event: 'place', test: (d) => d.id === B.GLASS, count: 6, stars: 2 },
   { id: 'glass', track: 'survival', icon: '🪟', title: 'Window Maker', text: 'Make 3 Glass from sand next to a Furnace.', event: 'craft', test: (d) => d.id === B.GLASS, amount: (d) => d.count, count: 3, stars: 2 },
   { id: 'square', track: 'all', icon: '⬛', title: 'Shape Maker', text: 'Build a flat 3 × 3 square floor. That is 9 blocks!', reveal: '3 × 3 = 9', event: 'place', value: (d, ctx) => ctx.squareFill(d), count: 9, stars: 2 },
+  { id: 'garden', track: 'all', icon: '🌷', title: 'Rainbow Garden', text: 'Plant 4 different coloured flowers on grass. Find wildflowers, or use a Watering Can on grass to make them bloom!', event: 'place', test: (d) => FLOWERS.includes(d.id), distinct: (d) => d.id, count: 4, stars: 2 },
+  { id: 'farm', track: 'all', icon: '🌾', title: 'Little Farmer', text: 'Make farmland with a Hoe, plant seeds (from tall grass), and harvest golden wheat. A Watering Can makes it grow faster!', event: 'harvest', count: 1, stars: 2 },
+  { id: 'bread', track: 'survival', icon: '🍞', title: 'Baker', text: 'Turn 3 wheat into a loaf of bread. Bread fills your hearts!', event: 'craft', test: (d) => d.id === I.BREAD, count: 1, stars: 1 },
   { id: 'pet', track: 'all', icon: '🐶', title: 'Best Friend', text: 'Find a dog or cat and feed it an apple to make it your pet. Give it a pat!', event: 'tame', count: 1, stars: 2 },
   { id: 'baby', track: 'all', icon: '🍼', title: 'Animal Family', text: 'Feed apples to two animals of the same kind and watch what happens.', event: 'baby', count: 1, stars: 3 },
   { id: 'torch', track: 'all', icon: '🔦', title: 'Light the Way', text: 'Place 5 torches to light up a dark cave. Make torches from a stick and coal.', event: 'place', test: (d) => d.id === B.TORCH, count: 5, stars: 2 },

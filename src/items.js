@@ -13,6 +13,7 @@ export const I = {
   DOG_EGG: 294, CAT_EGG: 295,
   ROBOT: 300, GLIDER: 301,
   LINE_WAND: 310, BOX_TOOL: 311, WALLS_TOOL: 312, SPHERE_TOOL: 313, PAINT_ROLLER: 314, RAINBOW_BRUSH: 315,
+  SEEDS: 320, WHEAT: 321, BREAD: 322, HOE: 323, WATERING_CAN: 324,
 };
 
 const TIERS = [
@@ -49,6 +50,13 @@ item(I.CHICKEN_EGG, 'Chicken Spawn Egg', { sprite: 'egg', color: [245, 245, 245]
 item(I.ROBOT, 'Robot Bit', { sprite: 'robot', stack: 1 });
 // Hold the umbrella glider and keep jump pressed while falling to float down.
 item(I.GLIDER, 'Umbrella Glider', { sprite: 'umbrella', stack: 1, glider: true });
+
+// Garden and farm.
+item(I.SEEDS, 'Wheat Seeds', { sprite: 'seeds', color: [140, 170, 60] });
+item(I.WHEAT, 'Wheat', { sprite: 'wheat', color: [225, 195, 80] });
+item(I.BREAD, 'Bread', { sprite: 'bread', color: [200, 140, 70], food: 5 });
+item(I.HOE, 'Hoe', { sprite: 'hoe', color: [150, 115, 65], stack: 1, hoe: true });
+item(I.WATERING_CAN, 'Watering Can', { sprite: 'can', color: [90, 160, 230], stack: 1, water: true });
 
 // Creative power tools. Shape tools: right-click two points to build, left-click two points to erase.
 // They build with the last block you held.
@@ -92,6 +100,8 @@ mine([B.TRAMPOLINE, B.CONFETTI, B.NOTE_1, B.NOTE_2, B.NOTE_3, B.NOTE_4, B.NOTE_5
 mine([B.SPEED_STRIP, B.FAN], 1, 'pickaxe');
 mine([B.ICE], 0.5, 'pickaxe');
 mine([B.NEON_PINK, B.NEON_CYAN, B.NEON_LIME, B.NEON_PURPLE], 0.3);
+mine([B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PINK, B.TALL_GRASS, B.WHEAT_0, B.WHEAT_1, B.WHEAT_2, B.WHEAT_3], 0.05);
+mine([B.FARMLAND], 0.5, 'shovel');
 mine([B.CACTUS], 0.4);
 mine([B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK], 0.8);
 
@@ -120,6 +130,10 @@ export function miningInfo(blockId, heldId) {
 /** Returns the item ID dropped by a block (or null). */
 export function dropFor(blockId, rand = Math.random()) {
   if (blockId === B.LEAVES) return rand < 0.12 ? I.APPLE : null;
+  if (blockId === B.TALL_GRASS) return rand < 0.3 ? I.SEEDS : null;
+  if (blockId === B.WHEAT_3) return I.WHEAT;
+  if (blockId >= B.WHEAT_0 && blockId < B.WHEAT_3) return I.SEEDS;
+  if (blockId === B.FARMLAND) return B.DIRT;
   if (blockId === B.WATER || blockId === B.BEDROCK || blockId === B.AIR) return null;
   return DROPS[blockId] ?? (ITEMS.has(blockId) ? blockId : null);
 }
@@ -132,6 +146,9 @@ const recipe = (out, count, inputs, station = null) => RECIPES.push({ out, count
 recipe(B.PLANKS, 4, [[B.LOG, 1]]);
 recipe(I.STICK, 4, [[B.PLANKS, 2]]);
 recipe(B.CRAFTING_TABLE, 1, [[B.PLANKS, 4]]);
+recipe(I.BREAD, 1, [[I.WHEAT, 3]]);
+recipe(I.HOE, 1, [[B.PLANKS, 2], [I.STICK, 2]]);
+recipe(I.WATERING_CAN, 1, [[I.IRON_INGOT, 1], [B.PLANKS, 2]], 'table');
 recipe(B.TORCH, 4, [[I.STICK, 1], [I.COAL, 1]]);
 const MATERIAL = [B.PLANKS, B.COBBLE, I.IRON_INGOT, I.DIAMOND];
 TIERS.forEach((t, i) => {
@@ -214,6 +231,31 @@ const SPRITES = {
     '.....######.....', '....###s####....', '....########....', '...####s#####...',
     '...##########...', '...###s######...', '...##########...', '....####s###....',
     '.....######.....', '......####......', '................', '................',
+  ],
+  seeds: [
+    '................', '................', '......#...#.....', '...#.....#...#..', '.....#.#....#...', '..#.........#...',
+    '......#..#......', '...#.#.....#....', '.......#..#.....', '..#..#.........#', '.........#..#...', '....#...#.......',
+    '................', '................', '................', '................',
+  ],
+  wheat: [
+    '.......#........', '......###.......', '.......#.#......', '......##.##.....', '.....#.#.#......', '......#####.....',
+    '.....#.#.#.#....', '.......s........', '.......s........', '......ss........', '......s.........', '.....ss.........',
+    '.....s..........', '................', '................', '................',
+  ],
+  bread: [
+    '................', '................', '................', '.....######.....', '...##########...', '..###d###d###...',
+    '..############..', '..#####d###d##..', '..############..', '...##########...', '....dddddddd....', '................',
+    '................', '................', '................', '................',
+  ],
+  hoe: [
+    '................', '.......#####....', '......######....', '..........ss....', '.........ss.....', '........ss......',
+    '.......ss.......', '......ss........', '.....ss.........', '....ss..........', '...ss...........', '..ss............',
+    '................', '................', '................', '................',
+  ],
+  can: [
+    '................', '................', '.....######.....', '....#......#....', '...##########.##', '...##########.#.',
+    '...###########..', '...##########...', '...##########...', '...##########...', '...##########...', '....########....',
+    '................', '................', '................', '................',
   ],
   wand: [
     '................', '.........#......', '.......#.#.#....', '........###.....', '......#######...', '........###.....',

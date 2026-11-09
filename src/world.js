@@ -2,7 +2,7 @@
 // occlusion, block edits (persisted), raycasting and chunk streaming.
 import * as THREE from 'three';
 import { Perlin, fbm2, hash2, hash3, smoothstep } from './noise.js';
-import { B, BLOCKS, OPAQUE, TRANSPARENT, LIGHT } from './blocks.js';
+import { B, BLOCKS, OPAQUE, TRANSPARENT, LIGHT, FLOWERS } from './blocks.js';
 import { tileUV } from './textures.js';
 import { villagesNear, stampVillage } from './villages.js';
 
@@ -289,6 +289,17 @@ export class World {
       if (roll < density) this.placeTree(chunk, tx, h, tz, r);
     }
 
+    // Wildflowers and tall grass on open grassland (flower colours come in patches).
+    for (let lz = 0; lz < CS; lz++) for (let lx = 0; lx < CS; lx++) {
+      const wx = x0 + lx, wz = z0 + lz;
+      const roll = hash3(wx, 7, wz, seed + 31) % 1000;
+      if (roll >= 75) continue;
+      let y = CH - 2;
+      while (y > 1 && d[idx(lx, y, lz)] === B.AIR) y--;
+      if (d[idx(lx, y, lz)] !== B.GRASS || d[idx(lx, y + 1, lz)] !== B.AIR) continue;
+      d[idx(lx, y + 1, lz)] = roll < 60 ? B.TALL_GRASS : FLOWERS[hash2(wx >> 3, wz >> 3, seed + 5) % FLOWERS.length];
+    }
+
     // Villages (deterministic per region, may span several chunks).
     for (const v of villagesNear(T, x0, z0, x0 + CS - 1, z0 + CS - 1)) {
       stampVillage(v, (x, y, z, id) => this.setLocal(chunk, x, y, z, id, false), (x, z) => T.column(x, z).h);
@@ -362,6 +373,7 @@ export class World {
       if (id === B.AIR) continue;
       const blk = BLOCKS[id];
       if (blk.shape === 'torch') { addTorch(groups.glow, x, y, z, UVS[id].side); continue; }
+      if (blk.shape === 'plant') { const i = ri(x, y, z); addPlant(groups.solid, x, y, z, UVS[id].side, rSky[i] / 15, rBlk[i] / 15); continue; }
       const isWater = id === B.WATER;
       const g = isWater ? groups.water : blk.emissive ? groups.glow : groups.solid;
       const waterTop = isWater && get(x, y + 1, z) !== B.WATER;
@@ -524,6 +536,19 @@ export class World {
 }
 
 function newGeo() { return { pos: [], uv: [], col: [], idx: [], lt: [] }; }
+
+/** A plant: two crossed, double-sided quads (flowers, grass, crops). */
+function addPlant(g, x, y, z, uv, ls, lb) {
+  const quads = [[[0.15, 0.15], [0.85, 0.85]], [[0.85, 0.15], [0.15, 0.85]]];
+  for (const [[ax, az], [bx, bz]] of quads) {
+    const base = g.pos.length / 3;
+    g.pos.push(x + ax, y, z + az, x + bx, y, z + bz, x + ax, y + 0.95, z + az, x + bx, y + 0.95, z + bz);
+    g.uv.push(uv.u0, uv.vBot, uv.u1, uv.vBot, uv.u0, uv.vTop, uv.u1, uv.vTop);
+    for (let k = 0; k < 4; k++) { g.col.push(0.92, 0.92, 0.92); g.lt.push(ls, lb); }
+    g.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3); // front
+    g.idx.push(base, base + 2, base + 1, base + 2, base + 3, base + 1); // back
+  }
+}
 
 /** A torch: a thin stick with a flame, using the middle columns of its tile. */
 function addTorch(g, x, y, z, uv) {

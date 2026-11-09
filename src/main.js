@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { B, BLOCKS, PLACEABLE, SOLID } from './blocks.js';
+import { B, BLOCKS, PLACEABLE, SOLID, FLOWERS } from './blocks.js';
 import { createAtlas, TILE } from './textures.js';
 import { World, CS, SEA, applyVoxelLighting, lightUniforms } from './world.js';
 import { Player, EYE } from './player.js';
@@ -162,6 +162,7 @@ function startWorld(seedStr, saved, newMode) {
   world.onChange = (x, y, z, from, to) => history.record(x, y, z, from, to);
   history.clear();
   tool.anchor = null;
+  crops.clear();
   attachFunHooks();
   inv = new Inventory();
   survival.reset();
@@ -175,6 +176,7 @@ function startWorld(seedStr, saved, newMode) {
     if (Array.isArray(saved.hotbar) && saved.hotbar.length === 9) saved.hotbar.forEach((id, i) => { if (ITEMS.has(id)) creativeBar[i] = id; });
     mobs.load(saved.mobs);
     robot.load(saved.robot);
+    if (Array.isArray(saved.crops)) for (const c of saved.crops) if (c.length === 4) crops.set(`${c[0]},${c[1]},${c[2]}`, c[3]);
     robotUI.setState(saved.robotCode || null);
     quests.load(saved.quests);
     selected = saved.selected | 0;
@@ -233,6 +235,7 @@ function save() {
     player: { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch, flying: player.flying },
     hotbar: creativeBar, selected, time: timeOfDay,
     mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(), robotCode: robotUI.getState(),
+    crops: [...crops].map(([k, t]) => [...k.split(',').map(Number), Math.round(t)]),
   }, { mode, stars: quests.stars });
   if (ok) dirtySave = false;
 }
@@ -907,13 +910,107 @@ function removeBlock(x, y, z) {
   const waterNear = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]]
     .some(([dx, dy, dz]) => world.getBlock(x + dx, y + dy, z + dz) === B.WATER);
   world.setBlock(x, y, z, waterNear && y <= SEA ? B.WATER : B.AIR);
+  // Plants can't float: a flower or crop on top pops off too.
+  if (BLOCKS[world.getBlock(x, y + 1, z)]?.plant) world.setBlock(x, y + 1, z, B.AIR);
   world.flushDirty();
+}
+
+// ---------- garden & farm ----------
+const crops = new Map(); // "x,y,z" -> seconds until the next growth stage
+const SOIL = new Set([B.GRASS, B.DIRT, B.SNOWY_GRASS, B.FARMLAND]);
+let cropTick = 0;
+
+function addCrop(x, y, z) { crops.set(`${x},${y},${z}`, 25 + Math.random() * 20); }
+
+/** Wheat grows one stage every ~25-45 s (about 2 minutes from seed to golden wheat). */
+function tickCrops(dt) {
+  cropTick += dt;
+  if (cropTick < 1) return;
+  const step = cropTick; cropTick = 0;
+  let changed = false;
+  for (const [k, t] of crops) {
+    const [x, y, z] = k.split(',').map(Number);
+    if (!world.chunks.get(`${Math.floor(x / CS)},${Math.floor(z / CS)}`)?.meshed) continue;
+    const id = world.getBlock(x, y, z);
+    const stage = BLOCKS[id]?.crop;
+    if (stage === undefined || stage >= 3) { crops.delete(k); continue; }
+    if (t - step > 0) { crops.set(k, t - step); continue; }
+    world.setBlock(x, y, z, id + 1);
+    changed = true;
+    if (stage + 1 >= 3) crops.delete(k); else crops.set(k, 25 + Math.random() * 20);
+  }
+  if (changed) { world.flushDirty(); dirtySave = true; }
+}
+
+/** Watering can: crops grow a stage, grass blooms with flowers, dirt turns green. */
+function waterAt(t) {
+  const { x, y, z, id } = t;
+  particles.burst(x, y + 0.5, z, BLOCKS[B.WATER].side);
+  sfx.burst?.(1500, 0.8, 0.2, 0.2);
+  const b = BLOCKS[id];
+  if (b?.crop !== undefined && b.crop < 3) {
+    world.setBlock(x, y, z, id + 1);
+    if (b.crop + 1 < 3) addCrop(x, y, z); else crops.delete(`${x},${y},${z}`);
+  } else if (id === B.DIRT) world.setBlock(x, y, z, B.GRASS);
+  else if (id === B.GRASS || id === B.SNOWY_GRASS || b?.plant) {
+    const gy = b?.plant ? y - 1 : y;
+    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
+      for (let yy = gy + 1; yy >= gy - 1; yy--) {
+        const g = world.getBlock(x + dx, yy, z + dz);
+        if (g !== B.GRASS && g !== B.SNOWY_GRASS) continue;
+        if (world.getBlock(x + dx, yy + 1, z + dz) === B.AIR && Math.random() < 0.4) {
+          world.setBlock(x + dx, yy + 1, z + dz, Math.random() < 0.55 ? B.TALL_GRASS : FLOWERS[Math.floor(Math.random() * FLOWERS.length)]);
+        }
+        break;
+      }
+    }
+    quests.emit('bloom', {});
+  }
+  world.flushDirty();
+  dirtySave = true;
+}
+
+/**
+ * Right-click with a hoe, seeds or watering can. Returns false if the held item
+ * isn't a garden item, 'consume' if one item should be used up (survival), else true.
+ */
+function useGardenItem(held) {
+  const def = ITEMS.get(held);
+  if (!def || !(def.hoe || def.water || held === I.SEEDS) || !target) return false;
+  const { x, y, z, id } = target;
+  const above = world.getBlock(x, y + 1, z);
+  const aboveFree = above === B.AIR || (BLOCKS[above]?.plant && BLOCKS[above].crop === undefined);
+  if (def.hoe) {
+    if ((id === B.GRASS || id === B.DIRT || id === B.SNOWY_GRASS) && aboveFree) {
+      if (above !== B.AIR) world.setBlock(x, y + 1, z, B.AIR);
+      world.setBlock(x, y, z, B.FARMLAND);
+      world.flushDirty();
+      sfx.dig(B.DIRT);
+      tip('farm', 'Farmland! Now plant Wheat Seeds on it. Break tall grass to find seeds.');
+    }
+    return true;
+  }
+  if (held === I.SEEDS) {
+    if (id === B.FARMLAND && above === B.AIR) {
+      world.setBlock(x, y + 1, z, B.WHEAT_0);
+      addCrop(x, y + 1, z);
+      world.flushDirty();
+      sfx.place(B.GRASS);
+      return 'consume';
+    }
+    hint('Seeds grow on farmland. Use a Hoe on grass first!', 2500);
+    return true;
+  }
+  waterAt(target);
+  return true;
 }
 
 function placeBlock(id) {
   const px = target.x + target.normal[0], py = target.y + target.normal[1], pz = target.z + target.normal[2];
   const there = world.getBlock(px, py, pz);
-  if (there !== B.AIR && there !== B.WATER) return false;
+  const replaceable = there === B.AIR || there === B.WATER || (BLOCKS[there]?.plant && BLOCKS[there].crop === undefined);
+  if (!replaceable) return false;
+  if (BLOCKS[id]?.plant && !SOIL.has(world.getBlock(px, py - 1, pz))) { hint('Flowers need grass or dirt to grow on', 2000); return false; }
   if (SOLID[id] && player.intersectsBlock(px, py, pz)) return false;
   if (!world.setBlock(px, py, pz, id)) return false;
   world.flushDirty();
@@ -995,11 +1092,13 @@ function actCreative(now) {
     particles.burst(x, y, z, BLOCKS[id].side);
     sfx.dig(id);
     quests.emit('mine', { id });
+    if (id === B.WHEAT_3) quests.emit('harvest', {});
     mouse.nextAction = now + ACTION_REPEAT;
   } else if (mouse.right) {
     const held = creativeBar[selected];
     const def = ITEMS.get(held);
-    if (held === I.ROBOT) placeRobot();
+    if (useGardenItem(held)) { /* hoe, seeds or watering can */ }
+    else if (held === I.ROBOT) placeRobot();
     else if (def?.spawns) spawnFromEgg(def.spawns);
     else if (def?.block !== undefined) placeBlock(held);
     mouse.nextAction = now + ACTION_REPEAT;
@@ -1125,6 +1224,7 @@ function actSurvival(now, dt) {
         const drop = dropFor(id);
         if (drop != null) {
           const left = inv.add(drop, 1);
+          if (id === B.WHEAT_3) { inv.add(I.SEEDS, 1 + Math.floor(Math.random() * 2)); quests.emit('harvest', {}); }
           if (left) toast('Your inventory is full!');
           else { sfx.pop(); toast(`+1 ${itemName(drop)}`); quests.emit('collect', { id: drop }); }
           renderHotbar();
@@ -1136,7 +1236,11 @@ function actSurvival(now, dt) {
     }
   } else if (mouse.right && now >= mouse.nextAction) {
     survival.stopMining();
-    if (held === I.ROBOT) {
+    const garden = useGardenItem(held);
+    if (garden) {
+      if (garden === 'consume') { inv.takeFromSlot(selected, 1); renderHotbar(); }
+      dirtySave = true;
+    } else if (held === I.ROBOT) {
       if (placeRobot()) { inv.takeFromSlot(selected, 1); renderHotbar(); }
     } else if (held != null && ITEMS.get(held)?.block !== undefined) {
       if (placeBlock(held)) { inv.takeFromSlot(selected, 1); renderHotbar(); dirtySave = true; }
@@ -1251,6 +1355,7 @@ function frame(now, manual = false) {
     player.update(dt, input);
     trackMovement(dt, input, wasOnGround, Math.hypot(player.pos.x - px0, player.pos.z - pz0));
     funBlocks(dt);
+    tickCrops(dt);
     if (wasFlying !== player.flying) updateModeBadge();
     if (player.pos.y < -20) { spawn(); toast('You fell out of the world'); }
     if (isSurvival()) {
@@ -1365,7 +1470,7 @@ window.addEventListener('appinstalled', () => $('btn-install').classList.add('hi
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, history, tool, undoRedo, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, history, tool, undoRedo, crops, waterAt, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */
