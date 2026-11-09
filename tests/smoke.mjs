@@ -1,0 +1,170 @@
+// End-to-end smoke test: boots the real game in headless Chromium (software
+// WebGL) and exercises each major feature through window.minicrafter.
+// Run locally:  npm i --no-save playwright@1.47.2 && npx playwright install chromium && node tests/smoke.mjs
+// (or skip the Chromium download and use Chrome: SMOKE_CHANNEL=chrome node tests/smoke.mjs)
+import http from 'node:http';
+import { readFile, readdir } from 'node:fs/promises';
+import { extname, join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
+
+let failures = 0;
+const ok = (cond, name, detail = '') => {
+  console.log(`${cond ? '✅' : '❌'} ${name}${detail ? `  (${detail})` : ''}`);
+  if (!cond) failures++;
+};
+
+// ---------- static checks ----------
+const srcFiles = (await readdir(join(ROOT, 'src'))).filter((f) => f.endsWith('.js')).sort();
+const sw = await readFile(join(ROOT, 'sw.js'), 'utf8');
+const missing = srcFiles.filter((f) => !sw.includes(`'./src/${f}'`));
+ok(missing.length === 0, 'sw.js precaches every src/*.js file', missing.length ? `missing: ${missing.join(', ')}` : `${srcFiles.length} files`);
+
+// ---------- tiny static server ----------
+const server = http.createServer(async (req, res) => {
+  try {
+    let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (p.endsWith('/')) p += 'index.html';
+    const file = normalize(join(ROOT, p));
+    if (!file.startsWith(ROOT)) throw new Error('outside root');
+    const body = await readFile(file);
+    res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream' });
+    res.end(body);
+  } catch {
+    res.writeHead(404); res.end('not found');
+  }
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const base = `http://127.0.0.1:${server.address().port}/`;
+
+// SMOKE_CHANNEL=chrome uses your installed Google Chrome instead of Playwright's Chromium.
+const browser = await chromium.launch({
+  channel: process.env.SMOKE_CHANNEL || undefined,
+  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+});
+
+async function openGame(query = '') {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+  await page.goto(base + query);
+  await page.waitForFunction(() => window.minicrafter && window.minicrafter.world, null, { timeout: 30000 });
+  await page.evaluate(() => window.minicrafter.step(40));
+  return { page, errors };
+}
+
+try {
+  // ---------- desktop: core game ----------
+  const { page, errors } = await openGame();
+  const core = await page.evaluate(() => {
+    const m = window.minicrafter;
+    const chunk = [...m.world.chunks.values()].find((c) => c.meshed && c.meshes.length);
+    return {
+      chunks: m.world.chunks.size,
+      lit: !!chunk?.meshes[0]?.geometry.attributes.lt,
+      worlds: m.worlds.worlds.length,
+      hotbar: document.querySelectorAll('#hotbar .slot').length,
+    };
+  });
+  ok(core.chunks > 50, 'world generates chunks', `${core.chunks}`);
+  ok(core.lit, 'chunks carry voxel light data');
+  ok(core.worlds >= 1, 'a saved world exists');
+  ok(core.hotbar === 9, 'hotbar has 9 slots');
+
+  const features = await page.evaluate(async () => {
+    const m = window.minicrafter;
+    const { QUESTS } = await import('./src/quests.js');
+    const { villageForRegion } = await import('./src/villages.js');
+    const { miningInfo } = await import('./src/items.js');
+    const { EXAMPLES } = await import('./src/robot.js');
+    const out = {};
+    out.quests = QUESTS.length;
+    out.village = !!villageForRegion(m.world.terrain, 0, 0);
+    out.handStone = !miningInfo(3, null).canHarvest && !!miningInfo(3, 270).canHarvest; // stone: hand no, wooden pickaxe yes
+
+    // Bit builds a 5-block tower out of stone.
+    m.forcePlay(); m.setMode('creative'); m.select(2);
+    const p = m.player, W = m.world;
+    const x = Math.floor(p.pos.x) + 2, z = Math.floor(p.pos.z) + 2, y = 80;
+    for (let h = 0; h < 8; h++) W.setBlock(x, y + h, z, 0);
+    m.robot.placeAt(x, y, z, 0);
+    m.robot.run(EXAMPLES.find((e) => e.id === 'tower').program);
+    for (let i = 0; i < 2000 && m.robot.running; i++) m.step(1, 16.7);
+    out.robotStatus = m.robot.status;
+    out.tower = [0, 1, 2, 3, 4].every((h) => W.getBlock(x, y + h, z) === 3);
+
+    // Animals: spawn and pat a pig, tame a dog.
+    const pig = m.mobs.spawn('pig', p.pos.x + 2, p.pos.y, p.pos.z);
+    const dog = m.mobs.spawn('dog', p.pos.x - 2, p.pos.y, p.pos.z);
+    m.mobs.feed(dog);
+    out.animals = !!pig && dog.tamed && !!dog.petName;
+
+    // Blockly editor loads from vendor/.
+    m.robotUI.open();
+    const t0 = performance.now();
+    while (!m.robotUI.ws && !m.robotUI.blocklyFailed && performance.now() - t0 < 20000) await new Promise((r) => setTimeout(r, 200));
+    out.blockly = !!m.robotUI.ws;
+    m.robotUI.close();
+
+    // Worlds: create a second world, switch back, save round trip.
+    const first = m.currentWorldId;
+    const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
+    m.openWorld(w.id);
+    out.switched = m.currentWorldId === w.id;
+    m.openWorld(first);
+    out.back = m.currentWorldId === first;
+    m.save();
+    out.saved = !!m.worlds.load(first)?.edits;
+    return out;
+  });
+  ok(features.quests >= 36, 'quests are defined', `${features.quests}`);
+  ok(features.village, 'a village exists near spawn');
+  ok(features.handStone, 'mining rules: stone needs a pickaxe');
+  ok(features.robotStatus === 'done' && features.tower, 'Bit builds a 5-block tower', features.robotStatus);
+  ok(features.animals, 'animals spawn and a dog can be tamed');
+  ok(features.blockly, 'Blockly code editor loads');
+  ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
+  ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
+  if (failures) await page.screenshot({ path: 'smoke-desktop.png' });
+  await page.close();
+
+  // ---------- tablet: touch controls ----------
+  const t = await openGame('?touch=1');
+  const touch = await t.page.evaluate(() => {
+    document.getElementById('btn-play').disabled = false;
+    document.getElementById('btn-play').click();
+    return document.getElementById('touch').classList.contains('active');
+  });
+  ok(touch, 'touch controls appear in touch mode');
+  ok(t.errors.length === 0, 'no console errors (touch)', t.errors.slice(0, 3).join(' | '));
+  await t.page.close();
+
+  // ---------- offline: service worker ----------
+  const s = await openGame('?sw=1');
+  const cached = await s.page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    for (let i = 0; i < 50; i++) {
+      const keys = await caches.keys();
+      if (keys.length) {
+        const n = (await (await caches.open(keys[0])).keys()).length;
+        if (n > 20) return n;
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return 0;
+  });
+  ok(cached > 20, 'service worker caches the game for offline play', `${cached} files`);
+  await s.page.close();
+} catch (e) {
+  ok(false, 'smoke test crashed', e.message);
+} finally {
+  await browser.close();
+  server.close();
+}
+
+console.log(failures ? `\n${failures} check(s) failed` : '\nAll smoke checks passed');
+process.exit(failures ? 1 : 0);
