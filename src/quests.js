@@ -30,6 +30,7 @@ export const QUESTS = [
   { id: 'square', track: 'all', icon: '⬛', title: 'Shape Maker', text: 'Build a flat 3 × 3 square floor. That is 9 blocks!', reveal: '3 × 3 = 9', event: 'place', value: (d, ctx) => ctx.squareFill(d), count: 9, stars: 2 },
   { id: 'pet', track: 'all', icon: '🐶', title: 'Best Friend', text: 'Find a dog or cat and feed it an apple to make it your pet. Give it a pat!', event: 'tame', count: 1, stars: 2 },
   { id: 'baby', track: 'all', icon: '🍼', title: 'Animal Family', text: 'Feed apples to two animals of the same kind and watch what happens.', event: 'baby', count: 1, stars: 3 },
+  { id: 'torch', track: 'all', icon: '🔦', title: 'Light the Way', text: 'Place 5 torches to light up a dark cave. Make torches from a stick and coal.', event: 'place', test: (d) => d.id === B.TORCH, count: 5, stars: 2 },
   { id: 'swim', track: 'all', icon: '🏊', title: 'Splash!', text: 'Swim 10 blocks in water. Hold jump to float up.', event: 'swim', count: 10, amount: (d) => d, stars: 1 },
   { id: 'climb', track: 'all', icon: '⛰️', title: 'Mountain Top', text: 'Climb up high until you reach height 60. Press F3 to see your height.', event: 'height', value: (d) => Math.floor(d), count: 60, stars: 2 },
   { id: 'night', track: 'all', icon: '⭐', title: 'Star Gazer', text: 'Stay up until night and look at the stars.', event: 'night', count: 1, stars: 1 },

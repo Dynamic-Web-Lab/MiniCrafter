@@ -54,7 +54,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      33 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      34 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">
@@ -84,6 +84,7 @@
 
 - 🌍 **Endless procedural worlds:** plains, forests, deserts, snowy mountains, beaches, oceans, caves and ores. Share a world with friends by typing the same **seed**.
 - 🌅 **Day and night:** sunsets, a sun and moon, stars and drifting clouds.
+- 🔦 **Real light and dark caves:** sunlight spreads into caves and under roofs, and **torches** (stick + coal) and lamps light up warm, cozy circles. Caves get dark, but never pitch black.
 - 🧱 **31 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
 - 🏊 **Swimming** with an underwater view, sprinting, jumping and flying (creative).
 - 📶 **Works offline and installs like an app:** after the first visit the whole game, including Bit's code editor, is cached, so it keeps working without internet (great for car trips and school Chromebooks). Use **📲 Install MiniCrafter** in the menu, or *Add to Home Screen* on iPad.
@@ -169,7 +170,7 @@ Switch at any time from the pause menu (`Esc`).
 
 - **Quest tracker** (top right): shows the next 3 quests plus the next 🤖 coding quest. Press `Q` for the quest book.
 - **Quest list:**
-  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Best Friend, Animal Family, Splash!, Mountain Top, Star Gazer.
+  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Best Friend, Animal Family, Light the Way, Splash!, Mountain Top, Star Gazer.
   - **Survival:** Tree Puncher → Crafting Time → My First Tool → Stone Age → Snack Time → Hot Stuff → Window Maker → Iron Hunter → Diamond Dreams.
   - **Coding:** Meet Bit → First Program → Loop the Loop → Bit the Builder → Up, Up, Up → Tunnel Digger → My Own Program → Loop Inside a Loop → Smart Robot.
 
@@ -196,6 +197,7 @@ It needs a modern browser with WebGL. Everything, including three.js and Blockly
 
 - **Offline:** `sw.js` precaches every file (stale-while-revalidate) and `manifest.webmanifest` makes it installable. Bump `VERSION` in `sw.js` when files change. The service worker is skipped on localhost so development always sees fresh files (add `?sw=1` to test it).
 - **Rendering:** [three.js](https://threejs.org/) 0.160 (vendored) loaded through an import map. Chunks are 16×16×96 with hidden-face culling and per-vertex ambient occlusion, so each chunk layer is a single draw call.
+- **Lighting:** sky light and block light (0–15) are flood-filled while meshing, over the chunk plus a 15-block margin, and smoothed per vertex. A small shader hook mixes them with the time of day, so torchlight stays warm at night.
 - **Everything procedural:** a seeded Perlin-noise world, a pixel-art texture atlas painted in code, and Web Audio sound effects synthesized on the fly.
 - **Bit's programs** are a small JSON tree run by a generator-based interpreter that the game loop advances one animated step at a time: no `eval`, it can stop instantly, and loops are guarded.
 
@@ -234,7 +236,6 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-- 🔦 **Torches and dark caves:** real light, so caves are spooky-but-safe to explore
 - 🏘️ **Villages and trading:** friendly villagers and swapping items (counting practice!)
 - 👫 **Play with friends:** only with strong child-safety design (private rooms, no free chat)
 

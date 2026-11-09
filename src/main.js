@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { B, BLOCKS, PLACEABLE, SOLID } from './blocks.js';
 import { createAtlas } from './textures.js';
-import { World, CS, SEA } from './world.js';
+import { World, CS, SEA, applyVoxelLighting, lightUniforms } from './world.js';
 import { Player, EYE } from './player.js';
 import { hashString } from './noise.js';
 import { Sky } from './sky.js';
@@ -47,8 +47,10 @@ const atlas = createAtlas();
 const materials = {
   solid: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: 0.5 }),
   water: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
-  glow: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true }),
+  glow: new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true, alphaTest: 0.5 }),
 };
+applyVoxelLighting(materials.solid);
+applyVoxelLighting(materials.water);
 
 const sky = new Sky(scene);
 const sfx = new Sfx();
@@ -1112,8 +1114,7 @@ function frame(now, manual = false) {
   // Sky, fog, light level
   const viewDist = settings.renderDistance * CS;
   const light = sky.update(timeOfDay, camera, dt);
-  materials.solid.color.setScalar(light);
-  materials.water.color.setScalar(light);
+  lightUniforms.uDaylight.value = light;
   if (player.headInWater) {
     scene.fog.color.setRGB(0.1 * light + 0.02, 0.25 * light + 0.04, 0.55 * light + 0.06);
     scene.fog.near = 1; scene.fog.far = 18;

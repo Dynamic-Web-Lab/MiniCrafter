@@ -75,6 +75,7 @@ mine([B.LOG, B.PLANKS], 2, 'axe');
 mine([B.CRAFTING_TABLE], 2.5, 'axe');
 mine([B.LEAVES], 0.2);
 mine([B.GLASS, B.LAMP], 0.3);
+mine([B.TORCH], 0.05);
 mine([B.CACTUS], 0.4);
 mine([B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK], 0.8);
 
@@ -115,6 +116,7 @@ const recipe = (out, count, inputs, station = null) => RECIPES.push({ out, count
 recipe(B.PLANKS, 4, [[B.LOG, 1]]);
 recipe(I.STICK, 4, [[B.PLANKS, 2]]);
 recipe(B.CRAFTING_TABLE, 1, [[B.PLANKS, 4]]);
+recipe(B.TORCH, 4, [[I.STICK, 1], [I.COAL, 1]]);
 const MATERIAL = [B.PLANKS, B.COBBLE, I.IRON_INGOT, I.DIAMOND];
 TIERS.forEach((t, i) => {
   recipe(I[`${t.key}_PICK`], 1, [[MATERIAL[i], 3], [I.STICK, 2]], 'table');
@@ -226,11 +228,23 @@ function spriteIcon(def, size) {
   return c.toDataURL();
 }
 
+/** Flat pixel-art icon straight from a tile (for torches and other non-cube blocks). */
+function flatIcon(atlasCanvas, tile, size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(atlasCanvas, (tile % 8) * 16, Math.floor(tile / 8) * 16, 16, 16, 0, 0, size, size);
+  return c.toDataURL();
+}
+
 const iconCache = new Map();
 export function itemIcon(atlasCanvas, id, size = 64) {
   if (iconCache.has(id)) return iconCache.get(id);
   const def = ITEMS.get(id);
-  const url = !def ? '' : def.block !== undefined ? blockIcon(atlasCanvas, BLOCKS[def.block], size) : spriteIcon(def, size);
+  let url = '';
+  if (def && def.block !== undefined && BLOCKS[def.block].shape) url = flatIcon(atlasCanvas, BLOCKS[def.block].side, size);
+  else if (def) url = def.block !== undefined ? blockIcon(atlasCanvas, BLOCKS[def.block], size) : spriteIcon(def, size);
   iconCache.set(id, url);
   return url;
 }
