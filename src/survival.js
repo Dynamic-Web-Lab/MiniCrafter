@@ -87,6 +87,7 @@ export class Survival {
   update(dt, player) {
     if (this.dead) return;
     // Breath
+    const prevAirRaw = this.air;
     const prevAir = Math.ceil(this.air);
     if (player.headInWater) {
       this.air = Math.max(0, this.air - dt);
@@ -98,7 +99,7 @@ export class Survival {
       this.air = Math.min(MAX_AIR, this.air + dt * 4);
       this.drownTimer = 0;
     }
-    if (Math.ceil(this.air) !== prevAir) this.onChange?.();
+    if (Math.ceil(this.air) !== prevAir || (prevAirRaw < MAX_AIR && this.air === MAX_AIR)) this.onChange?.();
 
     // Regeneration
     this.sinceDamage += dt;

@@ -100,3 +100,8 @@ Sfx.prototype.animal = function (type, baby) {
   else if (type === 'sheep') voice(330, 0.6, 'sawtooth', { vibrato: 25, filter: 1500, gain: 0.13 });
   else { for (let i = 0; i < 3; i++) voice(700 + i * 60, 0.06, 'square', { slide: 200, filter: 2500, gain: 0.08, delay: i * 0.09 }); }
 };
+
+// Quest complete: a short happy arpeggio.
+Sfx.prototype.fanfare = function () {
+  [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, i === 3 ? 0.35 : 0.14, 'triangle', 0.22), i * 110));
+};

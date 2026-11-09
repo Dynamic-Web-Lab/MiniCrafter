@@ -38,6 +38,11 @@
     <div id="toast"></div>
     <div id="mode-badge" class="hidden">FLYING</div>
     <div id="hint"></div>
+    <div id="quest-tracker">
+      <button id="qt-head" type="button"><span id="qt-stars">⭐ 0</span><span class="qt-key">Quests (Q)</span></button>
+      <div id="qt-list"></div>
+    </div>
+    <div id="celebrate"><div class="c-title">Quest complete!</div><div class="c-name"></div><div class="c-stars"></div><div class="c-reveal"></div></div>
     <div id="status" class="hidden">
       <div id="hearts"></div>
       <div id="bubbles"></div>
@@ -51,6 +56,7 @@
       <p class="tag">Explore · Mine · Build</p>
       <p id="loading">Generating world…</p>
       <button id="btn-play" class="primary">Play</button>
+      <button id="btn-quests" class="wide-btn">⭐ Quest book <span id="menu-stars"></span></button>
       <p id="lock-note" class="note"></p>
 
       <div class="section">
@@ -93,6 +99,7 @@
           <tr><td>1–9 / Mouse wheel</td><td>Select hotbar slot</td></tr>
           <tr><td>E</td><td>Inventory &amp; crafting</td></tr>
           <tr><td>Right click (food)</td><td>Eat an apple (survival)</td></tr>
+          <tr><td>Q</td><td>Quest book</td></tr>
           <tr><td>F3</td><td>Debug info</td></tr>
           <tr><td>Esc</td><td>Pause</td></tr>
         </table>
@@ -127,6 +134,15 @@
       </div>
     </div>
     <div id="cursor-stack" class="hidden"></div>
+  </div>
+
+  <div id="questbook" class="overlay hidden">
+    <div class="panel wide">
+      <h2>⭐ Quest book</h2>
+      <p class="note" id="qb-summary"></p>
+      <div id="qb-list"></div>
+      <button id="qb-done" class="primary done">Done</button>
+    </div>
   </div>
 
   <div id="death" class="overlay hidden">
