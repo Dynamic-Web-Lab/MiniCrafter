@@ -15,7 +15,6 @@ The original `index.html` was a single-file, 250-line prototype. These are the f
 
 ## Known limits (not yet addressed)
 
-- Desktop only: no touch controls.
 - Chunk generation runs on the main thread, so there can be small hitches at high render distances.
 - No light propagation: caves are as bright as the surface.
 - Water is static (it doesn't flow), except that it fills a broken block next to it.

@@ -58,6 +58,25 @@ Switch between modes at any time from the pause menu (`Esc`).
 | Debug info | `F3` |
 | Pause / settings | `Esc` |
 
+### Tablets and phones
+
+Touch controls switch on automatically on touch devices. You can force them with `?touch=1`, or turn them off with `?touch=0`.
+
+| Action | Touch |
+| :--- | :--- |
+| Walk | Left joystick |
+| Look | Drag anywhere on the right side |
+| Place / use / feed / shear | Quick tap |
+| Mine / pat an animal | Press and hold |
+| Jump (fly up) | ⬆ button |
+| Fly down | ⬇ button (while flying) |
+| Fly on/off (creative) | 🕊️ button |
+| Inventory & crafting | 🎒 button, then **Done** to close |
+| Pause | ⏸ button |
+| Select hotbar slot | Tap the slot |
+
+Tablets start with a render distance of 5 chunks for smoother play.
+
 ## Run locally
 
 Browsers block ES modules from `file://`, so serve the folder with any static server:
@@ -68,7 +87,7 @@ cd MiniCrafter
 python3 -m http.server 8765
 ```
 
-Then open http://localhost:8765. It needs a desktop browser with WebGL and a mouse; touch controls are not supported yet.
+Then open http://localhost:8765. It works in desktop browsers with a mouse and keyboard, and on tablets and phones with touch.
 
 ## Deploy
 
@@ -88,6 +107,7 @@ src/inventory.js  36-slot survival inventory
 src/survival.js   Hearts, breath, fall damage, regen, timed mining + cracks
 src/craftui.js    Inventory + recipe-book crafting screen
 src/mobs.js       Friendly animals: models, wandering AI, breeding, shearing
+src/touch.js      On-screen joystick, look-drag, tap/hold and buttons for tablets
 src/textures.js   Procedural texture atlas + hotbar icons
 src/sky.js        Day/night, sun, moon, stars, clouds
 src/particles.js  Block-break particles
@@ -104,4 +124,3 @@ In the browser console, `window.minicrafter` exposes `world`, `player`, `inv`, `
 - Voxel lighting (torches, darkness in caves)
 - Flowing water
 - Generating chunks in a Web Worker for smoother streaming
-- Touch controls for mobile

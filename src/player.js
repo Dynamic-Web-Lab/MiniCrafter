@@ -62,7 +62,7 @@ export class Player {
     let wx = -sin * f + cos * s;
     let wz = -cos * f - sin * s;
     const len = Math.hypot(wx, wz);
-    if (len > 0) { wx /= len; wz /= len; }
+    if (len > 1) { wx /= len; wz /= len; } // keep analog (joystick) magnitude below 1
 
     let speed = this.flying ? FLY * (input.sprint ? 1.8 : 1) : input.sprint && f > 0 ? SPRINT : WALK;
     if (this.inWater && !this.flying) speed *= 0.55;

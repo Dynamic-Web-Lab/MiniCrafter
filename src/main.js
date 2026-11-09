@@ -12,6 +12,7 @@ import { Inventory } from './inventory.js';
 import { Survival, MAX_HEALTH, MAX_AIR } from './survival.js';
 import { CraftUI } from './craftui.js';
 import { Mobs, TYPES } from './mobs.js';
+import { TouchControls, isTouchDevice } from './touch.js';
 
 const SAVE_KEY = 'minicrafter:save:v1';
 const SETTINGS_KEY = 'minicrafter:settings:v1';
@@ -61,7 +62,10 @@ outline.visible = false;
 scene.add(outline);
 
 // ---------- settings ----------
-const settings = Object.assign({ renderDistance: 7, sensitivity: 1, fov: 75 }, store.get(SETTINGS_KEY) || {});
+const touchMode = isTouchDevice();
+if (touchMode) document.body.classList.add('touch');
+// Tablets get a lighter default view distance.
+const settings = Object.assign({ renderDistance: touchMode ? 5 : 7, sensitivity: 1, fov: 75 }, store.get(SETTINGS_KEY) || {});
 function applySettings() {
   camera.fov = settings.fov; camera.updateProjectionMatrix();
   $('rd').value = settings.renderDistance; $('rd-val').textContent = settings.renderDistance;
@@ -184,6 +188,7 @@ function renderHotbar() {
       inner += `<img alt="${itemName(creativeBar[i])}" src="${icon(creativeBar[i])}">`;
     }
     s.innerHTML = inner;
+    s.addEventListener('click', () => { if (state === 'playing') select(i); });
     el.appendChild(s);
   }
 }
@@ -326,6 +331,7 @@ function clearInput() {
 
 function showMenu() {
   state = 'menu';
+  touch?.setEnabled(false);
   $('menu').classList.remove('hidden');
   $('hud').classList.add('hidden');
   $('inventory').classList.add('hidden');
@@ -335,6 +341,7 @@ function showMenu() {
 
 function openOverlay() {
   clearInput();
+  touch?.setEnabled(false);
   if (isSurvival()) {
     state = 'craft';
     craftUI.open();
@@ -349,20 +356,12 @@ function openOverlay() {
 function closeOverlay(relock) {
   $('inventory').classList.add('hidden');
   if (state === 'craft') craftUI.close();
-  if (relock) { state = 'locking'; lock(); } else showMenu();
+  if (relock) enterPlay(); else showMenu();
 }
 
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement === canvas) {
-    state = 'playing';
-    hasPlayed = true;
-    $('menu').classList.add('hidden');
-    $('inventory').classList.add('hidden');
-    $('death').classList.add('hidden');
-    $('hud').classList.remove('hidden');
-    $('lock-note').textContent = '';
-    sfx.resume();
-    if (isSurvival()) tip('start', 'Hold left click on a tree trunk to collect wood. Press E to craft!');
+    startPlaying();
   } else if (state === 'playing' || state === 'locking') {
     showMenu();
   }
@@ -373,7 +372,31 @@ document.addEventListener('pointerlockerror', () => {
   $('lock-note').textContent = 'Could not capture the mouse — wait a second and click Play again.';
 });
 
-$('btn-play').addEventListener('click', () => { state = 'locking'; lock(); });
+/** Switch to the in-game view (after pointer lock on desktop, immediately on touch). */
+function startPlaying() {
+  state = 'playing';
+  hasPlayed = true;
+  $('menu').classList.add('hidden');
+  $('inventory').classList.add('hidden');
+  $('craft').classList.add('hidden');
+  $('death').classList.add('hidden');
+  $('hud').classList.remove('hidden');
+  $('lock-note').textContent = '';
+  sfx.resume();
+  touch?.setEnabled(true);
+  if (isSurvival()) tip('start', touchMode
+    ? 'Press and hold on a tree trunk to collect wood. Tap 🎒 to craft!'
+    : 'Hold left click on a tree trunk to collect wood. Press E to craft!');
+}
+
+function enterPlay() {
+  if (touchMode) startPlaying();
+  else { state = 'locking'; lock(); }
+}
+
+$('btn-play').addEventListener('click', enterPlay);
+$('inv-done').addEventListener('click', () => closeOverlay(true));
+$('craft-done').addEventListener('click', () => closeOverlay(true));
 $('btn-new').addEventListener('click', () => {
   const s = $('seed').value.trim() || String(Math.floor(Math.random() * 1e9));
   if (world && world.edits.size && !confirm('Start a new world? Your current world will be replaced.')) return;
@@ -396,14 +419,14 @@ survival.onDeath = (reason) => {
   $('death-msg').textContent = reason === 'drown' ? 'You ran out of air.' : reason === 'fall' ? 'That was a big fall!' : 'You fainted.';
   $('death').classList.remove('hidden');
   $('hud').classList.add('hidden');
+  touch?.setEnabled(false);
   document.exitPointerLock();
 };
 $('btn-respawn').addEventListener('click', () => {
   survival.reset();
   spawn();
   $('death').classList.add('hidden');
-  state = 'locking';
-  lock();
+  enterPlay();
 });
 
 // ---------- input ----------
@@ -419,10 +442,7 @@ document.addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.repeat) return;
   if (e.code.startsWith('Digit')) { const n = +e.code.slice(5); if (n >= 1 && n <= 9) select(n - 1); }
-  if (e.code === 'KeyF') {
-    if (isSurvival()) toast('Flying is only in Creative mode');
-    else { player.flying = !player.flying; player.vel.y = 0; updateModeBadge(); toast(player.flying ? 'Flying on' : 'Flying off'); }
-  }
+  if (e.code === 'KeyF') toggleFly();
   if (e.code === 'KeyE') openOverlay();
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
@@ -452,7 +472,41 @@ document.addEventListener('wheel', (e) => {
 }, { passive: true });
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-function updateModeBadge() { $('mode-badge').classList.toggle('hidden', !player?.flying); }
+function toggleFly() {
+  if (isSurvival()) { toast('Flying is only in Creative mode'); return; }
+  player.flying = !player.flying; player.vel.y = 0;
+  updateModeBadge();
+  toast(player.flying ? 'Flying on' : 'Flying off');
+}
+
+function updateModeBadge() {
+  $('mode-badge').classList.toggle('hidden', !player?.flying);
+  $('touch').classList.toggle('flying', !!player?.flying);
+  $('touch').classList.toggle('survival', isSurvival());
+}
+
+// ---------- touch controls ----------
+const touchKeys = { jump: false, down: false };
+let tapRelease = 0;
+const touch = touchMode ? new TouchControls({
+  look(dx, dy) {
+    if (state !== 'playing') return;
+    const k = 0.0055 * settings.sensitivity;
+    player.yaw -= dx * k;
+    player.pitch = Math.max(-Math.PI / 2 + 0.001, Math.min(Math.PI / 2 - 0.001, player.pitch - dy * k));
+  },
+  tap() { if (state === 'playing') { mouse.right = true; mouse.nextAction = 0; tapRelease = 2; } },
+  holdStart() { if (state === 'playing') { mouse.left = true; mouse.nextAction = 0; } },
+  holdEnd() { mouse.left = false; survival.stopMining(); },
+  button(name, down) {
+    if (name === 'jump') touchKeys.jump = down;
+    else if (name === 'down') touchKeys.down = down;
+    else if (!down) return;
+    else if (name === 'fly' && state === 'playing') toggleFly();
+    else if (name === 'inventory' && state === 'playing') openOverlay();
+    else if (name === 'pause' && state === 'playing') showMenu();
+  },
+}) : null;
 
 // ---------- interaction ----------
 let target = null;
@@ -632,12 +686,12 @@ function frame(now, manual = false) {
 
   if (state === 'playing') {
     const input = {
-      forward: +(keys.has('KeyW') || keys.has('ArrowUp')),
-      back: +(keys.has('KeyS') || keys.has('ArrowDown')),
-      left: +(keys.has('KeyA') || keys.has('ArrowLeft')),
-      right: +(keys.has('KeyD') || keys.has('ArrowRight')),
-      jump: +keys.has('Space'),
-      down: +(keys.has('ShiftLeft') || keys.has('ShiftRight')),
+      forward: Math.max(+(keys.has('KeyW') || keys.has('ArrowUp')), Math.max(0, touch?.move.y || 0)),
+      back: Math.max(+(keys.has('KeyS') || keys.has('ArrowDown')), Math.max(0, -(touch?.move.y || 0))),
+      left: Math.max(+(keys.has('KeyA') || keys.has('ArrowLeft')), Math.max(0, -(touch?.move.x || 0))),
+      right: Math.max(+(keys.has('KeyD') || keys.has('ArrowRight')), Math.max(0, touch?.move.x || 0)),
+      jump: +(keys.has('Space') || touchKeys.jump),
+      down: +(keys.has('ShiftLeft') || keys.has('ShiftRight') || touchKeys.down),
       sprint: keys.has('ShiftLeft') || keys.has('ShiftRight'),
     };
     if (player.flying) input.sprint = false; // Shift descends while flying
@@ -680,6 +734,7 @@ function frame(now, manual = false) {
   if (target) { outline.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5); outline.visible = true; }
   else outline.visible = false;
   if (state === 'playing') act(simTime, dt);
+  if (tapRelease > 0 && --tapRelease === 0) mouse.right = false;
 
   // Sky, fog, light level
   const viewDist = settings.renderDistance * CS;

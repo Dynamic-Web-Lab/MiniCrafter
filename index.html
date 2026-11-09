@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>MiniCrafter</title>
   <meta name="description" content="A browser voxel sandbox: explore procedural worlds, mine and build.">
   <link rel="stylesheet" href="style.css">
@@ -19,6 +21,16 @@
 
   <div id="water-overlay" class="hidden"></div>
   <div id="damage-flash"></div>
+
+  <div id="touch" class="hidden">
+    <div id="touch-look"></div>
+    <div id="stick"><div id="stick-knob"></div></div>
+    <button class="tbtn" id="t-pause" data-btn="pause" aria-label="Pause">⏸</button>
+    <button class="tbtn" id="t-inv" data-btn="inventory" aria-label="Inventory">🎒</button>
+    <button class="tbtn" id="t-fly" data-btn="fly" aria-label="Fly">🕊️</button>
+    <button class="tbtn big" id="t-jump" data-btn="jump" aria-label="Jump / up">⬆</button>
+    <button class="tbtn" id="t-down" data-btn="down" aria-label="Down">⬇</button>
+  </div>
 
   <div id="hud" class="hidden">
     <div id="crosshair"></div>
@@ -85,6 +97,7 @@
           <tr><td>Esc</td><td>Pause</td></tr>
         </table>
       </details>
+      <p class="note touch-only">Tablet: left stick walks, drag to look, tap to place, hold to mine.</p>
       <p class="note">Your world is saved automatically in this browser.</p>
     </div>
   </div>
@@ -92,8 +105,9 @@
   <div id="inventory" class="overlay hidden">
     <div class="panel wide">
       <h2>Blocks</h2>
-      <p class="note">Click a block to put it in hotbar slot <b id="inv-slot">1</b>. Press E or Esc to close.</p>
+      <p class="note">Click a block to put it in hotbar slot <b id="inv-slot">1</b>.</p>
       <div id="inv-grid"></div>
+      <button id="inv-done" class="primary done">Done</button>
     </div>
   </div>
 
@@ -109,6 +123,7 @@
         <h2>Crafting</h2>
         <p class="note" id="station-note"></p>
         <div id="recipes"></div>
+        <button id="craft-done" class="primary done">Done</button>
       </div>
     </div>
     <div id="cursor-stack" class="hidden"></div>
