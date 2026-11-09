@@ -26,6 +26,7 @@ export const TYPES = {
   cow: { name: 'Cow', plural: 'Cows', hw: 0.42, h: 1.3, speed: 1.1 },
   sheep: { name: 'Sheep', plural: 'Sheep', hw: 0.4, h: 1.15, speed: 1.15 },
   villager: { name: 'Villager', plural: 'Villagers', hw: 0.3, h: 1.9, speed: 0.9 },
+  frog: { name: 'Frog', plural: 'Frogs', hw: 0.22, h: 0.42, speed: 1.5 },
   dog: { name: 'Dog', plural: 'Dogs', hw: 0.3, h: 0.85, speed: 2.4, pet: true },
   cat: { name: 'Cat', plural: 'Cats', hw: 0.25, h: 0.7, speed: 2.6, pet: true },
   chicken: { name: 'Chicken', plural: 'Chickens', hw: 0.2, h: 0.65, speed: 1.4 },
@@ -128,6 +129,16 @@ function buildModel(type, mat, woolColor, sheared, job = 'farmer') {
       box(0.46, 0.1, 0.44, [110, 75, 45], 0, 0.2, 0),                   // hair
       ...hat,
     ]), 0, 1.52, 0);
+  } else if (type === 'frog') {
+    const green = [80, 170, 70], belly = [200, 225, 140];
+    add(merge([box(0.4, 0.22, 0.44, green, 0, 0.2, 0), box(0.34, 0.06, 0.36, belly, 0, 0.09, 0.02)]));
+    for (const [x, z, h] of [[-0.18, 0.15, 0.12], [0.18, 0.15, 0.12], [-0.2, -0.16, 0.14], [0.2, -0.16, 0.14]]) leg(0.12, h, green, x, z, h);
+    head = add(merge([
+      box(0.36, 0.18, 0.2, green, 0, 0, 0.06),
+      box(0.1, 0.1, 0.1, WHITE, -0.12, 0.12, 0.06), box(0.1, 0.1, 0.1, WHITE, 0.12, 0.12, 0.06),
+      box(0.05, 0.05, 0.02, BLACK, -0.12, 0.13, 0.115), box(0.05, 0.05, 0.02, BLACK, 0.12, 0.13, 0.115),
+      box(0.2, 0.02, 0.02, [60, 110, 50], 0, -0.04, 0.165),
+    ]), 0, 0.32, 0.2);
   } else if (type === 'dog') {
     const fur = [205, 150, 85], dark = [120, 80, 45], cream = [240, 225, 200];
     add(merge([box(0.4, 0.38, 0.8, fur, 0, 0.55, 0), box(0.3, 0.2, 0.3, cream, 0, 0.45, 0.25)]));
@@ -441,6 +452,9 @@ export class Mobs {
       if (d < 2) { mob.walking = false; mob.targetYaw = Math.atan2(player.pos.x - mob.pos.x, player.pos.z - mob.pos.z); }
     }
 
+    // Frogs hop instead of walking.
+    if (mob.type === 'frog' && mob.walking && mob.onGround && Math.random() < dt * 2.5) mob.vel.y = 5.2;
+
     // Villagers potter about but stay near their village.
     if (mob.home && mob.timer <= 0) {
       const dh = Math.hypot(mob.home.x + 0.5 - mob.pos.x, mob.home.z + 0.5 - mob.pos.z);
@@ -494,6 +508,15 @@ export class Mobs {
       const ground = W.getBlock(x, y, z);
       if (ground !== B.GRASS && ground !== B.SNOWY_GRASS) continue;
       const roll = Math.random();
+      // Frogs love the edges of ponds and lakes (including ones you dig!).
+      const nearWater = [[2, 0], [-2, 0], [0, 2], [0, -2], [1, 1], [-1, -1]].some(([dx, dz]) => W.getBlock(x + dx, y, z + dz) === B.WATER || W.getBlock(x + dx, y - 1, z + dz) === B.WATER);
+      if (ground === B.GRASS && nearWater && Math.random() < 0.7) {
+        for (let i = 0; i < 2 + Math.floor(Math.random() * 2) && this.list.length < MAX_MOBS; i++) {
+          const f = this.spawn('frog', x + 0.5 + (Math.random() - 0.5) * 2, y + 1, z + 0.5 + (Math.random() - 0.5) * 2);
+          if (f && this.collides(f)) this.remove(f);
+        }
+        return;
+      }
       // Now and then a lone dog or cat appears, waiting to be befriended.
       if (ground === B.GRASS && Math.random() < 0.18 && !this.list.some((m) => TYPES[m.type].pet && !m.tamed)) {
         const pet = this.spawn(Math.random() < 0.5 ? 'dog' : 'cat', x + 0.5, y + 1, z + 0.5);
@@ -610,6 +633,41 @@ export class Mobs {
     return true;
   }
 
+  /** Puts a party hat, crown or sunglasses on a pet. */
+  wear(mob, kind) {
+    if (!mob.tamed || !mob.head) return false;
+    if (mob.accMesh) mob.head.remove(mob.accMesh);
+    const dog = mob.type === 'dog';
+    const top = dog ? 0.19 : 0.14, front = dog ? 0.32 : 0.24, eyeY = dog ? 0.06 : 0.04;
+    let m;
+    if (kind === 'party') {
+      m = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.3, 6), new THREE.MeshBasicMaterial({ color: 0xf050a0 }));
+      m.position.set(0, top + 0.15, 0.08);
+      const pom = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), new THREE.MeshBasicMaterial({ color: 0xffe14a }));
+      pom.position.y = 0.17; m.add(pom);
+    } else if (kind === 'crown') {
+      m = new THREE.Group();
+      const gold = new THREE.MeshBasicMaterial({ color: 0xf5c83a });
+      const ring = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.2), gold); m.add(ring);
+      for (const [px, pz] of [[-0.09, 0], [0, 0], [0.09, 0]]) { const pt = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.05), gold); pt.position.set(px, 0.07, pz); m.add(pt); }
+      m.position.set(0, top + 0.04, 0.08);
+    } else {
+      m = new THREE.Group();
+      const black = new THREE.MeshBasicMaterial({ color: 0x15151c });
+      for (const px of [-0.09, 0.09]) { const lens = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), black); lens.position.x = px; m.add(lens); }
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.02), black); m.add(bridge);
+      m.position.set(0, eyeY, front);
+    }
+    mob.head.add(m);
+    mob.accMesh = m;
+    mob.accessory = kind;
+    if (mob.tag) mob.tag.position.y = TYPES[mob.type].h + 0.35 + (kind === 'party' ? 0.3 : kind === 'crown' ? 0.15 : 0); // keep the name above the hat
+    this.effect(mob, this.happyMat);
+    mob.wag = 2;
+    this.voice(mob);
+    return true;
+  }
+
   toggleSit(mob) {
     if (!mob.tamed) return false;
     mob.sitting = !mob.sitting;
@@ -650,7 +708,7 @@ export class Mobs {
     return this.list.filter((m) => m.kept).map((m) => ({
       t: m.type, x: +m.pos.x.toFixed(2), y: +m.pos.y.toFixed(2), z: +m.pos.z.toFixed(2), yaw: +m.yaw.toFixed(2),
       baby: m.baby, age: Math.round(m.age), sheared: m.sheared, regrow: Math.round(m.regrow), wool: m.woolColor,
-      tamed: m.tamed || undefined, sit: m.sitting || undefined, name: m.petName || undefined,
+      tamed: m.tamed || undefined, sit: m.sitting || undefined, name: m.petName || undefined, acc: m.accessory || undefined,
     }));
   }
 
@@ -658,7 +716,8 @@ export class Mobs {
     if (!Array.isArray(arr)) return;
     for (const d of arr.slice(0, 64)) {
       if (!TYPES[d.t] || !Number.isFinite(d.x)) continue;
-      this.spawn(d.t, d.x, d.y, d.z, { yaw: d.yaw, baby: d.baby, age: d.age, sheared: d.sheared, regrow: d.regrow, woolColor: d.wool ?? undefined, kept: true, tamed: d.tamed, sitting: d.sit, petName: d.name });
+      const mob = this.spawn(d.t, d.x, d.y, d.z, { yaw: d.yaw, baby: d.baby, age: d.age, sheared: d.sheared, regrow: d.regrow, woolColor: d.wool ?? undefined, kept: true, tamed: d.tamed, sitting: d.sit, petName: d.name });
+      if (mob && d.acc) this.wear(mob, d.acc);
     }
   }
 }
