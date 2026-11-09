@@ -4,7 +4,7 @@ import { mulberry32 } from './noise.js';
 
 export const T = 16;          // tile size in px
 export const COLS = 8;
-export const ROWS = 6;
+export const ROWS = 8;
 export const ATLAS_W = COLS * T;
 export const ATLAS_H = ROWS * T;
 
@@ -14,7 +14,14 @@ export const TILE = {
   BEDROCK: 16, GRAVEL: 17, CACTUS_SIDE: 18, CACTUS_TOP: 19, GOLD: 20, SNOW_SIDE: 21, SANDSTONE: 22, STONE_BRICK: 23,
   WOOL_WHITE: 24, WOOL_RED: 25, WOOL_BLUE: 26, WOOL_YELLOW: 27, WOOL_GREEN: 28, WOOL_BLACK: 29, LAMP: 30, DIAMOND: 31,
   CRAFT_TOP: 32, CRAFT_SIDE: 33, FURNACE_FRONT: 34, FURNACE_TOP: 35, TORCH: 36,
+  TRAMP_TOP: 37, TRAMP_SIDE: 38, SPEED: 39, ICE: 40, FAN_TOP: 41, FAN_SIDE: 42,
+  NEON_PINK: 43, NEON_CYAN: 44, NEON_LIME: 45, NEON_PURPLE: 46,
+  NOTE_1: 47, NOTE_2: 48, NOTE_3: 49, NOTE_4: 50, NOTE_5: 51, NOTE_6: 52, NOTE_7: 53, NOTE_8: 54,
+  CONFETTI: 55,
 };
+
+/** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
+export const NOTE_COLORS = [[230, 60, 60], [240, 140, 40], [245, 210, 50], [90, 190, 70], [60, 190, 200], [60, 110, 220], [110, 80, 200], [200, 90, 200]];
 
 export function tileUV(tile) {
   const col = tile % COLS, row = Math.floor(tile / COLS);
@@ -178,6 +185,60 @@ export function createAtlas() {
     if (y <= 8) return x === 7 ? [255, 200, 60] : [255, 150, 40];
     return vary([120, 85, 45], 0.15);
   });
+
+  // ---- Phase 1 fun blocks ----
+  paint(TILE.TRAMP_TOP, (x, y) => {
+    if (x === 0 || y === 0 || x === T - 1 || y === T - 1) return [40, 40, 45];
+    const d = Math.hypot(x - 7.5, y - 7.5);
+    if (Math.floor(d) % 3 === 0) return [235, 170, 20];
+    return vary([255, 215, 40], 0.08);
+  });
+  paint(TILE.TRAMP_SIDE, (x, y) => {
+    if (y < 3) return vary([255, 215, 40], 0.08);
+    if (y > 12) return [45, 45, 50];
+    return ((x + y) % 4 < 2) ? [150, 150, 160] : [60, 60, 66]; // springs
+  });
+  paint(TILE.SPEED, (x, y) => {
+    const c = (x + Math.abs(y - 7.5) * 1.0) % 8;           // >> chevrons
+    if (c > 1.5 && c < 4 && y > 1 && y < 14) return [255, 230, 70];
+    return vary([55, 58, 66], 0.12);
+  });
+  paint(TILE.ICE, (x, y) => ((x * 3 + y * 5) % 17 === 0 || (x - y + 16) % 13 === 0 ? [240, 250, 255] : vary([150, 200, 245], 0.08)));
+  paint(TILE.FAN_TOP, (x, y) => {
+    if (x === 0 || y === 0 || x === T - 1 || y === T - 1) return [90, 95, 105];
+    const a = Math.atan2(y - 7.5, x - 7.5), d = Math.hypot(x - 7.5, y - 7.5);
+    if (d < 1.6) return [200, 205, 215];
+    if (d < 7 && Math.sin(a * 4) > 0.2) return [175, 185, 200]; // blades
+    return [35, 38, 45];
+  });
+  paint(TILE.FAN_SIDE, (x, y) => {
+    if ((x === 2 || x === 13) && (y === 2 || y === 13)) return [210, 215, 225];
+    if (y % 5 === 4) return [95, 100, 110];
+    return vary([140, 145, 155], 0.08);
+  });
+  const neon = (tile, col) => paint(tile, (x, y) => {
+    const e = Math.min(x, y, T - 1 - x, T - 1 - y);
+    if (e === 0) return col.map((v) => v * 0.6);
+    if (e === 1) return [255, 255, 255];
+    return vary(col, 0.06);
+  });
+  neon(TILE.NEON_PINK, [255, 80, 190]);
+  neon(TILE.NEON_CYAN, [60, 235, 255]);
+  neon(TILE.NEON_LIME, [150, 255, 60]);
+  neon(TILE.NEON_PURPLE, [170, 90, 255]);
+  // Musical stones: rainbow colour with a white note glyph.
+  const glyph = ['..........##....', '..........#.#...', '..........#..#..', '..........#.....', '..........#.....', '..........#.....',
+    '..........#.....', '......#####.....', '.....######.....', '.....#####......', '......###.......'];
+  NOTE_COLORS.forEach((col, i) => paint(TILE.NOTE_1 + i, (x, y) => {
+    const gy = y - 3;
+    if (gy >= 0 && gy < glyph.length && glyph[gy][x] === '#') return [255, 255, 255];
+    if (x === 0 || y === 0 || x === T - 1 || y === T - 1) return col.map((v) => v * 0.7);
+    return vary(col, 0.06);
+  }));
+  {
+    const dots = [[255, 70, 70], [255, 200, 40], [70, 200, 90], [70, 140, 255], [220, 90, 220]];
+    paint(TILE.CONFETTI, () => (rng() < 0.22 ? dots[Math.floor(rng() * dots.length)] : vary([245, 245, 250], 0.04)));
+  }
 
   // Ores: stone + clusters of mineral pixels.
   const ore = (tile, color, clusters) => {

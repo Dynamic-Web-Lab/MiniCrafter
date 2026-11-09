@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { B, BLOCKS, PLACEABLE, SOLID } from './blocks.js';
-import { createAtlas } from './textures.js';
+import { createAtlas, TILE } from './textures.js';
 import { World, CS, SEA, applyVoxelLighting, lightUniforms } from './world.js';
 import { Player, EYE } from './player.js';
 import { hashString } from './noise.js';
@@ -90,7 +90,12 @@ const robot = new Robot({
   },
   onAction: (a) => {
     robotUI?.highlight(a.id);
-    if (a.kind === 'move' && a.to) { quests.emit('robot', { kind: 'move', dir: a.dir }); quests.emit('robotClimb', robot.y - robotRun.startY); }
+    if (a.kind === 'move' && a.to) {
+      quests.emit('robot', { kind: 'move', dir: a.dir });
+      quests.emit('robotClimb', robot.y - robotRun.startY);
+      const below = BLOCKS[world.getBlock(robot.x, robot.y - 1, robot.z)];
+      if (below?.note !== undefined) { sfx.note(below.note); quests.emit('note', { note: below.note }); } // Bit can play songs!
+    }
   },
   onDone: (result) => {
     if (result !== 'done') return;
@@ -151,6 +156,7 @@ function startWorld(seedStr, saved, newMode) {
   world.onEdit = () => { dirtySave = true; };
   player = new Player(world);
   player.onLand = (dist) => { if (isSurvival()) survival.landed(dist); };
+  attachFunHooks();
   inv = new Inventory();
   survival.reset();
   shownTips = new Set();
@@ -1087,11 +1093,49 @@ let wasHeadInWater = false;
 let simTime = 0; // game-clock seconds (drives action repeat timing)
 const moveAcc = { walk: 0, swim: 0, timer: 0, slow: 0 };
 
+// ---------- Phase 1 fun blocks: step effects ----------
+const fun = { lastStep: '', bounceY: null, peak: 0, confettiAt: 0 };
+function attachFunHooks() {
+  player.onBounce = () => {
+    sfx.boing();
+    if (fun.bounceY === null) { fun.bounceY = player.pos.y; fun.peak = player.pos.y; }
+  };
+}
+
+/** Music stones, confetti pads and bounce-height tracking. */
+function funBlocks(dt) {
+  // Bounce height for the "Boing Boing!" quest (measured from the trampoline top).
+  if (fun.bounceY !== null) {
+    fun.peak = Math.max(fun.peak, player.pos.y);
+    if (player.onGround) {
+      quests.emit('bounce', fun.peak - fun.bounceY);
+      fun.bounceY = null;
+    }
+  }
+  if (!player.onGround) { fun.lastStep = ''; return; }
+  const x = Math.floor(player.pos.x), y = Math.floor(player.pos.y - 0.05), z = Math.floor(player.pos.z);
+  const key = `${x},${y},${z}`;
+  if (key === fun.lastStep) return;
+  fun.lastStep = key;
+  const b = BLOCKS[world.getBlock(x, y, z)];
+  if (!b) return;
+  if (b.note !== undefined) {
+    sfx.note(b.note);
+    particles.burst(x, y + 0.6, z, b.side);
+    quests.emit('note', { note: b.note });
+  } else if (b.confetti && simTime > fun.confettiAt) {
+    fun.confettiAt = simTime + 0.8;
+    for (const tile of [TILE.WOOL_RED, TILE.WOOL_BLUE, TILE.WOOL_YELLOW, TILE.WOOL_GREEN, TILE.WOOL_WHITE]) particles.burst(x, y + 1, z, tile);
+    sfx.yay();
+    quests.emit('confetti', {});
+  } else if (b.speed) sfx.whoosh();
+}
+
 /** Feeds movement-based quests (walk, swim, jump, height, night) without spamming the UI. */
 function trackMovement(dt, input, wasOnGround, dist) {
   if (player.inWater) moveAcc.swim += dist;
   else if (!player.flying) moveAcc.walk += dist;
-  if (input.jump && wasOnGround && !player.onGround && player.vel.y > 0 && !player.inWater && !player.flying) quests.emit('jump', {});
+  if (input.jump && wasOnGround && !player.onGround && player.vel.y > 0 && player.vel.y < 10 && !player.inWater && !player.flying) { quests.emit('jump', {}); sfx.whoosh(); }
   moveAcc.timer += dt;
   if (moveAcc.timer >= 0.5) {
     moveAcc.timer = 0;
@@ -1121,10 +1165,12 @@ function frame(now, manual = false) {
       sprint: keys.has('ShiftLeft') || keys.has('ShiftRight'),
     };
     if (player.flying) input.sprint = false; // Shift descends while flying
+    input.glide = input.jump && ITEMS.get(heldItem())?.glider;
     const wasFlying = player.flying;
     const wasOnGround = player.onGround, px0 = player.pos.x, pz0 = player.pos.z;
     player.update(dt, input);
     trackMovement(dt, input, wasOnGround, Math.hypot(player.pos.x - px0, player.pos.z - pz0));
+    funBlocks(dt);
     if (wasFlying !== player.flying) updateModeBadge();
     if (player.pos.y < -20) { spawn(); toast('You fell out of the world'); }
     if (isSurvival()) {

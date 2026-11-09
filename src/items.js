@@ -11,7 +11,7 @@ export const I = {
   WOOD_SHOVEL: 278, STONE_SHOVEL: 279, IRON_SHOVEL: 280, DIAMOND_SHOVEL: 281,
   PIG_EGG: 290, COW_EGG: 291, SHEEP_EGG: 292, CHICKEN_EGG: 293,
   DOG_EGG: 294, CAT_EGG: 295,
-  ROBOT: 300,
+  ROBOT: 300, GLIDER: 301,
 };
 
 const TIERS = [
@@ -46,6 +46,8 @@ item(I.CHICKEN_EGG, 'Chicken Spawn Egg', { sprite: 'egg', color: [245, 245, 245]
 
 // Bit the code robot: right-click a block to place it, right-click Bit to program it.
 item(I.ROBOT, 'Robot Bit', { sprite: 'robot', stack: 1 });
+// Hold the umbrella glider and keep jump pressed while falling to float down.
+item(I.GLIDER, 'Umbrella Glider', { sprite: 'umbrella', stack: 1, glider: true });
 
 TIERS.forEach((t, i) => {
   for (const [kind, label] of [['pickaxe', 'Pickaxe'], ['axe', 'Axe'], ['shovel', 'Shovel']]) {
@@ -76,6 +78,10 @@ mine([B.CRAFTING_TABLE], 2.5, 'axe');
 mine([B.LEAVES], 0.2);
 mine([B.GLASS, B.LAMP], 0.3);
 mine([B.TORCH], 0.05);
+mine([B.TRAMPOLINE, B.CONFETTI, B.NOTE_1, B.NOTE_2, B.NOTE_3, B.NOTE_4, B.NOTE_5, B.NOTE_6, B.NOTE_7, B.NOTE_8], 0.6);
+mine([B.SPEED_STRIP, B.FAN], 1, 'pickaxe');
+mine([B.ICE], 0.5, 'pickaxe');
+mine([B.NEON_PINK, B.NEON_CYAN, B.NEON_LIME, B.NEON_PURPLE], 0.3);
 mine([B.CACTUS], 0.4);
 mine([B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK], 0.8);
 
@@ -124,6 +130,18 @@ TIERS.forEach((t, i) => {
   recipe(I[`${t.key}_SHOVEL`], 1, [[MATERIAL[i], 1], [I.STICK, 2]], 'table');
 });
 recipe(B.FURNACE, 1, [[B.COBBLE, 8]], 'table');
+recipe(B.TRAMPOLINE, 2, [[B.WOOL_YELLOW, 4], [B.PLANKS, 1]], 'table');
+recipe(B.SPEED_STRIP, 4, [[B.STONE, 4], [I.COAL, 1]], 'table');
+recipe(B.ICE, 2, [[B.SNOW, 4]]);
+recipe(B.FAN, 1, [[I.IRON_INGOT, 1], [B.PLANKS, 4]], 'table');
+recipe(B.NEON_PINK, 4, [[B.GLASS, 2], [B.WOOL_RED, 1], [I.COAL, 1]], 'table');
+recipe(B.NEON_CYAN, 4, [[B.GLASS, 2], [B.WOOL_BLUE, 1], [I.COAL, 1]], 'table');
+recipe(B.NEON_LIME, 4, [[B.GLASS, 2], [B.WOOL_GREEN, 1], [I.COAL, 1]], 'table');
+recipe(B.NEON_PURPLE, 4, [[B.GLASS, 2], [B.WOOL_BLACK, 1], [I.COAL, 1]], 'table');
+// One recipe gives the whole do-re-mi set.
+RECIPES.push({ out: B.NOTE_1, count: 1, extra: [2, 3, 4, 5, 6, 7].map((k) => [B.NOTE_1 + k - 1, 1]).concat([[B.NOTE_8, 1]]), label: 'Music Stones (all 8 notes)', inputs: [[B.PLANKS, 8], [B.GLASS, 1]], station: 'table' });
+recipe(B.CONFETTI, 2, [[B.WOOL_WHITE, 2], [I.COAL, 1]], 'table');
+recipe(I.GLIDER, 1, [[B.WOOL_WHITE, 3], [I.STICK, 2]], 'table');
 recipe(I.ROBOT, 1, [[I.IRON_INGOT, 3], [B.GLASS, 1], [I.COAL, 1]], 'table');
 recipe(B.STONE_BRICK, 4, [[B.STONE, 4]], 'table');
 recipe(B.SANDSTONE, 1, [[B.SAND, 4]], 'table');
@@ -187,6 +205,12 @@ const SPRITES = {
     '...##########...', '...###s######...', '...##########...', '....####s###....',
     '.....######.....', '......####......', '................', '................',
   ],
+  umbrella: [
+    '................', '......####......', '....########....', '...##########...',
+    '..############..', '..############..', '.d.d.d.ss.d.d.d.', '........s.......',
+    '........s.......', '........s.......', '........s.......', '........s.......',
+    '......s.s.......', '.......s........', '................', '................',
+  ],
   robot: [
     '................', '.......r........', '.......d........', '...##########...',
     '...#wwwwwwww#...', '...#wcwwwwcw#...', '...#wwwwwwww#...', '...##########...',
@@ -207,7 +231,7 @@ function spriteIcon(def, size) {
   const ctx = c.getContext('2d');
   const px = size / 16;
   const rows = SPRITES[def.sprite];
-  const col = def.sprite === 'apple' ? [210, 40, 35] : def.sprite === 'robot' ? [223, 230, 238] : (def.color || [150, 115, 65]);
+  const col = def.sprite === 'apple' ? [210, 40, 35] : def.sprite === 'robot' ? [223, 230, 238] : def.sprite === 'umbrella' ? [235, 80, 120] : (def.color || [150, 115, 65]);
   rows.forEach((row, y) => [...row].forEach((ch, x) => {
     let rgb = null;
     if (ch === '#') {

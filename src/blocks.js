@@ -8,6 +8,10 @@ export const B = {
   GRAVEL: 16, CACTUS: 17, GOLD_ORE: 18, SANDSTONE: 19, STONE_BRICK: 20, SNOWY_GRASS: 21,
   WOOL_WHITE: 22, WOOL_RED: 23, WOOL_BLUE: 24, WOOL_YELLOW: 25, WOOL_GREEN: 26, WOOL_BLACK: 27,
   LAMP: 28, DIAMOND_ORE: 29, CRAFTING_TABLE: 30, FURNACE: 31, TORCH: 32,
+  TRAMPOLINE: 33, SPEED_STRIP: 34, ICE: 35, FAN: 36,
+  NEON_PINK: 37, NEON_CYAN: 38, NEON_LIME: 39, NEON_PURPLE: 40,
+  NOTE_1: 41, NOTE_2: 42, NOTE_3: 43, NOTE_4: 44, NOTE_5: 45, NOTE_6: 46, NOTE_7: 47, NOTE_8: 48,
+  CONFETTI: 49,
 };
 
 export const BLOCKS = [];
@@ -54,6 +58,21 @@ def(B.DIAMOND_ORE, 'Diamond Ore', TILE.DIAMOND);
 def(B.CRAFTING_TABLE, 'Crafting Table', { top: TILE.CRAFT_TOP, bottom: TILE.PLANKS, side: TILE.CRAFT_SIDE });
 def(B.TORCH, 'Torch', TILE.TORCH, { solid: false, transparent: true, emissive: true, shape: 'torch', light: 14 });
 def(B.FURNACE, 'Furnace', { top: TILE.FURNACE_TOP, bottom: TILE.FURNACE_TOP, side: TILE.FURNACE_FRONT });
+
+// ---- Phase 1 fun blocks ----
+def(B.TRAMPOLINE, 'Trampoline', { top: TILE.TRAMP_TOP, bottom: TILE.TRAMP_SIDE, side: TILE.TRAMP_SIDE }, { bounce: true });
+def(B.SPEED_STRIP, 'Speed Strip', { top: TILE.SPEED, bottom: TILE.STONE, side: TILE.STONE }, { speed: true });
+def(B.ICE, 'Ice', TILE.ICE, { slippery: true });
+def(B.FAN, 'Fan Vent', { top: TILE.FAN_TOP, bottom: TILE.FAN_SIDE, side: TILE.FAN_SIDE }, { fan: true });
+def(B.NEON_PINK, 'Pink Neon', TILE.NEON_PINK, { emissive: true, light: 12 });
+def(B.NEON_CYAN, 'Cyan Neon', TILE.NEON_CYAN, { emissive: true, light: 12 });
+def(B.NEON_LIME, 'Lime Neon', TILE.NEON_LIME, { emissive: true, light: 12 });
+def(B.NEON_PURPLE, 'Purple Neon', TILE.NEON_PURPLE, { emissive: true, light: 12 });
+// Musical step-stones: do re mi fa sol la ti do (C major, C5..C6).
+export const NOTE_NAMES = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Ti', 'High Do'];
+export const NOTE_FREQS = [523.25, 587.33, 659.25, 698.46, 783.99, 880.0, 987.77, 1046.5];
+NOTE_NAMES.forEach((n, i) => def(B.NOTE_1 + i, `Music Stone (${n})`, TILE.NOTE_1 + i, { note: i }));
+def(B.CONFETTI, 'Confetti Pad', TILE.CONFETTI, { confetti: true });
 
 // Fast lookup tables used in hot loops (meshing, physics).
 export const SOLID = new Uint8Array(256);

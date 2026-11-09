@@ -12,8 +12,8 @@ These were on the idea list but MiniCrafter already has them:
 
 | Idea | Where it is today |
 |---|---|
-| Procedural Web Audio (no mp3 files) | `src/audio.js`: dig, place, pop, craft, animal voices, fanfare. *Missing only a jump "whoosh" (see Phase 1).* |
-| Day/night cycle with sun, moon and stars | `src/sky.js`, plus voxel lighting so torches glow at night. *Stars don't twinkle yet (Phase 1).* |
+| Procedural Web Audio (no mp3 files) | `src/audio.js`: dig, place, pop, craft, animal voices, fanfare. Jump "whoosh" added in Phase 1. |
+| Day/night cycle with sun, moon and stars | `src/sky.js`, plus voxel lighting so torches glow at night. Stars twinkle (Phase 1). |
 | Local auto-save | Several saved worlds in `localStorage` (`src/worlds.js`) |
 | Hills and trees instead of a flat floor | Endless procedural biomes, caves, trees and villages (`src/world.js`) |
 | Fast on Chromebooks and low-end laptops | Chunk meshing (1 draw call per chunk layer, not 1 mesh per block), lower default view distance on tablets. *More in Phase 5.* |
@@ -23,20 +23,20 @@ These were on the idea list but MiniCrafter already has them:
 
 ---
 
-## Phase 1 · Bouncy fun blocks (S–M) ⭐ best next
+## Phase 1 · Bouncy fun blocks (S–M) ✅ done
 
 Very high delight for little work. Each one is a new block plus a few lines of player physics.
 
-- [ ] **Trampoline block** (yellow): landing on it launches you high. Holding jump bounces higher. No fall damage when you land on it.
-- [ ] **Speed strip:** walking on it gives a short speed boost in its arrow direction.
-- [ ] **Ice block:** slippery (low friction), so you can make ice slides.
-- [ ] **Fan vent:** an updraft column (about 8 blocks) that lifts you, best combined with the glider below.
-- [ ] **Umbrella glider** (item): hold jump while falling to float down slowly.
-- [ ] **Neon blocks:** glowing coloured lamps. The lighting engine already supports emissive blocks; this needs coloured light or just glowing colours.
-- [ ] **Musical step-stones:** 8 colour-coded note blocks (do-re-mi…) that chime when walked on, so kids can compose songs as paths. Synth only.
-- [ ] **Confetti pad:** a pressure pad that pops harmless confetti particles and a "yay" sound.
-- [ ] **Jump "whoosh" sound** and **twinkling stars.**
-- [ ] Quests: *"Bounce 10 blocks high"*, *"Play a 5-note song"*.
+- [x] **Trampoline block** (yellow): landing on it launches you high. Holding jump bounces higher. No fall damage when you land on it.
+- [x] **Speed strip:** walking on it gives a short speed boost in its arrow direction.
+- [x] **Ice block:** slippery (low friction), so you can make ice slides.
+- [x] **Fan vent:** an updraft column (about 8 blocks) that lifts you, best combined with the glider below.
+- [x] **Umbrella glider** (item): hold jump while falling to float down slowly.
+- [x] **Neon blocks:** glowing coloured lamps. The lighting engine already supports emissive blocks; this needs coloured light or just glowing colours.
+- [x] **Musical step-stones:** 8 colour-coded note blocks (do-re-mi…) that chime when walked on, so kids can compose songs as paths. Synth only.
+- [x] **Confetti pad:** a pressure pad that pops harmless confetti particles and a "yay" sound.
+- [x] **Jump "whoosh" sound** and **twinkling stars.**
+- [x] Quests: *"Boing Boing!"* (bounce 6 blocks high), *"Little Composer"* (play 5 different notes). Bit can play music stones too, so kids can code songs.
 
 **Watch out:** bounce and fan heights must respect the world ceiling (y 95), and survival fall damage must ignore trampoline landings.
 
@@ -104,4 +104,4 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 
 **Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5.**
 
-Phases 1 and 2 give the most fun per hour. Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.
+Phase 1 is done. Phase 2 (power tools and undo) is next. Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.

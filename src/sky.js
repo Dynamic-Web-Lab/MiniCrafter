@@ -26,11 +26,19 @@ export class Sky {
       const u = rng() * 2 - 1, th = rng() * Math.PI * 2, r = Math.sqrt(1 - u * u);
       pts.push(r * Math.cos(th) * 450, Math.abs(u) * 450, r * Math.sin(th) * 450);
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    this.stars = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, color: 0xffffff, fog: false, transparent: true, depthWrite: false }));
-    this.stars.renderOrder = -2;
-    scene.add(this.stars);
+    // Two layers that pulse out of phase so the night sky twinkles.
+    const half = (pts.length / 3 / 2 | 0) * 3;
+    const layer = (arr, size) => {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+      const p = new THREE.Points(g, new THREE.PointsMaterial({ size, sizeAttenuation: false, color: 0xffffff, fog: false, transparent: true, depthWrite: false }));
+      p.renderOrder = -2;
+      scene.add(p);
+      return p;
+    };
+    this.stars = layer(pts.slice(0, half), 1.6);
+    this.stars2 = layer(pts.slice(half), 2.0);
+    this.time = 0;
 
     // Clouds: a pixelated noise texture on a big plane that follows the camera.
     const c = document.createElement('canvas');
@@ -82,9 +90,13 @@ export class Sky {
     this.sun.material.opacity = smoothstep(-0.25, 0.0, sunH);
     this.moon.material.opacity = smoothstep(-0.25, 0.0, -sunH);
 
-    this.stars.position.copy(cp);
-    this.stars.rotation.z = a;
-    this.stars.material.opacity = 1 - smoothstep(-0.2, 0.15, sunH);
+    this.time += dt;
+    const night = 1 - smoothstep(-0.2, 0.15, sunH);
+    for (const [st, ph] of [[this.stars, 0], [this.stars2, Math.PI]]) {
+      st.position.copy(cp);
+      st.rotation.z = a;
+      st.material.opacity = night * (0.65 + 0.35 * Math.sin(this.time * 2.3 + ph));
+    }
 
     // Clouds at a fixed height, texture scrolls; plane recentres on the camera.
     this.cloudOffset += dt * 1.2;

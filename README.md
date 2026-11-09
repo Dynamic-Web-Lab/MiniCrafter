@@ -56,7 +56,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      36 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      38 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">
@@ -91,6 +91,13 @@
       See every quest, the stars you've earned and what to try next. Press <code>Q</code>, or tap the ⭐ tracker on a tablet.
     </td>
   </tr>
+  <tr>
+    <td colspan="2" valign="top">
+      <img src="docs/screenshots/funblocks.jpg" alt="Rainbow music stones with Bit the robot, trampolines, neon blocks, a confetti pad, a speed strip, ice and a fan vent">
+      <h3>🎉 Bouncy fun blocks</h3>
+      <b>Trampolines</b> (hold jump for a super bounce), <b>speed strips</b>, slippery <b>ice</b>, <b>fan vents</b> that lift you into the sky, an <b>umbrella glider</b> for floating down, glowing <b>neon</b>, a <b>confetti pad</b>, and rainbow <b>music stones</b> that play do-re-mi when you walk on them. Bit can play them too, so kids can <i>code a song</i>!
+    </td>
+  </tr>
 </table>
 
 ### And there's more
@@ -98,7 +105,7 @@
 - 🌍 **Endless procedural worlds:** plains, forests, deserts, snowy mountains, beaches, oceans, caves and ores. Share a world with friends by typing the same **seed**.
 - 🌅 **Day and night:** sunsets, a sun and moon, stars and drifting clouds.
 - 🔦 **Real light and dark caves:** sunlight spreads into caves and under roofs, and **torches** (stick + coal) and lamps light up warm, cozy circles. Caves get dark, but never pitch black.
-- 🧱 **31 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
+- 🧱 **48 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
 - 🏊 **Swimming** with an underwater view, sprinting, jumping and flying (creative).
 - 📶 **Works offline and installs like an app:** after the first visit the whole game, including Bit's code editor, is cached, so it keeps working without internet (great for car trips and school Chromebooks). Use **📲 Install MiniCrafter** in the menu, or *Add to Home Screen* on iPad.
 - 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
@@ -145,6 +152,8 @@ MiniCrafter turns play into small, rewarding learning moments:
 | Program Bit | Right click Bit | Tap Bit |
 | Trade with a villager | Right click them | Tap them |
 | Fly on/off (creative) | `F` | 🕊️ button |
+| Glide (holding the Umbrella Glider) | Hold `Space` while falling | Hold ⬆ while falling |
+| Super bounce on a trampoline | Hold `Space` | Hold ⬆ |
 | Pause / settings / game mode | `Esc` | ⏸ button |
 | Debug info | `F3` | — |
 
@@ -185,7 +194,7 @@ Switch at any time from the pause menu (`Esc`).
 
 - **Quest tracker** (top right): shows the next 3 quests plus the next 🤖 coding quest. Press `Q` for the quest book.
 - **Quest list:**
-  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Best Friend, Animal Family, Light the Way, Village Visit, Splash!, Mountain Top, Star Gazer.
+  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Boing Boing!, Little Composer, Best Friend, Animal Family, Light the Way, Village Visit, Splash!, Mountain Top, Star Gazer.
   - **Survival:** Tree Puncher → Crafting Time → My First Tool → Stone Age → Snack Time → Hot Stuff → Window Maker → Fair Trader → Iron Hunter → Diamond Dreams.
   - **Coding:** Meet Bit → First Program → Loop the Loop → Bit the Builder → Up, Up, Up → Tunnel Digger → My Own Program → Loop Inside a Loop → Smart Robot.
 
@@ -253,7 +262,7 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-Next up are bouncy trampoline and speed blocks, musical step-stones, magic building tools with undo, a cozy garden with frogs and butterflies, one-click share links and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
+Next up are magic building tools with undo, a cozy garden with frogs and butterflies, one-click share links and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
 
 Have an idea? [Open an issue](https://github.com/Dynamic-Web-Lab/MiniCrafter/issues).
 
