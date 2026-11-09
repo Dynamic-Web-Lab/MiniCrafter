@@ -16,6 +16,22 @@ A browser-based voxel sandbox in the spirit of block-building games. You can exp
 - **Settings.** Render distance (3–12 chunks), mouse sensitivity and FOV.
 - **Debug screen.** `F3` shows FPS, coordinates, chunk, biome, target block and draw calls.
 
+## Learning quests
+
+A quest tracker (top right) always shows the next 3 goals with progress bars. Press `Q`, or tap the tracker, to open the **quest book** with all quests and the stars you've earned. Finishing a quest plays a short celebration and awards 1–3 ⭐. Some survival quests also give apples.
+
+The 23 quests teach:
+- **Controls:** walking, jumping, swimming and climbing.
+- **Animal names:** pat a pig, a cow and a sheep.
+- **Counting:** "Count to 10" by placing blocks.
+- **Colours:** "Rainbow Builder" asks for 4 wool colours.
+- **Shapes:** a 5-tall tower and a 3 × 3 square floor.
+- **Simple maths:** "Break 3 + 4 dirt" reveals "3 + 4 = 7", and there's a "2 × 3 glass" quest.
+- **Nature:** shearing sheep, raising a baby animal, and staying up to see the stars.
+- **Survival progression (survival only):** first log → crafting table → pickaxe → stone → furnace → glass → iron → diamond.
+
+Quest progress is saved with each world.
+
 ## Friendly animals
 
 Pigs, cows, sheep and chickens roam the grasslands in small herds. Nothing can hurt the player, and the animals can't be hurt either.
@@ -55,6 +71,7 @@ Switch between modes at any time from the pause menu (`Esc`).
 | Select hotbar slot | `1`–`9` / mouse wheel |
 | Inventory & crafting (survival) / block picker (creative) | `E` |
 | Eat an apple (survival) | Right click with an apple |
+| Quest book | `Q` |
 | Debug info | `F3` |
 | Pause / settings | `Esc` |
 
@@ -108,6 +125,7 @@ src/survival.js   Hearts, breath, fall damage, regen, timed mining + cracks
 src/craftui.js    Inventory + recipe-book crafting screen
 src/mobs.js       Friendly animals: models, wandering AI, breeding, shearing
 src/touch.js      On-screen joystick, look-drag, tap/hold and buttons for tablets
+src/quests.js     Learning quests, stars and progress tracking
 src/textures.js   Procedural texture atlas + hotbar icons
 src/sky.js        Day/night, sun, moon, stars, clouds
 src/particles.js  Block-break particles

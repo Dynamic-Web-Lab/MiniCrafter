@@ -13,6 +13,7 @@ import { Survival, MAX_HEALTH, MAX_AIR } from './survival.js';
 import { CraftUI } from './craftui.js';
 import { Mobs, TYPES } from './mobs.js';
 import { TouchControls, isTouchDevice } from './touch.js';
+import { Quests, QUESTS } from './quests.js';
 
 const SAVE_KEY = 'minicrafter:save:v1';
 const SETTINGS_KEY = 'minicrafter:settings:v1';
@@ -52,6 +53,7 @@ const sfx = new Sfx();
 const particles = new Particles(scene, atlas.avgColors);
 const survival = new Survival(scene);
 const mobs = new Mobs(scene, sfx);
+const quests = new Quests();
 
 // Block selection outline
 const outline = new THREE.LineSegments(
@@ -109,10 +111,12 @@ function startWorld(seedStr, saved, newMode) {
   survival.reset();
   shownTips = new Set();
   mobs.reset(world);
+  quests.load(null);
   if (saved) {
     world.loadEdits(saved.edits);
     if (Array.isArray(saved.hotbar) && saved.hotbar.length === 9) saved.hotbar.forEach((id, i) => { if (ITEMS.has(id)) creativeBar[i] = id; });
     mobs.load(saved.mobs);
+    quests.load(saved.quests);
     selected = saved.selected | 0;
     timeOfDay = saved.time ?? timeOfDay;
     mode = saved.mode === 'survival' ? 'survival' : 'creative';
@@ -163,7 +167,7 @@ function save() {
     edits: world.serializeEdits(),
     player: { x: player.pos.x, y: player.pos.y, z: player.pos.z, yaw: player.yaw, pitch: player.pitch, flying: player.flying },
     hotbar: creativeBar, selected, time: timeOfDay,
-    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(),
+    mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(),
   });
   if (ok) dirtySave = false;
 }
@@ -232,6 +236,80 @@ function tip(key, text) {
   dirtySave = true;
 }
 
+// ---------- quests UI ----------
+quests.ctx = {
+  towerHeight(d) {
+    let h = 1;
+    while (h < 64 && world.placedBlock(d.x, d.y - h, d.z)) h++;
+    return h;
+  },
+  squareFill(d) {
+    let best = 0;
+    for (let ox = -2; ox <= 0; ox++) for (let oz = -2; oz <= 0; oz++) {
+      let n = 0;
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (SOLID[world.placedBlock(d.x + ox + i, d.y, d.z + oz + j)]) n++;
+      best = Math.max(best, n);
+    }
+    return best;
+  },
+};
+
+const starStr = (n) => '⭐'.repeat(n);
+
+function renderQuests() {
+  $('qt-stars').textContent = `⭐ ${quests.stars}`;
+  $('menu-stars').textContent = `(${quests.stars} / ${quests.maxStars})`;
+  const list = $('qt-list');
+  const act = quests.active();
+  list.innerHTML = act.length ? '' : '<div class="q-card">All quests done! You are a MiniCrafter star! 🏆</div>';
+  for (const q of act) {
+    const p = quests.progress(q);
+    const card = document.createElement('div');
+    card.className = 'q-card';
+    card.innerHTML = `<div class="q-title"><span>${q.icon}</span><span>${q.title}</span></div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-bar"><i style="width:${Math.round(p / q.count * 100)}%"></i></div>
+      <span class="q-count">${p} / ${q.count}</span><div style="clear:both"></div>`;
+    list.appendChild(card);
+  }
+}
+
+function renderQuestBook() {
+  const box = $('qb-list');
+  box.innerHTML = '';
+  const active = new Set(quests.active().map((q) => q.id));
+  $('qb-summary').textContent = `You have ${quests.stars} of ${quests.maxStars} stars in ${isSurvival() ? 'Survival' : 'Creative'} mode.`;
+  for (const q of QUESTS) {
+    const done = quests.done.has(q.id), applies = quests.applies(q);
+    const el = document.createElement('div');
+    el.className = 'qb-item' + (done ? ' done' : active.has(q.id) ? ' active' : '') + (applies ? '' : ' off');
+    const tag = !applies ? '<span class="tag">Survival only</span>' : active.has(q.id) ? `<span class="tag">Now: ${quests.progress(q)} / ${q.count}</span>` : '';
+    el.innerHTML = `<div class="qb-icon">${done ? '✅' : q.icon}</div>
+      <div><div class="qb-title">${q.title}${tag}</div><div class="qb-text">${q.text}${done && q.reveal ? ` <b>${q.reveal}</b>` : ''}</div></div>
+      <div class="qb-stars">${done ? starStr(q.stars) : '☆'.repeat(q.stars)}</div>`;
+    box.appendChild(el);
+  }
+}
+
+let celebrateTimer;
+quests.onComplete = (q) => {
+  const c = $('celebrate');
+  c.querySelector('.c-name').textContent = `${q.icon} ${q.title}`;
+  c.querySelector('.c-stars').textContent = starStr(q.stars);
+  c.querySelector('.c-reveal').textContent = q.reveal || '';
+  c.classList.add('show');
+  clearTimeout(celebrateTimer);
+  celebrateTimer = setTimeout(() => c.classList.remove('show'), 3200);
+  sfx.fanfare?.();
+  if (q.reward && isSurvival()) {
+    inv.add(q.reward[0], q.reward[1]);
+    renderHotbar();
+    setTimeout(() => toast(`Reward: ${q.reward[1]} × ${itemName(q.reward[0])}`), 1200);
+  }
+  dirtySave = true;
+};
+quests.onProgress = renderQuests;
+
 function select(i) {
   selected = (i + 9) % 9;
   renderHotbar();
@@ -263,6 +341,8 @@ function refreshMode() {
     ? 'Survival: collect blocks, craft tools and look after your hearts. Gentle: no monsters, no hunger.'
     : 'Creative: unlimited blocks, instant breaking and flying.';
   if (isSurvival()) player.flying = false;
+  quests.mode = mode;
+  renderQuests();
   updateModeBadge();
   renderHotbar();
   renderStatus();
@@ -298,12 +378,14 @@ const craftUI = new CraftUI({
   stations: stationsNear,
   onCraft: (r) => {
     sfx.craft();
+    quests.emit('craft', { id: r.out, count: r.count });
     if (r.out === B.CRAFTING_TABLE) tip('placeTable', 'Put the Crafting Table in your hotbar and right-click to place it. Craft tools next to it!');
   },
   onChange: () => { renderHotbar(); dirtySave = true; },
 });
 
 mobs.onBaby = (baby) => {
+  quests.emit('baby', { type: baby.type });
   if (baby.pos.distanceTo(player.pos) < 24) { toast(`A baby ${TYPES[baby.type].name.toLowerCase()} was born!`); sfx.craft(); }
   dirtySave = true;
 };
@@ -353,8 +435,23 @@ function openOverlay() {
   document.exitPointerLock();
 }
 
+let bookFromMenu = false;
+function openQuestBook(fromMenu) {
+  bookFromMenu = fromMenu;
+  clearInput();
+  touch?.setEnabled(false);
+  state = 'questbook';
+  renderQuestBook();
+  $('questbook').classList.remove('hidden');
+  if (!fromMenu) document.exitPointerLock();
+}
+
 function closeOverlay(relock) {
   $('inventory').classList.add('hidden');
+  if (state === 'questbook') {
+    $('questbook').classList.add('hidden');
+    if (bookFromMenu) { state = 'menu'; return; }
+  }
   if (state === 'craft') craftUI.close();
   if (relock) enterPlay(); else showMenu();
 }
@@ -397,6 +494,9 @@ function enterPlay() {
 $('btn-play').addEventListener('click', enterPlay);
 $('inv-done').addEventListener('click', () => closeOverlay(true));
 $('craft-done').addEventListener('click', () => closeOverlay(true));
+$('qb-done').addEventListener('click', () => closeOverlay(true));
+$('btn-quests').addEventListener('click', () => openQuestBook(true));
+$('qt-head').addEventListener('click', () => { if (state === 'playing') openQuestBook(false); });
 $('btn-new').addEventListener('click', () => {
   const s = $('seed').value.trim() || String(Math.floor(Math.random() * 1e9));
   if (world && world.edits.size && !confirm('Start a new world? Your current world will be replaced.')) return;
@@ -431,6 +531,10 @@ $('btn-respawn').addEventListener('click', () => {
 
 // ---------- input ----------
 document.addEventListener('keydown', (e) => {
+  if (state === 'questbook') {
+    if (e.code === 'KeyQ' || e.code === 'Escape') closeOverlay(e.code === 'KeyQ');
+    return;
+  }
   if (state === 'inventory' || state === 'craft') {
     if (e.code === 'KeyE') closeOverlay(true);
     else if (e.code === 'Escape') closeOverlay(false);
@@ -444,6 +548,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code.startsWith('Digit')) { const n = +e.code.slice(5); if (n >= 1 && n <= 9) select(n - 1); }
   if (e.code === 'KeyF') toggleFly();
   if (e.code === 'KeyE') openOverlay();
+  if (e.code === 'KeyQ') openQuestBook(false);
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', clearInput);
@@ -543,6 +648,7 @@ function placeBlock(id) {
   if (!world.setBlock(px, py, pz, id)) return false;
   world.flushDirty();
   sfx.place(id);
+  quests.emit('place', { id, x: px, y: py, z: pz });
   return true;
 }
 
@@ -557,6 +663,7 @@ function act(now, dt) {
     removeBlock(x, y, z);
     particles.burst(x, y, z, BLOCKS[id].side);
     sfx.dig(id);
+    quests.emit('mine', { id });
     mouse.nextAction = now + ACTION_REPEAT;
   } else if (mouse.right) {
     const held = creativeBar[selected];
@@ -583,6 +690,7 @@ function actMob(now) {
   mouse.nextAction = now + 0.45;
   if (mouse.left) {
     mobs.pat(mob, player);
+    quests.emit('pat', { type: mob.type });
     tip('animals', `${TYPES[mob.type].plural} love apples! Feed two of them and see what happens.`);
     return;
   }
@@ -599,6 +707,7 @@ function actMob(now) {
       const n = 1 + Math.floor(Math.random() * 3);
       if (isSurvival()) { inv.add(wool, n); renderHotbar(); }
       sfx.pop(); toast(`+${n} ${itemName(wool)}`);
+      quests.emit('shear', { wool });
       particles.burst(Math.floor(mob.pos.x), Math.floor(mob.pos.y), Math.floor(mob.pos.z), BLOCKS[wool].side);
       dirtySave = true;
       return;
@@ -615,6 +724,7 @@ function actSurvival(now, dt) {
     if (survival.heal(ITEMS.get(held).food)) {
       inv.takeFromSlot(selected, 1);
       sfx.eat(); renderHotbar(); dirtySave = true;
+      quests.emit('eat', {});
     } else toast('Your hearts are already full');
     mouse.nextAction = now + 0.5;
     return;
@@ -630,12 +740,13 @@ function actSurvival(now, dt) {
       removeBlock(x, y, z);
       particles.burst(x, y, z, BLOCKS[id].side);
       sfx.dig(id);
+      quests.emit('mine', { id });
       if (info.canHarvest) {
         const drop = dropFor(id);
         if (drop != null) {
           const left = inv.add(drop, 1);
           if (left) toast('Your inventory is full!');
-          else { sfx.pop(); toast(`+1 ${itemName(drop)}`); }
+          else { sfx.pop(); toast(`+1 ${itemName(drop)}`); quests.emit('collect', { id: drop }); }
           renderHotbar();
           if (drop === B.LOG) tip('wood', 'Great! Press E and turn your logs into planks.');
           if (drop === I.COAL) tip('coal', 'Coal! Use it to make lamps and bricks.');
@@ -678,6 +789,25 @@ let loadingShown = true;
 let hasPlayed = false;
 let wasHeadInWater = false;
 let simTime = 0; // game-clock seconds (drives action repeat timing)
+const moveAcc = { walk: 0, swim: 0, timer: 0, slow: 0 };
+
+/** Feeds movement-based quests (walk, swim, jump, height, night) without spamming the UI. */
+function trackMovement(dt, input, wasOnGround, dist) {
+  if (player.inWater) moveAcc.swim += dist;
+  else if (!player.flying) moveAcc.walk += dist;
+  if (input.jump && wasOnGround && !player.onGround && player.vel.y > 0 && !player.inWater && !player.flying) quests.emit('jump', {});
+  moveAcc.timer += dt;
+  if (moveAcc.timer >= 0.5) {
+    moveAcc.timer = 0;
+    if (moveAcc.walk > 0) { quests.emit('walk', moveAcc.walk); moveAcc.walk = 0; }
+    if (moveAcc.swim > 0) { quests.emit('swim', moveAcc.swim); moveAcc.swim = 0; }
+    if (++moveAcc.slow >= 2) {
+      moveAcc.slow = 0;
+      quests.emit('height', player.pos.y);
+      if (timeOfDay > 0.56 && timeOfDay < 0.94) quests.emit('night', {});
+    }
+  }
+}
 
 function frame(now, manual = false) {
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -696,7 +826,9 @@ function frame(now, manual = false) {
     };
     if (player.flying) input.sprint = false; // Shift descends while flying
     const wasFlying = player.flying;
+    const wasOnGround = player.onGround, px0 = player.pos.x, pz0 = player.pos.z;
     player.update(dt, input);
+    trackMovement(dt, input, wasOnGround, Math.hypot(player.pos.x - px0, player.pos.z - pz0));
     if (wasFlying !== player.flying) updateModeBadge();
     if (player.pos.y < -20) { spawn(); toast('You fell out of the world'); }
     if (isSurvival()) {
@@ -777,7 +909,7 @@ requestAnimationFrame(frame);
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, get mobTarget() { return mobTarget; }, survival, mobs, keys, mouse, save, setMode,
+  get inv() { return inv; }, get mobTarget() { return mobTarget; }, survival, mobs, quests, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */
