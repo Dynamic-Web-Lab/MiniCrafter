@@ -1,9 +1,10 @@
 // Blockly integration for Bit: kid-sized custom blocks, workspace <-> program
 // conversion, and a readable "see the code" view. Blockly (Apache 2.0) is
-// loaded lazily from the CDN the first time the editor opens.
+// loaded lazily the first time the editor opens.
 import { BLOCKS, PLACEABLE } from './blocks.js';
 
-const BLOCKLY_URL = 'https://unpkg.com/blockly@10.4.3/blockly.min.js';
+// Bundled locally (see vendor/README.md) so coding works offline too.
+const BLOCKLY_URL = new URL('../vendor/blockly.min.js', import.meta.url).href;
 let loading = null;
 
 export function loadBlockly() {

@@ -1149,6 +1149,30 @@ else createWorld('', '', 'creative');
 $('btn-play').disabled = true;
 requestAnimationFrame(frame);
 
+// ---------- offline play & install ----------
+// The service worker caches the game so it works without internet once loaded.
+// Skipped on localhost so development always sees fresh files (?sw=1 forces it).
+const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+if ('serviceWorker' in navigator && (!isLocal || new URLSearchParams(location.search).has('sw'))) {
+  navigator.serviceWorker.register('./sw.js').then(() => {
+    $('offline-note').textContent = 'It also works offline once it has loaded.';
+  }).catch(() => { /* offline support is optional */ });
+}
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $('btn-install').classList.remove('hidden');
+});
+$('btn-install').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice.catch(() => null);
+  installPrompt = null;
+  $('btn-install').classList.add('hidden');
+});
+window.addEventListener('appinstalled', () => $('btn-install').classList.add('hidden'));
+
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },

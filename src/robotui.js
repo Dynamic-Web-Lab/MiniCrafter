@@ -70,7 +70,7 @@ export class RobotUI {
       $('rb-editor-note').textContent = 'Drag blocks from the menu and snap them under “when I press Run”.';
     } catch {
       this.blocklyFailed = true;
-      $('rb-editor-note').textContent = 'The code blocks could not load (are you offline?). You can still run the starter programs below.';
+      $('rb-editor-note').textContent = 'The code blocks could not load. You can still run the starter programs below.';
       $('rb-blockly').classList.add('hidden');
     }
     this.refresh();

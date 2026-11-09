@@ -86,6 +86,7 @@
 - 🌅 **Day and night:** sunsets, a sun and moon, stars and drifting clouds.
 - 🧱 **31 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
 - 🏊 **Swimming** with an underwater view, sprinting, jumping and flying (creative).
+- 📶 **Works offline and installs like an app:** after the first visit the whole game, including Bit's code editor, is cached, so it keeps working without internet (great for car trips and school Chromebooks). Use **📲 Install MiniCrafter** in the menu, or *Add to Home Screen* on iPad.
 - 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
 - 💾 **Auto-save:** each world's buildings, inventory, animals, pets, robot program and stars are kept in the browser.
 
@@ -186,19 +187,23 @@ python3 -m http.server 8765
 
 Open http://localhost:8765. To play on a tablet on the same Wi-Fi, open `http://<your-computer-ip>:8765`.
 
-It needs a modern browser with WebGL. three.js (and Blockly, the first time you open Bit's editor) load from the unpkg CDN.
+It needs a modern browser with WebGL. Everything, including three.js and Blockly, is bundled in `vendor/`, so there are no external requests.
 
 **Deploy:** push to GitHub and enable **GitHub Pages** on the `main` branch root (that's how the [live version](https://dynamic-web-lab.github.io/MiniCrafter/) is hosted), or drop the folder on any static host.
 
 <details>
 <summary><b>🧩 How it's built</b> (for developers)</summary>
 
-- **Rendering:** [three.js](https://threejs.org/) 0.160 loaded through an import map. Chunks are 16×16×96 with hidden-face culling and per-vertex ambient occlusion, so each chunk layer is a single draw call.
+- **Offline:** `sw.js` precaches every file (stale-while-revalidate) and `manifest.webmanifest` makes it installable. Bump `VERSION` in `sw.js` when files change. The service worker is skipped on localhost so development always sees fresh files (add `?sw=1` to test it).
+- **Rendering:** [three.js](https://threejs.org/) 0.160 (vendored) loaded through an import map. Chunks are 16×16×96 with hidden-face culling and per-vertex ambient occlusion, so each chunk layer is a single draw call.
 - **Everything procedural:** a seeded Perlin-noise world, a pixel-art texture atlas painted in code, and Web Audio sound effects synthesized on the fly.
 - **Bit's programs** are a small JSON tree run by a generator-based interpreter that the game loop advances one animated step at a time: no `eval`, it can stop instantly, and loops are guarded.
 
 ```
 index.html          Page shell, menus, HUD, import map
+sw.js               Service worker for offline play
+manifest.webmanifest, icons/  Installable app metadata and icons
+vendor/             three.js and Blockly (see vendor/README.md for licenses)
 style.css           UI styles
 src/main.js         Boot, game loop, input, pointer lock, UI, saving
 src/world.js        Chunks, terrain generation, meshing + AO, raycast, streaming
@@ -229,7 +234,6 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-- 📶 **Offline play:** install it like an app and play without internet
 - 🔦 **Torches and dark caves:** real light, so caves are spooky-but-safe to explore
 - 🏘️ **Villages and trading:** friendly villagers and swapping items (counting practice!)
 - 👫 **Play with friends:** only with strong child-safety design (private rooms, no free chat)
