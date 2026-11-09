@@ -22,6 +22,8 @@
   <img alt="Kid friendly" src="https://img.shields.io/badge/kid%20friendly-no%20monsters-e6c35c">
   <img alt="Works on tablets" src="https://img.shields.io/badge/works%20on-desktop%20%7C%20tablet-6b46c1">
   <img alt="Made with three.js" src="https://img.shields.io/badge/made%20with-three.js-black">
+  <a href="https://github.com/Dynamic-Web-Lab/MiniCrafter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Dynamic-Web-Lab/MiniCrafter/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
 <p align="center">
@@ -243,6 +245,7 @@ src/audio.js        Synthesized sounds
 src/noise.js        Seeded Perlin noise and hashes
 ```
 
+- **Tests:** `tests/smoke.mjs` boots the real game in headless Chromium and checks world generation, lighting, Bit, animals, Blockly, worlds, touch mode, offline caching and console errors. It runs on every PR (GitHub Actions). Locally: `npm i --no-save playwright@1.47.2 && SMOKE_CHANNEL=chrome node tests/smoke.mjs`.
 - **Adding a block:** add a tile painter in `textures.js` and a `def(...)` line in `blocks.js`.
 - **Debugging:** `window.minicrafter` in the browser console exposes `world`, `player`, `inv`, `robot`, `quests`, `save()`, `setMode()` and `step(n)`. `step(n)` advances frames by hand, which is handy in a background tab.
 
@@ -250,13 +253,10 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-- 👫 **Play with friends:** only with strong child-safety design (private rooms, no free chat)
-- 🌊 **Flowing water** and simple farming (seeds, wheat, bread)
-- 🧵 **Smoother streaming:** generate chunks in a Web Worker for big render distances on tablets
-- 🔊 **Gentle background music** and a parent-settable play-time reminder
+Next up are bouncy trampoline and speed blocks, musical step-stones, magic building tools with undo, a cozy garden with frogs and butterflies, one-click share links and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
 
 Have an idea? [Open an issue](https://github.com/Dynamic-Web-Lab/MiniCrafter/issues).
 
 ## 🙏 Credits
 
-Built by [Dynamic Web Lab](https://dynamicweblab.com) with [three.js](https://threejs.org/) and [Blockly](https://developers.google.com/blockly). MiniCrafter is an original game inspired by block-building sandboxes, with its own code, art and sounds.
+Built by [Dynamic Web Lab](https://dynamicweblab.com) and released under the [MIT License](LICENSE). Made with [three.js](https://threejs.org/) and [Blockly](https://developers.google.com/blockly). MiniCrafter is an original game inspired by block-building sandboxes, with its own code, art and sounds.
