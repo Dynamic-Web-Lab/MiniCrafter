@@ -14,7 +14,7 @@ import { CraftUI } from './craftui.js';
 import { Mobs, TYPES } from './mobs.js';
 import { TouchControls, isTouchDevice } from './touch.js';
 import { Quests, QUESTS } from './quests.js';
-import { Robot } from './robot.js';
+import { Robot, EXAMPLES } from './robot.js';
 import { RobotUI } from './robotui.js';
 
 const SAVE_KEY = 'minicrafter:save:v1';
@@ -85,8 +85,15 @@ const robot = new Robot({
     dirtySave = true;
     return true;
   },
-  onAction: (a) => { robotUI?.highlight(a.id); if (a.kind === 'move') quests.emit('robot', { kind: 'move', dir: a.dir }); },
-  onDone: (result) => { if (result === 'done') { sfx.fanfare?.(); quests.emit('robot', { kind: 'done' }); } },
+  onAction: (a) => {
+    robotUI?.highlight(a.id);
+    if (a.kind === 'move' && a.to) { quests.emit('robot', { kind: 'move', dir: a.dir }); quests.emit('robotClimb', robot.y - robotRun.startY); }
+  },
+  onDone: (result) => {
+    if (result !== 'done') return;
+    sfx.fanfare?.();
+    quests.emit('robotDone', { program: robotRun.program, custom: robotRun.custom });
+  },
 });
 
 // Block selection outline
@@ -322,7 +329,7 @@ function renderQuestBook() {
     const done = quests.done.has(q.id), applies = quests.applies(q);
     const el = document.createElement('div');
     el.className = 'qb-item' + (done ? ' done' : active.has(q.id) ? ' active' : '') + (applies ? '' : ' off');
-    const tag = !applies ? '<span class="tag">Survival only</span>' : active.has(q.id) ? `<span class="tag">Now: ${quests.progress(q)} / ${q.count}</span>` : '';
+    const tag = !applies ? '<span class="tag">Survival only</span>' : active.has(q.id) ? `<span class="tag">Now: ${quests.progress(q)} / ${q.count}</span>` : q.track === 'coding' ? '<span class="tag">🤖 Coding</span>' : '';
     el.innerHTML = `<div class="qb-icon">${done ? '✅' : q.icon}</div>
       <div><div class="qb-title">${q.title}${tag}</div><div class="qb-text">${q.text}${done && q.reveal ? ` <b>${q.reveal}</b>` : ''}</div></div>
       <div class="qb-stars">${done ? starStr(q.stars) : '☆'.repeat(q.stars)}</div>`;
@@ -485,9 +492,19 @@ function openQuestBook(fromMenu) {
   if (!fromMenu) document.exitPointerLock();
 }
 
+/** What Bit is currently running (for the coding quests). */
+const robotRun = { program: [], custom: false, startY: 0 };
+const stripIds = (p) => JSON.stringify(p, (k, v) => (k === 'id' ? undefined : (k === 'else' && Array.isArray(v) && !v.length ? undefined : v)));
+const EXAMPLE_KEYS = new Set(EXAMPLES.map((e) => stripIds(e.program)));
+
 const robotUI = new RobotUI({
   getRobot: () => robot,
-  onRun: () => { dirtySave = true; },
+  onRun: (name, program) => {
+    robotRun.program = program;
+    robotRun.custom = !EXAMPLE_KEYS.has(stripIds(program));
+    robotRun.startY = robot.y;
+    dirtySave = true;
+  },
   onChange: () => { dirtySave = true; },
   onClose: () => closeOverlay(true),
   onPutAway: () => {
@@ -773,6 +790,7 @@ function placeRobot() {
   const wasPlaced = robot.placed;
   robot.placeAt(x, y, z, facing);
   robot.say('Hi! I am Bit!', 2);
+  quests.emit('robotPlaced', {});
   sfx.craft();
   dirtySave = true;
   return !wasPlaced;

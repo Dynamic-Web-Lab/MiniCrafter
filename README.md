@@ -44,6 +44,8 @@ The 23 quests teach:
 - **Nature:** shearing sheep, raising a baby animal, and staying up to see the stars.
 - **Survival progression (survival only):** first log → crafting table → pickaxe → stone → furnace → glass → iron → diamond.
 
+**🤖 Coding track (9 quests):** Meet Bit → First Program → Loop the Loop → Bit the Builder → Up, Up, Up → Tunnel Digger → My Own Program → Loop Inside a Loop → Smart Robot (if / repeat while). The tracker always shows the next coding quest next to the regular ones.
+
 Quest progress is saved with each world.
 
 ## Friendly animals
