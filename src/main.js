@@ -30,6 +30,7 @@ import { Course, fmtTime } from './course.js';
 import { PhotoMode, FRAMES, FILTERS, STICKERS } from './photo.js';
 import { Insights, REPORTS } from './insights.js';
 import { unseenNews, markNewsSeen } from './news.js';
+import { initA11y, reduceMotion } from './a11y.js';
 
 const insights = new Insights(); // anonymous counts + error reports, online edition only
 
@@ -110,7 +111,7 @@ const course = new Course({
   onRespawn() { sfx.whoosh?.(); },
   onFinish(r) {
     const p = player.pos;
-    for (const tile of [TILE.WOOL_RED, TILE.WOOL_BLUE, TILE.WOOL_YELLOW, TILE.WOOL_GREEN, TILE.COIN]) particles.burst(Math.floor(p.x), Math.floor(p.y) + 1, Math.floor(p.z), tile);
+    if (!reduceMotion.matches) for (const tile of [TILE.WOOL_RED, TILE.WOOL_BLUE, TILE.WOOL_YELLOW, TILE.WOOL_GREEN, TILE.COIN]) particles.burst(Math.floor(p.x), Math.floor(p.y) + 1, Math.floor(p.z), tile);
     sfx.fanfare?.(); sfx.yay?.();
     const coins = r.total ? ` · 🪙 ${r.coins}/${r.total}` : '';
     hint(`🏁 Finished in ${fmtTime(r.time)}${coins}${r.newBest ? (r.beatOld ? ' · 🏆 New best time!' : '') : ` · Best ${fmtTime(r.best)}`}`, 4500);
@@ -495,15 +496,21 @@ function renderHotbar() {
   }
 }
 
+/** Screen-reader text for a row of icons (hearts, bubbles, food); nothing when the row is empty. */
+function speak(el, text) {
+  if (text) { el.setAttribute('role', 'img'); el.setAttribute('aria-label', text); } else { el.removeAttribute('role'); el.removeAttribute('aria-label'); }
+}
+
 function renderStatus() {
   $('status').classList.toggle('hidden', !isSurvival());
   if (!isSurvival()) return;
   let h = '';
   for (let i = 0; i < MAX_HEALTH / 2; i++) {
     const v = survival.health - i * 2;
-    h += `<span class="heart ${v >= 2 ? '' : v === 1 ? 'half' : 'empty'}">♥</span>`;
+    h += `<span class="heart ${v >= 2 ? '' : v === 1 ? 'half' : 'empty'}">${v >= 1 ? '♥' : '♡'}</span>`;
   }
   $('hearts').innerHTML = h;
+  speak($('hearts'), `Health: ${Math.max(0, Math.ceil(survival.health / 2))} of ${MAX_HEALTH / 2} hearts`);
   const showAir = player?.headInWater || survival.air < MAX_AIR;
   $('bubbles').innerHTML = showAir ? '<span class="bubble">●</span>'.repeat(Math.ceil(survival.air)) : '';
   let f = '';
@@ -512,6 +519,8 @@ function renderStatus() {
     f += `<span class="food ${v >= 2 ? '' : v === 1 ? 'half' : 'empty'}">🍗</span>`;
   }
   $('hunger').innerHTML = f;
+  speak($('hunger'), isAdventure() ? `Food: ${Math.ceil(survival.hunger / 2)} of ${MAX_HUNGER / 2}` : '');
+  speak($('bubbles'), showAir ? `Air: ${Math.ceil(survival.air)}` : '');
   const armor = isAdventure() && adv.armor ? ITEMS.get(adv.armor) : null;
   $('armor-ind').textContent = armor ? `🛡️ ${itemName(adv.armor)} (−${Math.round(armor.armor * 100)}%)` : '';
   renderXp();
@@ -1089,7 +1098,12 @@ function renderProfilePicker() {
     for (const [label, color] of items) {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'chip' + (label === current ? ' on' : ''); b.textContent = label;
-      if (color) b.style.setProperty('--chip', color);
+      if (color) {
+        b.style.setProperty('--chip', color);
+        // Readable label on any player colour: dark ink on light colours, white on dark ones.
+        const [r, g, bl] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+        b.style.setProperty('--chip-ink', 0.2126 * r + 0.7152 * g + 0.0722 * bl > 0.3 ? '#10131c' : '#fff');
+      }
       b.disabled = together.active || together.role === 'waiting' || together.role === 'connecting';
       b.addEventListener('click', () => { together.profile = { ...together.profile, [key]: label }; saveProfile(together.profile); renderTogether(); });
       box.appendChild(b);
@@ -1311,6 +1325,8 @@ for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'
   ov.addEventListener('click', (e) => { if (e.target === ov) $(done).click(); });
 }
 
+initA11y(['together', 'account', 'worlds', 'news', 'report', 'gate', 'inventory', 'craft', 'pet', 'trade', 'questbook', 'photo', 'rotate', 'death']);
+
 // Bit's side panel is not a pop-up (taps inside it must not close it), so it only gets the ✕.
 {
   const x = document.createElement('button');
@@ -1483,7 +1499,7 @@ survival.onDamage = () => {
   sfx.hurt();
   const f = $('damage-flash');
   f.classList.add('on');
-  setTimeout(() => f.classList.remove('on'), 120);
+  setTimeout(() => f.classList.remove('on'), reduceMotion.matches ? 60 : 120);
 };
 survival.onDeath = (reason) => {
   state = 'dead';
@@ -1941,7 +1957,7 @@ function foundStar(now) {
   const { x, y, z } = target;
   world.setBlock(x, y, z, B.AIR);
   world.flushDirty();
-  for (const tile of [TILE.STAR, TILE.WOOL_RED, TILE.WOOL_BLUE, TILE.WOOL_YELLOW, TILE.WOOL_GREEN]) particles.burst(x, y, z, tile);
+  if (!reduceMotion.matches) for (const tile of [TILE.STAR, TILE.WOOL_RED, TILE.WOOL_BLUE, TILE.WOOL_YELLOW, TILE.WOOL_GREEN]) particles.burst(x, y, z, tile);
   sfx.fanfare?.(); sfx.yay?.();
   hint('⭐ You found the Hidden Star! ⭐', 3500);
   if (isSurvival()) { inv.add(B.STAR, 1); renderHotbar(); }

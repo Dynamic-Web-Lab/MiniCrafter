@@ -1,10 +1,11 @@
 // Service worker: caches the whole game so it works offline once loaded.
 // Bump VERSION whenever files change so players get the update.
-const VERSION = 'minicrafter-v32';
+const VERSION = 'minicrafter-v34';
 const CORE = [
   './', './index.html', './style.css', './privacy.html', './terms.html', './legal.css', './features.html', './features.css', './manifest.webmanifest', './site-config.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
   './vendor/three.module.js', './vendor/blockly.min.js', './vendor/media/sprites.png',
+  './src/a11y.js',
   './src/adventure.js',
   './src/audio.js',
   './src/blocks.js',

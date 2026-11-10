@@ -7,7 +7,7 @@
 // newer than the last one this player saw).
 export const NEWS = [
   {
-    v: 32,
+    v: 34,
     title: 'More room to play',
     items: [
       ['⭐', 'The quest list can fold away: tap ▴ to fold it, tap ⭐ to open it again. Phones start folded.'],

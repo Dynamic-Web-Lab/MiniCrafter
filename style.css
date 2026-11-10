@@ -65,7 +65,7 @@ table.controls td:first-child { color: #e6c35c; white-space: nowrap; font-weight
 #hearts, #bubbles { display: flex; gap: 1px; font-size: 19px; line-height: 1; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
 .heart { color: #e0302a; }
 .heart.half { background: linear-gradient(90deg, #e0302a 50%, #3a1010 50%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.heart.empty { color: #3a1010; }
+.heart.empty { color: #ffd0cd; }
 .bubble { color: #8fd3ff; }
 #damage-flash { position: fixed; inset: 0; pointer-events: none; z-index: 6; background: radial-gradient(circle, transparent 40%, rgba(220, 0, 0, .55)); opacity: 0; transition: opacity .4s; }
 #damage-flash.on { opacity: 1; transition: none; }
@@ -169,7 +169,7 @@ body.touch .qt-key { display: none; }
 .qb-item .qb-stars { white-space: nowrap; font-size: 1.05rem; }
 .qb-item.done { border-color: #66b043; }
 .qb-item.active { border-color: #ffd45a; }
-.qb-item.off { opacity: .45; }
+.qb-item.off { opacity: .72; }
 .qb-item .tag { font-size: .7rem; padding: 1px 6px; border-radius: 4px; background: #3a4255; margin-left: 6px; font-weight: 400; }
 
 /* Robot panel (docked so you can watch Bit work) */
@@ -337,7 +337,7 @@ select { width: 100%; }
 .tg-me { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: rgba(255, 255, 255, .04); border: 1px solid #2c3446; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .chip { padding: 4px 10px; border-radius: 999px; font-size: .85rem; background: #1b2030; border-color: var(--chip, #4b556b); }
-.chip.on { background: var(--chip, #3f7d2a); border-color: #fff; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
+.chip.on { background: var(--chip, #3f7d2a); border-color: #fff; color: var(--chip-ink, #fff); text-shadow: none; }
 .chip:disabled { opacity: .55; cursor: default; }
 .tg-start { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 @media (max-width: 560px) { .tg-start { grid-template-columns: 1fr; } }
@@ -515,3 +515,36 @@ body.touch #quest-tracker { right: calc(max(10px, env(safe-area-inset-right)) + 
 .pet-panel .slot-grid { grid-template-columns: repeat(9, minmax(0, 50px)); }
 .pet-panel .slot-grid .slot { width: auto; height: auto; aspect-ratio: 1; }
 .pet-panel .slot-grid .slot img { width: 68%; height: auto; }
+
+/* ---------- Accessibility baseline (docs/accessibility.md) ---------- */
+/* A clear keyboard focus ring everywhere (the browser's own is a thin 1px line on our dark panels). */
+:focus-visible { outline: 3px solid #ffd45a; outline-offset: 2px; }
+.panel:focus-visible, .overlay > .panel[tabindex="-1"]:focus { outline: none; }
+input[type=range] { min-height: 24px; }
+
+/* HUD text sits over any sky, even a bright one: give it a dark backing so it stays above 4.5:1. */
+#hint, #toast, #armor-ind { background: rgba(8, 12, 22, .74); padding: 3px 12px; border-radius: 8px; }
+#armor-ind:empty { display: none; }
+#mode-badge { background: rgba(8, 12, 22, .78); }
+#xp-level { background: rgba(8, 12, 22, .74); padding: 0 7px; border-radius: 8px; }
+#hotbar { background: rgba(0, 0, 0, .62); }
+.slot .num { font-size: 11px; color: #fff; }
+.qb-item .tag { color: #e6ebf5; }
+
+/* Phones and tablets: every button, field and tab is at least 44px to tap. */
+body.touch button:not(.tbtn) { min-width: 44px; }
+body.touch button:not(.tbtn), body.touch select, body.touch summary,
+body.touch input[type=text], body.touch input[type=password], body.touch input[type=number], body.touch input[type=range] { min-height: 44px; }
+body.touch .x-close { width: 44px; height: 44px; }
+body.touch .legal-links a, body.touch .acc-privacy a, body.touch #news a, body.touch .install-help a { display: inline-block; padding: 14px 4px; }
+body.touch details.fold > summary { padding-top: 12px; padding-bottom: 12px; }
+body.touch #hud #hotbar .slot { width: 44px; height: 44px; }
+body.touch #hud #hotbar .slot img { width: 30px; height: 30px; }
+@media (max-height: 520px) { body.touch #xpbar { bottom: 66px; } body.touch #status { bottom: 74px; } }
+
+/* Reduced motion: no pop-in zoom for celebrations, no fades or slides, a gentler damage flash. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+  #celebrate { transform: translate(-50%, -50%); }
+  #damage-flash { background: radial-gradient(circle, transparent 55%, rgba(220, 0, 0, .3)); }
+}
