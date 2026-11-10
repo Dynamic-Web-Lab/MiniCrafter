@@ -11,6 +11,7 @@ import { I, ITEMS, itemIcon, itemName, miningInfo, dropFor, STATION_BLOCK } from
 import { Inventory } from './inventory.js';
 import { Survival, MAX_HEALTH, MAX_AIR, MAX_HUNGER } from './survival.js';
 import { CraftUI } from './craftui.js';
+import { PetUI } from './petui.js';
 import { Mobs, TYPES } from './mobs.js';
 import { TouchControls, isTouchDevice } from './touch.js';
 import { Quests, QUESTS } from './quests.js';
@@ -250,6 +251,11 @@ const together = new Together({
     else if (act === 'feed') mobs.feed(mob);
     else if (act === 'shear') { const wool = mobs.shear(mob); if (wool != null) together.send({ k: 'give', item: wool, n: 1 + Math.floor(Math.random() * 3) }, from); }
     else if (act === 'sit' && mob.tamed) mobs.toggleSit(mob);
+    else if (act === 'gear' && mob.tamed) { // a guest put pet armor or a backpack on one of the host's pets
+      const g = ITEMS.get(acc);
+      if (g?.petArmor) mobs.wearArmor(mob, acc);
+      else if (g?.petBackpack && !mob.bag) mobs.setBackpack(mob, true);
+    }
     else if (act === 'wear' && mob.tamed && ['party', 'crown', 'glasses'].includes(acc)) mobs.wear(mob, acc);
     dirtySave = true;
   },
@@ -660,13 +666,14 @@ function pickerTab(id) {
   const def = ITEMS.get(id), blk = id < 256 ? BLOCKS[id] : null;
   if (blk) {
     if (blk.spark) return 'spark';
+    if (blk.pet) return 'friends';
     if (blk.course) return 'fun';
     if (blk.plant || NATURE.has(id)) return 'nature';
     if (blk.bounce || blk.speed || blk.slippery || blk.fan || blk.note !== undefined || blk.confetti || blk.portal || blk.star || blk.emissive) return 'fun';
     return 'build';
   }
   if (def?.shape || def?.paint || def?.tool || def?.hoe || def?.water || def?.glider || def?.damage || def?.bow || def?.shield || def?.armor) return 'tools';
-  if (def?.spawns || def?.accessory || id === I.ROBOT) return 'friends';
+  if (def?.spawns || def?.accessory || def?.petArmor || def?.petBackpack || id === I.ROBOT) return 'friends';
   return 'items';
 }
 let pickerFilter = 'all';
@@ -770,6 +777,29 @@ mobs.onTame = (pet) => {
   dirtySave = true;
 };
 
+const petUI = new PetUI({
+  mobs,
+  getInv: () => inv,
+  atlasCanvas: atlas.canvas,
+  isSurvival: () => isSurvival(),
+  getHeld: () => heldItem(),
+  onSit: (pet) => { const r = mobs.toggleSit(pet); toast(sitMessage(pet, r)); dirtySave = true; return r; },
+  onChange: () => { renderHotbar(); dirtySave = true; },
+  toast: (t) => toast(t),
+});
+function sitMessage(pet, r) { return r === 'bed' ? `${pet.petName} is heading to bed 🛏️` : r ? `${pet.petName} is sitting` : `${pet.petName} is following you`; }
+let lastPetHurtToast = 0;
+mobs.onPetHurt = (pet) => {
+  if (performance.now() - lastPetHurtToast < 15000) return;
+  lastPetHurtToast = performance.now();
+  toast(`${pet.petName} got bumped! Pet armor helps, and a pet bed makes it better 🛏️`);
+};
+mobs.onPetFaint = (pet, atBed) => {
+  toast(atBed ? `${pet.petName} was sleepy and went to its bed 💤` : `${pet.petName} needs a rest. Let it sit and recover 💤`);
+  sfx.pop();
+  dirtySave = true;
+};
+
 mobs.onBaby = (baby) => {
   quests.emit('baby', { type: baby.type });
   if (baby.pos.distanceTo(player.pos) < 24) { toast(`A baby ${TYPES[baby.type].name.toLowerCase()} was born!`); sfx.craft(); }
@@ -777,7 +807,7 @@ mobs.onBaby = (baby) => {
 };
 
 // ---------- game state & pointer lock ----------
-let state = 'menu'; // 'menu' | 'locking' | 'playing' | 'inventory' | 'craft' | 'dead'
+let state = 'menu'; // 'menu' | 'locking' | 'playing' | 'inventory' | 'craft' | 'pet' | 'dead'
 const keys = new Set();
 const mouse = { left: false, right: false, nextAction: 0 };
 
@@ -820,6 +850,15 @@ function openOverlay() {
     $('inv-slot').textContent = selected + 1;
     $('inventory').classList.remove('hidden');
   }
+  exitLock();
+}
+
+function openPetPanel(mob) {
+  insights.step('opened pet panel');
+  clearInput();
+  touch?.setEnabled(false);
+  state = 'pet';
+  petUI.open(mob);
   exitLock();
 }
 
@@ -930,6 +969,7 @@ function closeOverlay(relock) {
     if (bookFromMenu) { state = 'menu'; return; }
   }
   if (state === 'craft') craftUI.close();
+  if (state === 'pet') petUI.close();
   if (relock) enterPlay(); else showMenu();
 }
 
@@ -958,6 +998,7 @@ function startPlaying() {
   $('menu').classList.add('hidden');
   $('inventory').classList.add('hidden');
   $('craft').classList.add('hidden');
+  $('pet').classList.add('hidden');
   $('death').classList.add('hidden');
   $('hud').classList.remove('hidden');
   $('lock-note').textContent = '';
@@ -993,6 +1034,7 @@ upright.addEventListener('change', () => {
 $('rotate-back').addEventListener('click', cancelSideways);
 $('inv-done').addEventListener('click', () => closeOverlay(true));
 $('craft-done').addEventListener('click', () => closeOverlay(true));
+$('pet-done').addEventListener('click', () => closeOverlay(true));
 $('qb-done').addEventListener('click', () => closeOverlay(true));
 $('btn-quests').addEventListener('click', () => openQuestBook(true));
 $('qt-head').addEventListener('click', () => { if (state === 'playing') openQuestBook(false); });
@@ -1228,7 +1270,7 @@ $('acc-delete').addEventListener('click', async () => {
 // Every pop-up panel gets a ✕ that is always on screen, and tapping the dimmed area
 // outside a panel closes it too. (Phones have no Escape key, and on a small screen the
 // Done button can be scrolled out of sight under a long list.)
-for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel'], ['photo', 'ph-close'], ['report', 'report-done']]) {
+for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['pet', 'pet-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel'], ['photo', 'ph-close'], ['report', 'report-done']]) {
   const ov = $(overlay);
   const x = document.createElement('button');
   x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
@@ -1570,7 +1612,7 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Escape' || e.code === 'KeyP') closePhoto();
     return;
   }
-  if (state === 'robot' || state === 'trade') {
+  if (state === 'robot' || state === 'trade' || state === 'pet') {
     if (e.code === 'Escape') closeOverlay(false);
     return;
   }
@@ -2000,6 +2042,8 @@ function guestMobAction(mob, held) {
   if (mouse.left) { mobs.effect(mob, mobs.happyMat); mobs.voice(mob); ask('pat'); quests.emit('pat', { type: mob.type }); return; }
   const acc = ITEMS.get(held)?.accessory;
   if (mob.tamed && acc) { ask('wear', { acc }); if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); } quests.emit('accessory', { kind: acc }); return; }
+  const pg = ITEMS.get(held);
+  if (mob.tamed && (pg?.petArmor || pg?.petBackpack)) { ask('gear', { acc: held }); if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); } quests.emit('petgear', { kind: pg.petArmor ? 'armor' : 'backpack' }); return; }
   if (mob.tamed && held !== I.APPLE) { ask('sit'); return; }
   if (held === I.APPLE) { ask('feed'); mobs.effect(mob, mobs.heartMat); if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); } return; }
   if (mob.type === 'sheep' && !mob.sheared) { ask('shear'); quests.emit('shear', {}); }
@@ -2035,9 +2079,30 @@ function actMob(now) {
     }
     return;
   }
+  const gear = ITEMS.get(held);
+  if (mob.tamed && gear?.petArmor) {
+    const prev = mobs.wearArmor(mob, held);
+    if (isSurvival()) { inv.takeFromSlot(selected, 1); if (prev) inv.add(prev, 1); renderHotbar(); }
+    toast(`${mob.petName} looks tough! 🛡️`);
+    quests.emit('petgear', { kind: 'armor' });
+    tip('petgear', 'Right-click a pet that wears armor or a backpack to open its panel.');
+    dirtySave = true;
+    return;
+  }
+  if (mob.tamed && gear?.petBackpack) {
+    if (mob.bag) { toast(`${mob.petName} already has a backpack`); return; }
+    mobs.setBackpack(mob, true);
+    if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); }
+    toast(`${mob.petName} can carry things for you now! 🎒`);
+    quests.emit('petgear', { kind: 'backpack' });
+    tip('petgear', 'Right-click a pet that wears armor or a backpack to open its panel.');
+    dirtySave = true;
+    return;
+  }
+  if (mob.tamed && held !== I.APPLE && (mob.bag || mob.armor)) { openPetPanel(mob); return; }
   if (mob.tamed && held !== I.APPLE) {
     const sits = mobs.toggleSit(mob);
-    toast(sits ? `${mob.petName} is sitting` : `${mob.petName} is following you`);
+    toast(sitMessage(mob, sits));
     dirtySave = true;
     return;
   }
@@ -2478,14 +2543,14 @@ $('btn-install').addEventListener('click', () => {
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, adv, projectiles, spark, together, account, course, photo, insights, openPhoto, closePhoto, get state() { return state; }, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, projectiles, spark, together, account, course, photo, insights, openPhoto, closePhoto, get state() { return state; }, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, openPetPanel, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */
   forcePlay() {
     state = 'playing'; hasPlayed = true;
     $('menu').classList.add('hidden'); $('hud').classList.remove('hidden');
-    $('craft').classList.add('hidden'); $('inventory').classList.add('hidden');
+    $('craft').classList.add('hidden'); $('inventory').classList.add('hidden'); $('pet').classList.add('hidden');
     touch?.setEnabled(true);
   },
   setTime(t) { timeOfDay = t; },

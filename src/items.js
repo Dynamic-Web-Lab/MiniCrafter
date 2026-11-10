@@ -17,6 +17,7 @@ export const I = {
   PARTY_HAT: 330, CROWN: 331, SUNGLASSES: 332,
   WOOD_SWORD: 340, STONE_SWORD: 341, IRON_SWORD: 342, DIAMOND_SWORD: 343,
   BOW: 344, ARROW: 345, SHIELD: 346, WOOL_ARMOR: 347, IRON_ARMOR: 348, DIAMOND_ARMOR: 349,
+  COZY_PET_COAT: 360, IRON_PET_ARMOR: 361, STAR_PET_ARMOR: 362, PET_BACKPACK: 363,
 };
 
 const TIERS = [
@@ -76,6 +77,14 @@ item(I.PARTY_HAT, 'Party Hat', { sprite: 'partyhat', color: [240, 80, 160], stac
 item(I.CROWN, 'Tiny Crown', { sprite: 'crown', color: [250, 210, 60], stack: 16, accessory: 'crown' });
 item(I.SUNGLASSES, 'Sunglasses', { sprite: 'glasses', color: [30, 30, 40], stack: 16, accessory: 'glasses' });
 
+// Pet armor (right-click your pet while holding it) cuts the damage the pet takes; the backpack gives it 9 slots.
+// `petArmor` is the share of damage blocked.
+item(I.COZY_PET_COAT, 'Cozy Pet Coat', { sprite: 'petarmor', color: [120, 170, 235], stack: 1, petArmor: 0.25 });
+item(I.IRON_PET_ARMOR, 'Iron Pet Armor', { sprite: 'petarmor', color: [205, 208, 215], stack: 1, petArmor: 0.5 });
+item(I.STAR_PET_ARMOR, 'Starlight Pet Armor', { sprite: 'petarmor', color: [250, 205, 70], stack: 1, petArmor: 0.75 });
+item(I.PET_BACKPACK, 'Pet Backpack', { sprite: 'backpack', color: [200, 80, 70], stack: 1, petBackpack: true });
+export const PET_BAG_SLOTS = 9;
+
 // Creative power tools. Shape tools: right-click two points to build, left-click two points to erase.
 // They build with the last block you held.
 item(I.LINE_WAND, 'Bridge Wand', { sprite: 'wand', color: [255, 220, 90], stack: 1, creativeOnly: true, shape: 'line' });
@@ -124,6 +133,8 @@ mine([B.LANTERN], 0.3);
 mine([B.PORTAL_BLUE, B.PORTAL_ORANGE, B.PORTAL_GREEN, B.PORTAL_PURPLE], 0.4);
 mine([B.CACTUS], 0.4);
 mine(BLOCKS.filter((b) => b?.spark).map((b) => b.id), 0.3);
+mine([B.PET_BED], 0.3);
+mine([B.KENNEL], 1.5, 'axe');
 mine(BLOCKS.filter((b) => b?.course).map((b) => b.id), 0.3);
 mine([B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK], 0.8);
 
@@ -173,6 +184,12 @@ recipe(B.CRAFTING_TABLE, 1, [[B.PLANKS, 4]]);
 recipe(I.BREAD, 1, [[I.WHEAT, 3]]);
 recipe(I.HOE, 1, [[B.PLANKS, 2], [I.STICK, 2]]);
 recipe(I.PARTY_HAT, 1, [[B.WOOL_RED, 1], [B.WOOL_YELLOW, 1]]);
+recipe(I.COZY_PET_COAT, 1, [[B.WOOL_BLUE, 3], [B.WOOL_WHITE, 2]]);
+recipe(I.IRON_PET_ARMOR, 1, [[I.IRON_INGOT, 5]], 'table');
+recipe(I.STAR_PET_ARMOR, 1, [[I.DIAMOND, 2], [I.GOLD_INGOT, 3], [B.STAR, 1]], 'table');
+recipe(I.PET_BACKPACK, 1, [[B.WOOL_RED, 3], [I.IRON_INGOT, 1], [I.STICK, 2]], 'table');
+recipe(B.PET_BED, 1, [[B.WOOL_RED, 2], [B.PLANKS, 2]]);
+recipe(B.KENNEL, 1, [[B.PLANKS, 6], [B.WOOL_RED, 1]], 'table');
 recipe(I.CROWN, 1, [[I.GOLD_INGOT, 2]], 'table');
 recipe(B.STAR, 1, [[I.GOLD_INGOT, 1], [B.GLASS, 1]], 'table');
 recipe(I.WOOD_SWORD, 1, [[B.PLANKS, 2], [I.STICK, 1]], 'table');
@@ -314,6 +331,16 @@ const SPRITES = {
     '................', '...###....###...', '..#####..#####..', '..############..', '..############..', '...##########...',
     '....########....', '....##dddd##....', '....########....', '....########....', '....########....', '....########....',
     '.....######.....', '................', '................', '................',
+  ],
+  petarmor: [
+    '................', '................', '...#########....', '..###########...', '.####dddddd####.', '.###d######d###.',
+    '.###d#yyyy#d###.', '.###d######d###.', '..##dddddddd##..', '..###########...', '...##.#####.##..', '...##.......##..',
+    '................', '................', '................', '................',
+  ],
+  backpack: [
+    '................', '.....dddddd.....', '....d######d....', '...d########d...', '...##########...', '...#dddddddd#...',
+    '...#d######d#...', '...#d#yyyy#d#...', '...#d######d#...', '...#dddddddd#...', '...##########...', '...d########d...',
+    '....dddddddd....', '................', '................', '................',
   ],
   partyhat: [
     '.......dd.......', '.......##.......', '......####......', '......#dd#......', '.....######.....', '.....##dd##.....',

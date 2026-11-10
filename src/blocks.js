@@ -23,6 +23,8 @@ export const B = {
   PISTON: 96, PISTON_OUT: 101, PISTON_HEAD: 106,
   // Course Maker: build your own obstacle courses and races.
   COURSE_START: 107, COURSE_CHECK: 108, COURSE_FINISH: 109, COIN: 110, COIN_TAKEN: 111,
+  // Pet upgrades: a cushion pets rest on and a doghouse.
+  PET_BED: 112, KENNEL: 113,
 };
 
 export const BLOCKS = [];
@@ -155,6 +157,10 @@ def(B.COURSE_CHECK, 'Checkpoint', { top: TILE.COURSE_CHECK, bottom: TILE.PAD_SID
 def(B.COURSE_FINISH, 'Course Finish', { top: TILE.COURSE_FINISH, bottom: TILE.PAD_SIDE, side: TILE.PAD_SIDE }, { course: 'finish' });
 def(B.COIN, 'Coin', TILE.COIN, { solid: false, transparent: true, shape: 'plant', emissive: true, course: 'coin' });
 def(B.COIN_TAKEN, 'Coin (collected)', TILE.COIN_TAKEN, { solid: false, transparent: true, shape: 'plant', course: 'taken', placeable: false });
+// ---- Pet beds ----
+// Tell a pet to sit near one and it walks over; pets resting by a bed or kennel slowly get better.
+def(B.PET_BED, 'Pet Bed', TILE.PET_BED, { ...flat, pet: 'bed' });
+def(B.KENNEL, 'Doghouse', { top: TILE.KENNEL_TOP, bottom: TILE.PLANKS, side: TILE.KENNEL_SIDE }, { pet: 'kennel' });
 /** Facing-aware block: turns a placed directional item into the variant facing `dir`. */
 export function sparkFacing(id, dir) {
   const b = BLOCKS[id];

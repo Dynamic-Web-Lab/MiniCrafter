@@ -16,6 +16,7 @@ const CORE = [
   './src/photo.js',
   './src/insights.js',
   './src/craftui.js',
+  './src/petui.js',
   './src/critters.js',
   './src/ideas.js',
   './src/inventory.js',

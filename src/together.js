@@ -286,7 +286,7 @@ export class Together {
         break;
       }
       case 'emo': if (EMOJI[d.e]) { this.showEmoji(peer, d.e); this.send({ k: 'emo', id, e: d.e }); } break;
-      case 'mob': if (Number.isInteger(d.id) && ['pat', 'feed', 'shear', 'sit', 'wear'].includes(d.act)) this.onMobAction?.(d.id, d.act, d.acc, id, peer); break;
+      case 'mob': if (Number.isInteger(d.id) && ['pat', 'feed', 'shear', 'sit', 'wear', 'gear'].includes(d.act)) this.onMobAction?.(d.id, d.act, d.acc, id, peer); break;
       default: break;
     }
   }

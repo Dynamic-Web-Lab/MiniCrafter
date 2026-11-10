@@ -27,6 +27,7 @@ export const TILE = {
   SPARK_LAMP: 89, SPARK_LAMP_ON: 90, SPARK_DOOR: 91, SPARK_DOOR_OPEN: 92,
   PISTON_FRONT: 93, PISTON_SIDE: 94, PISTON_BACK: 95, PISTON_INNER: 96,
   COURSE_START: 97, COURSE_CHECK: 98, COURSE_FINISH: 99, COIN: 100, COIN_TAKEN: 101, PAD_SIDE: 102,
+  PET_BED: 103, KENNEL_TOP: 104, KENNEL_SIDE: 105,
 };
 
 /** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
@@ -396,6 +397,20 @@ export function createAtlas() {
   coin(TILE.COIN_TAKEN, 255, [120, 120, 130]);
 
   paint(TILE.PISTON_INNER, (x, y) => (edge(x, y) ? [50, 52, 60] : x >= 6 && x <= 9 && y >= 6 && y <= 9 ? [140, 140, 150] : vary([60, 62, 70], 0.1)));
+
+  // ---- Pet bed and kennel ----
+  paint(TILE.PET_BED, (x, y) => {
+    if (x < 2 || y < 2 || x > T - 3 || y > T - 3) return vary([150, 105, 60], 0.08); // wooden rim
+    const paw = (x >= 6 && x <= 9 && y >= 8 && y <= 11) || [[4, 6], [7, 5], [10, 5], [12, 6]].some(([px, py]) => Math.abs(x - px) < 1.2 && Math.abs(y - py) < 1.2);
+    return paw ? [255, 235, 240] : vary([225, 90, 120], 0.07); // pink cushion with a paw print
+  });
+  paint(TILE.KENNEL_TOP, (x, y) => (y % 4 === 3 ? [120, 45, 40] : vary([190, 70, 60], 0.08))); // red roof tiles
+  paint(TILE.KENNEL_SIDE, (x, y) => {
+    const dx = x - 7.5, arch = y >= 5 && (Math.abs(dx) < 3.2 && (y >= 8 || Math.hypot(dx, y - 8) < 3.2));
+    if (arch) return [40, 28, 24]; // the doorway
+    if (y < 3) return [120, 45, 40]; // eave
+    return (x % 5 === 0) ? vary([165, 120, 70], 0.06) : vary([205, 160, 100], 0.07);
+  });
 
   // Ores: stone + clusters of mineral pixels.
   const ore = (tile, color, clusters) => {

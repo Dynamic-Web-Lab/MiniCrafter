@@ -12,7 +12,7 @@ Key facts:
 - Learning: 64 quests (counting, times tables, colours, shapes, coding) and Blockly coding for Bit the robot.
 
 ## Features
-- [All features, with screenshots and FAQ](features.html): Course Maker, Play Together, Bit coding, Photo Mode, animals and pets, farming, fun blocks, villages, quests, Spark circuits, power tools, Adventure mode, tablets and phones
+- [All features, with screenshots and FAQ](features.html): Course Maker, Play Together, Bit coding, Photo Mode, animals and pets (armor, backpack, pet beds and doghouses), farming, fun blocks, villages, quests, Spark circuits, power tools, Adventure mode, tablets and phones
 - [Play the game](./)
 
 ## Policies
