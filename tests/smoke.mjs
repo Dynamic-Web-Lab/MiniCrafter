@@ -89,6 +89,20 @@ try {
   ok(core.worlds >= 1, 'a saved world exists');
   ok(core.hotbar === 9, 'hotbar has 9 slots');
 
+  // What's new: hidden for a brand-new player; shown once to a returning player after an update.
+  const news = await page.evaluate(async () => {
+    const { unseenNews, markNewsSeen, NEWS } = await import('./src/news.js');
+    const data = { 'minicrafter:worlds': '[]' }; // a returning player: something already saved
+    const returning = { get length() { return Object.keys(data).length; }, key: (i) => Object.keys(data)[i], getItem: (k) => data[k] ?? null, setItem: (k, v) => { data[k] = v; } };
+    const shown = unseenNews(returning).length;
+    markNewsSeen(returning);
+    const sw = await fetch('./sw.js').then((r) => r.text());
+    return { newHidden: document.getElementById('news').classList.contains('hidden'), shown, after: unseenNews(returning).length,
+      sameVersion: sw.includes(`minicrafter-v${NEWS[0].v}'`) || Number(/minicrafter-v(\d+)/.exec(sw)[1]) > NEWS[0].v };
+  });
+  ok(news.newHidden && news.shown === 1 && news.after === 0, "what's new: hidden for new players, shown once to returning players", JSON.stringify(news));
+  ok(news.sameVersion, "what's new: the newest news is not ahead of sw.js VERSION");
+
   const features = await page.evaluate(async () => {
     const m = window.minicrafter;
     const { QUESTS } = await import('./src/quests.js');

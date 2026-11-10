@@ -336,7 +336,7 @@ It needs a modern browser with WebGL. Everything, including three.js and Blockly
 <details>
 <summary><b>🧩 How it's built</b> (for developers)</summary>
 
-- **Offline:** `sw.js` precaches every file (stale-while-revalidate) and `manifest.webmanifest` makes it installable. Bump `VERSION` in `sw.js` when files change. The service worker is skipped on localhost so development always sees fresh files (add `?sw=1` to test it).
+- **Offline:** `sw.js` precaches every file (stale-while-revalidate) and `manifest.webmanifest` makes it installable. Bump `VERSION` in `sw.js` when files change. To tell returning players about a new feature, also add an entry with the same number at the top of `NEWS` in `src/news.js`: they see a short "What's new" card once (brand-new players don't). The service worker is skipped on localhost so development always sees fresh files (add `?sw=1` to test it).
 - **Rendering:** [three.js](https://threejs.org/) 0.160 (vendored) loaded through an import map. Chunks are 16×16×96 with hidden-face culling and per-vertex ambient occlusion, so each chunk layer is a single draw call.
 - **Lighting:** sky light and block light (0–15) are flood-filled while meshing, over the chunk plus a 15-block margin, and smoothed per vertex. A small shader hook mixes them with the time of day, so torchlight stays warm at night.
 - **Everything procedural:** a seeded Perlin-noise world, a pixel-art texture atlas painted in code, and Web Audio sound effects synthesized on the fly.
