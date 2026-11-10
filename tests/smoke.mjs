@@ -257,16 +257,16 @@ try {
   });
   ok(touch, 'touch controls appear in touch mode');
   // Phones: turning the phone upright pauses and asks for sideways; turning it back carries on.
-  const shown = (id) => t.page.evaluate((i) => !document.getElementById(i).classList.contains('hidden'), id);
+  // (Waits for the change itself: CI runners render slowly, so a fixed pause isn't enough.)
+  const settle = (fn) => t.page.waitForFunction(fn, null, { timeout: 15000 }).then(() => true).catch(() => false);
   await t.page.setViewportSize({ width: 390, height: 844 });
-  await t.page.waitForTimeout(300);
-  const askedUpright = (await shown('rotate')) && !(await shown('hud'));
+  const askedUpright = await settle(() => !document.getElementById('rotate').classList.contains('hidden') && document.getElementById('hud').classList.contains('hidden'));
   await t.page.setViewportSize({ width: 844, height: 390 });
-  await t.page.waitForTimeout(300);
-  const resumed = !(await shown('rotate')) && (await shown('hud'));
+  const resumed = await settle(() => document.getElementById('rotate').classList.contains('hidden') && !document.getElementById('hud').classList.contains('hidden'));
   ok(askedUpright && resumed, 'phones: upright pauses and asks to turn sideways, sideways carries on');
-  // Phones: the survival crafting panel fits an upright phone (its 9-slot rows used to push it sideways).
-  await t.page.setViewportSize({ width: 375, height: 667 });
+  // Phones: the survival crafting panel fits an upright phone (its 9-slot rows used to push it
+  // sideways). 360px is a common Android width, and the narrowest that matters.
+  await t.page.setViewportSize({ width: 360, height: 740 });
   const craftOverflow = await t.page.evaluate(async () => {
     const m = window.minicrafter; m.setMode('survival'); m.forcePlay(); m.openOverlay();
     await new Promise((r) => setTimeout(r, 300));

@@ -429,7 +429,12 @@ body.touch #quest-tracker .q-card ~ .q-card ~ .q-card { display: none; }
 @media (max-width: 860px) and (min-height: 521px) {
   #craft-done { position: sticky; bottom: -1px; z-index: 2; box-shadow: 0 -10px 14px 6px rgba(20, 24, 34, .95); }
 }
+/* Recipe cards: the station badge goes under the ingredients, so long names never push the card wider. */
+.recipe { min-width: 0; grid-template-columns: 44px minmax(0, 1fr) auto; }
 @media (max-width: 480px) {
+  .recipe { grid-template-columns: 40px minmax(0, 1fr); row-gap: 4px; }
+  .recipe img.out { width: 36px; height: 36px; }
+  .recipe .badge { grid-column: 2; justify-self: start; }
   .slot-grid { gap: 3px; }
   #craft .slot-grid .slot .count { font-size: 11px; right: 2px; bottom: 0; }
 }
