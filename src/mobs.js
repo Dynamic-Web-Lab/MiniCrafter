@@ -220,7 +220,7 @@ function heartTexture(rgb) {
   return t;
 }
 
-function nameTag(text) {
+export function nameTag(text) {
   const c = document.createElement('canvas');
   const ctx = c.getContext('2d');
   ctx.font = 'bold 30px system-ui, sans-serif';
@@ -261,6 +261,8 @@ export class Mobs {
     this.onShoot = null;         // (mob)
     this.onPoof = null;          // (mob, cause)
     this.monsterTimer = 0;
+    this.nextId = 0;
+    this.puppet = false; // Play Together guest: animals copy the host's, no AI or spawning here
     this.eyeMat = new THREE.MeshBasicMaterial({ color: 0xffe14a, fog: false });
   }
 
@@ -283,8 +285,10 @@ export class Mobs {
       e.position.set(ex, ey, ez);
       model.head.add(e);
     }
+    const id = opts.id ?? ++this.nextId;
+    this.nextId = Math.max(this.nextId, id);
     const mob = {
-      type, ...model,
+      id, type, ...model,
       pos: new THREE.Vector3(x, y, z), vel: new THREE.Vector3(),
       yaw: opts.yaw ?? Math.random() * Math.PI * 2, targetYaw: 0,
       walking: false, timer: Math.random() * 3, onGround: false, phase: 0,
@@ -357,6 +361,7 @@ export class Mobs {
   update(dt, player, light, allowSpawn) {
     if (!this.world) return;
     this.mat.color.setScalar(light);
+    if (this.puppet) { this.updatePuppets(dt); return; }
     const W = this.world;
 
     // Night creatures: only in Adventure, only in the dark, and they poof in sunlight.
@@ -829,6 +834,75 @@ export class Mobs {
   }
 
   // ---------- persistence ----------
+  // ---------- Play Together: the host sends its animals, guests show copies ----------
+  /** Compact state of the animals near any of the given positions (host side). */
+  netState(centers, radius = 48) {
+    const out = [];
+    for (const m of this.list) {
+      if (m.hostile || !centers.some((c) => Math.abs(m.pos.x - c.x) < radius && Math.abs(m.pos.z - c.z) < radius)) continue;
+      const flags = (m.baby ? 1 : 0) | (m.sheared ? 2 : 0) | (m.tamed ? 4 : 0) | (m.sitting ? 8 : 0) | (m.walking ? 16 : 0);
+      out.push([m.id, m.type, +m.pos.x.toFixed(2), +m.pos.y.toFixed(2), +m.pos.z.toFixed(2), +m.yaw.toFixed(2), flags, m.woolColor ?? 0, m.accessory || 0, m.petName || 0, m.job || 0, m.villagerName || 0]);
+    }
+    return out;
+  }
+
+  /** Guest side: make the local animals match the host's list (untrusted data, so check everything). */
+  applyNet(arr) {
+    if (!Array.isArray(arr)) return;
+    const seen = new Set();
+    const byId = new Map(this.list.map((m) => [m.id, m]));
+    const str = (v, max = 20) => (typeof v === 'string' && v.length <= max && /^[A-Za-z' ]+$/.test(v) ? v : null);
+    for (const a of arr.slice(0, 120)) {
+      if (!Array.isArray(a)) continue;
+      const [id, type, x, y, z, yaw, flags] = a;
+      if (!Number.isInteger(id) || !TYPES[type] || TYPES[type].hostile || ![x, y, z, yaw].every(Number.isFinite)) continue;
+      seen.add(id);
+      const baby = !!(flags & 1), sheared = !!(flags & 2), tamed = !!(flags & 4), sitting = !!(flags & 8);
+      const petName = PET_NAMES.includes(a[9]) ? a[9] : null;
+      let m = byId.get(id);
+      if (!m) {
+        const job = JOB_INFO[a[10]] ? a[10] : null;
+        m = this.spawn(type, x, y, z, { id, yaw, baby, sheared, woolColor: WOOL.includes(a[7]) ? a[7] : undefined, job, villagerName: str(a[11]) || undefined, kept: true });
+        if (!m) continue;
+      }
+      m.netPos = new THREE.Vector3(x, y, z); m.netYaw = yaw; m.walking = !!(flags & 16);
+      m.sheared = sheared; m.sitting = sitting;
+      if (m.baby !== baby) { m.baby = baby; this.applyScale(m); }
+      if (tamed && !m.tamed) this.tame(m, petName);
+      if (a[8] && a[8] !== m.accessory && ['party', 'crown', 'glasses'].includes(a[8])) this.wear(m, a[8]);
+    }
+    for (const m of [...this.list]) if (!seen.has(m.id)) this.remove(m);
+  }
+
+  /** Guest side: glide copies toward the host's positions and animate them. */
+  updatePuppets(dt) {
+    for (const m of this.list) {
+      if (m.netPos) {
+        const k = Math.min(1, dt * 10);
+        const dx = (m.netPos.x - m.pos.x), dz = (m.netPos.z - m.pos.z);
+        if (Math.hypot(dx, dz) > 8) m.pos.copy(m.netPos); else m.pos.lerp(m.netPos, k);
+        let dy = m.netYaw - m.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+        m.yaw += dy * k;
+        m.phase += Math.hypot(dx, dz) * 6;
+      }
+      const swing = m.walking ? Math.sin(m.phase) * 0.6 : 0;
+      m.legs.forEach((l, i) => { l.rotation.x = m.sitting ? (i >= 2 ? -1.2 : 0.35) : (i % 2 === (i < 2 ? 0 : 1) ? 1 : -1) * swing; });
+      m.group.position.copy(m.pos);
+      m.group.rotation.y = m.yaw;
+      m.group.rotation.x = m.sitting ? -0.45 : 0;
+      if (m.sitting) m.group.position.y -= 0.12;
+      if (m.wool) m.wool.visible = !m.sheared;
+      if (m.collar) m.collar.visible = m.tamed;
+    }
+    this.effects = this.effects.filter((e) => {
+      e.life -= dt;
+      e.sprite.position.y += dt * 0.8;
+      e.sprite.material.opacity = Math.min(1, e.life * 2);
+      if (e.life <= 0) { this.scene.remove(e.sprite); return false; }
+      return true;
+    });
+  }
+
   serialize() {
     return this.list.filter((m) => m.kept).map((m) => ({
       t: m.type, x: +m.pos.x.toFixed(2), y: +m.pos.y.toFixed(2), z: +m.pos.z.toFixed(2), yaw: +m.yaw.toFixed(2),

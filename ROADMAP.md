@@ -89,6 +89,25 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 - [ ] **Smoother tablets:** generate and mesh chunks in a Web Worker so long view distances don't stutter.
 - [ ] **Animals, Bit and particles lit by torches** in dark caves.
 
+## 👫 Play Together ✅ first version done
+
+Up to 4 players in the host's world through our own small relay (`server/rooms.mjs`), with private rooms, the host letting each player in, picked names and emoji only.
+- [x] Room codes, knock and let in, remove, lock
+- [x] World snapshot, block edits both ways, shared animals (patting, feeding, shearing), time of day and circuits
+- [x] Player avatars with name tags; 8 emoji
+- [x] Relay running on our server for the online edition (Docker)
+- [ ] Pets follow whoever tamed them (now they follow the host); share Bit's robot; Adventure-mode co-op
+- [ ] Classroom mode: a teacher hosts and sees everyone's progress
+
+## 🌐 Online edition (our own server)
+
+The game stays public on our own site, and the GitHub Pages copy is retired later. Server features (Play Together, accounts, and more) live only on our site, never on the public GitHub copy, so nobody else can use our server.
+- [x] Hosted site with a deploy script (`tools/deploy-site.sh`); online features switch on through `site-config.json` (off in Git, on for our site)
+- [x] The relay only accepts our own site
+- [ ] **Accounts** (register / log in) with our own database. Playing the game needs no account; Play Together and other server features do.
+- [ ] Play Together requires a login (the relay checks it)
+- [ ] Cloud saves across devices; classroom mode and a teacher dashboard
+
 ## ⚔️ Adventure track (opt-in, for older players)
 
 A separate **Adventure** game mode for teens and grown-ups who want excitement. Kids' worlds stay gentle by default: Adventure is chosen per world, sits behind a grown-up gate (a speed bump, not security), and none of its content appears in Creative or gentle Survival worlds. Monsters are original and cartoonish, and disappear in a puff with no blood.
@@ -129,7 +148,6 @@ Available in every mode (building, not fighting), so younger kids can use them w
 | **TNT explosion that clears blocks** | Fun, but it destroys builds (including a sibling's) and "explosives" don't fit the gentle tone. **Proposal:** a *"Poof block"* (creative only) that clears a small area with confetti instead of fire, with **undo** (Phase 2) required first. Needs your OK on the theme. |
 | **Press G to spawn hills and trees** | Not needed: worlds are already endless procedural terrain. Could come back later as a "terrain brush" power tool. |
 | **Switch to `InstancedMesh`** | The game already uses chunk meshes, which are faster than instancing for voxels. Next performance step is the Web Worker (Phase 5). |
-| **Play with friends (multiplayer)** | Needs a server plus a child-safety design (private rooms, no free chat). A project of its own. |
 
 ---
 

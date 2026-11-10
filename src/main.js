@@ -22,7 +22,8 @@ import { SHAPES, MAX_CELLS, previewBounds, ToolPreview, History } from './tools.
 import { Critters } from './critters.js';
 import { Projectiles } from './combat.js';
 import { Spark } from './spark.js';
-import { makeShareLink, readSharedFromHash } from './share.js';
+import { makeShareLink, readSharedFromHash, validateShared } from './share.js';
+import { Together, COLORS, ANIMALS, EMOJI, profileName, saveProfile, loadSiteConfig, SITE } from './together.js';
 import { IDEAS, ideaOfTheDay } from './ideas.js';
 import { xpNeeded, addXp, MINING_XP, showGate, initGate, gateUnlocked } from './adventure.js';
 
@@ -76,6 +77,62 @@ const spark = new Spark({
   getMobs: () => mobs.list,
   onChange: () => { dirtySave = true; },
   onEvent: (kind) => quests.emit('spark', { kind }),
+});
+// ---------- Play Together ----------
+let guestReturnId = null; // the world to go back to after visiting a friend's game
+const together = new Together({
+  scene, mobs, sfx,
+  getWorld: () => world,
+  getPlayer: () => player,
+  getTime: () => timeOfDay,
+  setTime: (t) => { timeOfDay = t; },
+  getMode: () => mode,
+  toast: (t) => toast(t),
+  snapshot: () => ({ seed: seedText, mode, time: timeOfDay, edits: world.serializeEdits(), spawn: [player.pos.x + 1.5, player.pos.y, player.pos.z + 1.5] }),
+  startGuest(snap) {
+    let clean;
+    try { clean = validateShared({ v: 1, name: 'Friend', seed: snap.seed, mode: snap.mode, edits: snap.edits }); } catch { together.fail('That world could not be loaded.'); return; }
+    if (currentWorldId) { save(); guestReturnId = currentWorldId; }
+    currentWorldId = null; // a visitor never saves the host's world
+    const sp = Array.isArray(snap.spawn) && snap.spawn.every(Number.isFinite) ? { x: snap.spawn[0], y: snap.spawn[1], z: snap.spawn[2] } : null;
+    startWorld(clean.seed, { seed: clean.seed, edits: clean.edits, mode: clean.mode, time: Number.isFinite(snap.time) ? snap.time : 0.3, player: sp }, clean.mode);
+    mobs.puppet = true;
+    const host = together.peers.get(0);
+    $('world-name').textContent = host ? `${profileName(host.profile)}'s world` : "A friend's world";
+    $('world-info').textContent = `👫 Playing together · ${MODE_NAMES[mode]}`;
+    closeTogether();
+    sfx.fanfare?.();
+    toast('👫 You joined the game! Press T (or 😊) to wave.');
+    if (state !== 'playing') enterPlay();
+  },
+  endGuest(reason) {
+    mobs.puppet = false;
+    const id = guestReturnId || worlds.currentId;
+    guestReturnId = null;
+    if (id && worlds.get(id)) openWorld(id);
+    else if (worlds.sorted()[0]) openWorld(worlds.sorted()[0].id);
+    else createWorld('', '', 'creative');
+    showMenu();
+    toast(reason || 'You left the game.');
+    renderTogether();
+  },
+  onStatus: () => renderTogether(),
+  onKnock: (id, p) => showKnock(id, p),
+  onGive(item, n) {
+    if (!isSurvival() || !ITEMS.has(item)) return;
+    inv.add(item, n); renderHotbar(); sfx.pop(); toast(`+${n} ${itemName(item)}`);
+  },
+  onMobAction(id, act, acc, from, peer) { // host: a guest touched one of the animals
+    const mob = mobs.list.find((m) => m.id === id);
+    if (!mob || mob.hostile) return;
+    const who = { pos: peer.target || peer.pos };
+    if (act === 'pat') mobs.pat(mob, who);
+    else if (act === 'feed') mobs.feed(mob);
+    else if (act === 'shear') { const wool = mobs.shear(mob); if (wool != null) together.send({ k: 'give', item: wool, n: 1 + Math.floor(Math.random() * 3) }, from); }
+    else if (act === 'sit' && mob.tamed) mobs.toggleSit(mob);
+    else if (act === 'wear' && mob.tamed && ['party', 'crown', 'glasses'].includes(acc)) mobs.wear(mob, acc);
+    dirtySave = true;
+  },
 });
 const robot = new Robot({
   world: null, scene, sfx, particles,
@@ -188,7 +245,8 @@ function startWorld(seedStr, saved, newMode) {
   player.onLand = (dist) => { if (isSurvival()) survival.landed(dist); };
   world.onChange = (x, y, z, from, to) => {
     spark.track(x, y, z, from, to);
-    if (!spark.internal) history.record(x, y, z, from, to); // circuits switching aren't undo steps
+    together.queueEdit(x, y, z, to); // Play Together: share every change (unless it came from the network)
+    if (!spark.internal && !together.applying) history.record(x, y, z, from, to); // circuits switching and friends' edits aren't undo steps
   };
   history.clear();
   tool.anchor = null;
@@ -268,7 +326,7 @@ const worlds = new WorldStore();
 let currentWorldId = null;
 
 function save() {
-  if (!world || !currentWorldId) return;
+  if (!world || !currentWorldId || together.isGuest) return;
   const ok = worlds.save(currentWorldId, {
     seed: seedText,
     edits: world.serializeEdits(),
@@ -538,6 +596,8 @@ function refreshMode() {
 function setMode(m) {
   if (m === mode) return;
   if (adv.hardcore) { toast('Hardcore worlds stay in Adventure mode'); return; }
+  if (together.isGuest) { toast("The host picks the game mode"); return; }
+  if (together.isHost && m === 'adventure') { toast('Play Together works in Creative and Survival. End the game first.'); return; }
   mode = m;
   survival.stopMining();
   if (isSurvival()) survival.health = Math.max(survival.health, 1);
@@ -782,6 +842,137 @@ $('craft-done').addEventListener('click', () => closeOverlay(true));
 $('qb-done').addEventListener('click', () => closeOverlay(true));
 $('btn-quests').addEventListener('click', () => openQuestBook(true));
 $('qt-head').addEventListener('click', () => { if (state === 'playing') openQuestBook(false); });
+// ---------- Play Together screens ----------
+let knockId = null;
+let emojiOpen = false;
+
+function openTogether() {
+  $('together').classList.remove('hidden');
+  if (together.isGuest || together.role === 'waiting') $('tg-code').value = together.code;
+  renderTogether();
+}
+function closeTogether() { $('together').classList.add('hidden'); }
+
+function renderProfilePicker() {
+  const p = together.profile;
+  $('tg-name').textContent = profileName(p);
+  const chips = (box, items, current, key) => {
+    box.innerHTML = '';
+    for (const [label, color] of items) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip' + (label === current ? ' on' : ''); b.textContent = label;
+      if (color) b.style.setProperty('--chip', color);
+      b.disabled = together.active || together.role === 'waiting' || together.role === 'connecting';
+      b.addEventListener('click', () => { together.profile = { ...together.profile, [key]: label }; saveProfile(together.profile); renderTogether(); });
+      box.appendChild(b);
+    }
+  };
+  chips($('tg-colors'), COLORS, p.color, 'color');
+  chips($('tg-animals'), ANIMALS.map((a) => [a]), p.animal, 'animal');
+}
+
+function renderTogether() {
+  renderProfilePicker();
+  const r = together.role;
+  const hosting = r === 'host';
+  $('tg-start').classList.toggle('hidden', !!r && r !== 'connecting');
+  $('tg-room').classList.toggle('hidden', !hosting);
+  $('tg-host').disabled = $('tg-join').disabled = r === 'connecting';
+  $('tg-status').textContent = r === 'connecting' ? 'Connecting…'
+    : r === 'waiting' ? `⏳ Knocking on game ${together.code}… waiting for the host to let you in.`
+      : r === 'guest' ? `👫 You're in game ${together.code}.` : (together.error || '');
+  $('tg-close').textContent = r === 'waiting' ? 'Cancel' : r === 'guest' ? 'Leave the game' : 'Back';
+  if (hosting) {
+    $('tg-code-big').textContent = together.code;
+    $('tg-lock').textContent = together.locked ? '🔒 Room locked' : '🔓 Room open';
+    const ul = $('tg-players');
+    ul.innerHTML = '';
+    const me = document.createElement('li'); me.textContent = `⭐ ${profileName(together.profile)} (you, the host)`; ul.appendChild(me);
+    for (const [id, p] of together.peers) {
+      const li = document.createElement('li');
+      li.textContent = `👤 ${profileName(p.profile)} `;
+      const k = document.createElement('button'); k.type = 'button'; k.textContent = 'Remove'; k.className = 'small';
+      k.addEventListener('click', () => together.kick(id));
+      li.appendChild(k); ul.appendChild(li);
+    }
+    const kb = $('tg-knocks');
+    kb.innerHTML = '';
+    for (const [id, p] of together.knocks) {
+      const d = document.createElement('div'); d.className = 'tg-knock';
+      d.innerHTML = `<span>🚪 <b></b> wants to join</span>`;
+      d.querySelector('b').textContent = profileName(p);
+      for (const [ok, label] of [[true, 'Let in'], [false, 'Not now']]) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (ok) b.className = 'go';
+        b.addEventListener('click', () => { together.admit(id, ok); if (knockId === id) hideKnock(); });
+        d.appendChild(b);
+      }
+      kb.appendChild(d);
+    }
+  }
+  // Menu and HUD
+  $('tg-menu-state').textContent = hosting ? `· ${together.code} · ${together.count} 👤` : r === 'guest' ? '· playing' : '';
+  const chip = $('tg-chip');
+  chip.classList.toggle('hidden', !together.active);
+  if (together.active) chip.textContent = `👫 ${together.code} · ${together.count} player${together.count === 1 ? '' : 's'}`;
+  document.getElementById('t-emoji')?.classList.toggle('hidden', !together.active);
+  if (!together.active) toggleEmojiBar(false);
+}
+
+function showKnock(id, p) {
+  knockId = id;
+  $('knock-text').textContent = `🚪 ${profileName(p)} wants to join`;
+  $('knock').classList.remove('hidden');
+  sfx.tone?.(660, 0.12, 'triangle', 0.15, 200);
+}
+function hideKnock() { knockId = null; $('knock').classList.add('hidden'); }
+function answerKnock(ok) { if (knockId != null) together.admit(knockId, ok); hideKnock(); }
+
+function toggleEmojiBar(force) {
+  emojiOpen = force ?? !emojiOpen;
+  const bar = $('emoji-bar');
+  if (!bar.childElementCount) {
+    EMOJI.forEach((e, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${e}<small>${i + 1}</small>`;
+      b.addEventListener('click', () => { together.emote(i); toggleEmojiBar(false); });
+      bar.appendChild(b);
+    });
+  }
+  bar.classList.toggle('hidden', !emojiOpen);
+}
+
+$('btn-together').addEventListener('click', openTogether);
+// Play Together only shows on our hosted site (see loadSiteConfig); the free copy hides it.
+$('btn-together').classList.add('hidden');
+loadSiteConfig().then(() => $('btn-together').classList.toggle('hidden', !SITE.online));
+$('tg-close').addEventListener('click', () => {
+  if (together.role === 'waiting' || together.role === 'connecting') together.leave(true);
+  else if (together.isGuest) together.leave();
+  closeTogether();
+  renderTogether();
+});
+$('tg-host').addEventListener('click', () => { together.error = ''; together.host(); });
+$('tg-join').addEventListener('click', () => { together.error = ''; together.join($('tg-code').value); });
+$('tg-code').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+$('tg-code').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') $('tg-join').click(); });
+$('tg-lock').addEventListener('click', () => together.setLocked(!together.locked));
+$('tg-end').addEventListener('click', () => { together.leave(); toast('Play Together ended'); });
+$('tg-play').addEventListener('click', () => { closeTogether(); enterPlay(); });
+$('knock-yes').addEventListener('click', () => answerKnock(true));
+$('knock-no').addEventListener('click', () => answerKnock(false));
+renderTogether();
+
+// Every pop-up panel gets a ✕ that is always on screen, and tapping the dimmed area
+// outside a panel closes it too. (Phones have no Escape key, and on a small screen the
+// Done button can be scrolled out of sight under a long list.)
+for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close']]) {
+  const ov = $(overlay);
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
+  x.addEventListener('click', () => $(done).click());
+  ov.appendChild(x);
+  ov.addEventListener('click', (e) => { if (e.target === ov) $(done).click(); });
+}
+
 // ---------- today's building idea ----------
 $('idea-text').textContent = ideaOfTheDay();
 $('btn-idea').addEventListener('click', () => { $('idea-text').textContent = IDEAS[Math.floor(Math.random() * IDEAS.length)]; });
@@ -791,6 +982,7 @@ $('btn-idea').addEventListener('click', () => { $('idea-text').textContent = IDE
 function openWorld(id) {
   const meta = worlds.get(id);
   if (!meta) return;
+  if (together.isHost) { together.leave(); toast('Play Together ended (you switched worlds)'); }
   if (currentWorldId && currentWorldId !== id) save();
   currentWorldId = id;
   worlds.setCurrent(id);
@@ -1091,12 +1283,19 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
   keys.add(e.code);
   if (e.repeat) return;
-  if (e.code.startsWith('Digit')) { const n = +e.code.slice(5); if (n >= 1 && n <= 9) select(n - 1); }
+  if (e.code.startsWith('Digit')) {
+    const n = +e.code.slice(5);
+    if (emojiOpen && n >= 1 && n <= EMOJI.length) { together.emote(n - 1); toggleEmojiBar(false); return; }
+    if (n >= 1 && n <= 9) select(n - 1);
+  }
   if (e.code === 'KeyF') toggleFly();
   if (e.code === 'KeyE') openOverlay();
   if (e.code === 'KeyQ') openQuestBook(false);
   if (e.code === 'KeyZ') undoRedo(false);
   if (e.code === 'KeyY') undoRedo(true);
+  if (e.code === 'KeyT' && together.active) toggleEmojiBar();
+  if (e.code === 'KeyL' && knockId != null) answerKnock(true);
+  if (e.code === 'KeyN' && knockId != null) answerKnock(false);
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', clearInput);
@@ -1166,6 +1365,7 @@ const touch = touchMode ? new TouchControls({
     else if (name === 'inventory' && state === 'playing') openOverlay();
     else if (name === 'pause' && state === 'playing') showMenu();
     else if (name === 'undo' && state === 'playing') undoRedo(false);
+    else if (name === 'emoji' && state === 'playing') toggleEmojiBar();
   },
 }) : null;
 
@@ -1486,6 +1686,18 @@ function spawnFromEgg(type) {
 }
 
 /** Interacting with an animal: left = pat, right = feed apple / shear sheep / say hello. */
+/** Play Together guest: animals live on the host, so ask the host (and show something right away). */
+function guestMobAction(mob, held) {
+  const ask = (act, extra = {}) => together.send({ k: 'mob', id: mob.id, act, ...extra });
+  if (mob.type === 'villager') { if (mouse.right) { mouse.right = false; openTrade(mob); } else { mobs.effect(mob, mobs.happyMat); ask('pat'); } return; }
+  if (mouse.left) { mobs.effect(mob, mobs.happyMat); mobs.voice(mob); ask('pat'); quests.emit('pat', { type: mob.type }); return; }
+  const acc = ITEMS.get(held)?.accessory;
+  if (mob.tamed && acc) { ask('wear', { acc }); if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); } quests.emit('accessory', { kind: acc }); return; }
+  if (mob.tamed && held !== I.APPLE) { ask('sit'); return; }
+  if (held === I.APPLE) { ask('feed'); mobs.effect(mob, mobs.heartMat); if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); } return; }
+  if (mob.type === 'sheep' && !mob.sheared) { ask('shear'); quests.emit('shear', {}); }
+}
+
 function actMob(now) {
   survival.stopMining();
   if (now < mouse.nextAction || !(mouse.left || mouse.right)) return;
@@ -1493,6 +1705,7 @@ function actMob(now) {
   const held = heldItem();
   mouse.nextAction = now + 0.45;
   if (mob.hostile) { if (mouse.left) attackMob(mob, now); return; }
+  if (together.isGuest) { guestMobAction(mob, held); return; }
   if (mob.type === 'villager') {
     if (mouse.right) { mouse.right = false; openTrade(mob); }
     else { mobs.pat(mob, player); }
@@ -1836,7 +2049,9 @@ function frame(now, manual = false) {
   mobs.isDay = !isNight();
   mobs.maxHostile = settings.monsters === 'easy' ? 4 : 8;
   player.blocking = state === 'playing' && isAdventure() && mouse.right && !!ITEMS.get(heldItem())?.shield;
-  if (state === 'playing') { updateBow(simTime); projectiles.update(dt); spark.update(dt); }
+  spark.passive = together.isGuest; // the host runs the circuits; guests see the results
+  if (state === 'playing') { updateBow(simTime); projectiles.update(dt); if (!together.isGuest) spark.update(dt); }
+  together.update(dt);
   mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
   critters.update(dt, player, light, timeOfDay > 0.55 && timeOfDay < 0.95, state === 'playing' || (state === 'menu' && !hasPlayed));
   robot.update(dt, light);
@@ -1943,7 +2158,7 @@ $('btn-install').addEventListener('click', () => {
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, adv, projectiles, spark, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, projectiles, spark, together, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

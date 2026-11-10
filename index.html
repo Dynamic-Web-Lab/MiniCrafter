@@ -36,12 +36,16 @@
     <button class="tbtn" id="t-undo" data-btn="undo" aria-label="Undo">↶</button>
     <button class="tbtn" id="t-inv" data-btn="inventory" aria-label="Inventory">🎒</button>
     <button class="tbtn" id="t-fly" data-btn="fly" aria-label="Fly">🕊️</button>
+    <button class="tbtn" id="t-emoji" data-btn="emoji" aria-label="Emoji">😊</button>
     <button class="tbtn big" id="t-jump" data-btn="jump" aria-label="Jump / up">⬆</button>
     <button class="tbtn" id="t-down" data-btn="down" aria-label="Down">⬇</button>
   </div>
 
   <div id="hud" class="hidden">
     <div id="crosshair"></div>
+    <div id="tg-chip" class="hidden"></div>
+    <div id="knock" class="hidden"><span id="knock-text"></span><button id="knock-yes" type="button">Let in <kbd>L</kbd></button><button id="knock-no" type="button">Not now <kbd>N</kbd></button></div>
+    <div id="emoji-bar" class="hidden"></div>
     <div id="debug" class="hidden"></div>
     <div id="toast"></div>
     <div id="mode-badge" class="hidden">FLYING</div>
@@ -73,6 +77,7 @@
         </div>
         <p id="loading">Generating world…</p>
         <button id="btn-play" class="primary">▶ Play</button>
+        <button id="btn-together" class="wide-btn together-btn">👫 Play Together <span id="tg-menu-state"></span></button>
         <div class="section world-row">
           <div><span class="note">World</span><div id="world-name">—</div><div class="note" id="world-info"></div></div>
           <button id="btn-worlds" type="button">🗂 My worlds</button>
@@ -138,12 +143,47 @@
             <tr><td>Q</td><td>Quest book</td></tr>
             <tr><td>Z / Y</td><td>Undo / redo (creative)</td></tr>
             <tr><td>F3</td><td>Debug info</td></tr>
+            <tr><td>T then 1–8</td><td>Send an emoji (Play Together)</td></tr>
+            <tr><td>L / N</td><td>Let a friend in / not now (host)</td></tr>
             <tr><td>Esc</td><td>Pause</td></tr>
           </table>
         </details>
         <p class="note touch-only">Touch: left stick walks, drag to look, tap to place or flip, hold to mine or attack. Holding a bow or shield? Hold to draw or block.</p>
         <p class="note">Your world is saved automatically in this browser. <span id="offline-note"></span></p>
       </div>
+    </div>
+  </div>
+
+  <div id="together" class="overlay hidden">
+    <div class="panel tg-panel">
+      <h2>👫 Play Together</h2>
+      <p class="note">Build with family and friends, up to 4 players. There's no chat, just emoji, and the host lets each player in.</p>
+      <div class="tg-me">
+        <div>You are <b id="tg-name"></b></div>
+        <div id="tg-colors" class="chips" aria-label="Pick a colour"></div>
+        <div id="tg-animals" class="chips" aria-label="Pick an animal"></div>
+      </div>
+      <div id="tg-start" class="tg-start">
+        <div class="tg-card">
+          <h3>🏠 Host this world</h3>
+          <p class="note">Friends join with a code. Works in Creative and Survival.</p>
+          <button id="tg-host" class="primary">Start a game</button>
+        </div>
+        <div class="tg-card">
+          <h3>🚪 Join a friend</h3>
+          <p class="note">Type the code from the host's screen.</p>
+          <div class="tg-row"><input id="tg-code" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" aria-label="Room code"><button id="tg-join" class="primary">Join</button></div>
+        </div>
+      </div>
+      <div id="tg-room" class="hidden">
+        <p class="tg-code-label">Room code: tell your friends</p>
+        <div id="tg-code-big"></div>
+        <div id="tg-knocks"></div>
+        <ul id="tg-players"></ul>
+        <div class="tg-row"><button id="tg-lock" type="button">🔓 Room open</button><button id="tg-play" class="primary" type="button">▶ Play</button><button id="tg-end" type="button">End game</button></div>
+      </div>
+      <p id="tg-status" class="note"></p>
+      <button id="tg-close" class="wide-btn" type="button">Back</button>
     </div>
   </div>
 
