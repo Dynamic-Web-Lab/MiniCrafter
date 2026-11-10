@@ -4,7 +4,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1026; fon
 .hidden { display: none !important; }
 
 /* Overlays / panels */
-.overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5, 10, 25, 0.55); backdrop-filter: blur(2px); z-index: 20; padding: 16px; }
+.overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(5, 10, 25, 0.55); backdrop-filter: blur(2px); z-index: 20; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+/* The panel gets its own layer under the ✕: Safari can otherwise paint a scrolling panel over it. */
+.overlay > .panel { position: relative; z-index: 1; }
 .panel { width: min(440px, 100%); max-height: 100%; overflow: auto; background: rgba(20, 24, 34, 0.92); border: 2px solid #3a4255; border-radius: 10px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
 .panel.wide { width: min(720px, 100%); }
 h1 { margin: 0; font-size: 2.6rem; letter-spacing: 2px; text-shadow: 3px 3px 0 #2b5a1e; color: #9be06a; text-align: center; }
@@ -267,7 +269,7 @@ select { width: 100%; }
 }
 /* Short screens (phones held sideways): tighter spacing and a smaller title. */
 @media (max-height: 520px) {
-  .overlay { padding: 8px; }
+  .overlay { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
   .menu-panel { padding: 14px 16px; }
   .brand { justify-content: flex-start; margin-bottom: 2px; }
   .brand .logo { width: 44px; height: 44px; border-radius: 11px; }
@@ -361,7 +363,7 @@ body.touch #emoji-bar small { display: none; }
 }
 
 /* Always-visible close button on pop-up panels */
-.x-close { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 30; width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 20px; font-weight: 700; line-height: 1; background: rgba(20, 24, 34, .92); border: 2px solid #8a93a8; color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
+.x-close { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 30; width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 20px; font-weight: 700; line-height: 1; background: rgba(20, 24, 34, .92); border: 2px solid #8a93a8; color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); transform: translateZ(0); }
 .x-close:hover { background: #364058; }
 @media (max-height: 520px) { .x-close { width: 40px; height: 40px; top: max(6px, env(safe-area-inset-top)); right: max(6px, env(safe-area-inset-right)); } }
 
@@ -415,3 +417,20 @@ body.touch #quest-tracker .q-card ~ .q-card ~ .q-card { display: none; }
   #rb-blockly { height: calc(100vh - 150px); min-height: 180px; }
   #rb-controls { position: sticky; bottom: -10px; z-index: 2; margin-top: 0; padding: 8px 0 10px; background: rgba(20, 24, 34, .98); }
 }
+
+/* Crafting on narrow screens: the 9-slot rows shrink to fit instead of pushing the panel
+   sideways (they were 482px wide, more than an upright phone), and one scroll for the panel. */
+.craft-panel > * { min-width: 0; }
+.slot-grid { grid-template-columns: repeat(9, minmax(0, 50px)); }
+#craft .slot-grid .slot { width: auto; height: auto; aspect-ratio: 1; }
+#craft .slot-grid .slot img { width: 68%; height: auto; }
+@media (max-width: 860px) { #recipes { max-height: none; overflow: visible; padding-right: 0; } }
+/* Done pinned to the bottom on upright phones (sideways ones are too short: the ✕ is enough). */
+@media (max-width: 860px) and (min-height: 521px) {
+  #craft-done { position: sticky; bottom: -1px; z-index: 2; box-shadow: 0 -10px 14px 6px rgba(20, 24, 34, .95); }
+}
+@media (max-width: 480px) {
+  .slot-grid { gap: 3px; }
+  #craft .slot-grid .slot .count { font-size: 11px; right: 2px; bottom: 0; }
+}
+#game-version { white-space: nowrap; }

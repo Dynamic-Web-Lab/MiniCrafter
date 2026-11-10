@@ -1070,6 +1070,12 @@ for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'
   $('robot-panel').appendChild(x);
 }
 
+// Game version (the offline cache's name), so testers can tell which build a device runs.
+window.caches?.keys().then((keys) => {
+  const v = Math.max(0, ...keys.map((k) => Number((/^minicrafter-v(\d+)$/.exec(k) || [])[1] || 0)));
+  if (v) $('game-version').textContent = `Version ${v}`;
+}).catch(() => {});
+
 // ---------- today's building idea ----------
 $('idea-text').textContent = ideaOfTheDay();
 $('btn-idea').addEventListener('click', () => { $('idea-text').textContent = IDEAS[Math.floor(Math.random() * IDEAS.length)]; });

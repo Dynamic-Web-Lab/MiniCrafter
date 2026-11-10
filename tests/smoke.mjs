@@ -265,6 +265,15 @@ try {
   await t.page.waitForTimeout(300);
   const resumed = !(await shown('rotate')) && (await shown('hud'));
   ok(askedUpright && resumed, 'phones: upright pauses and asks to turn sideways, sideways carries on');
+  // Phones: the survival crafting panel fits an upright phone (its 9-slot rows used to push it sideways).
+  await t.page.setViewportSize({ width: 375, height: 667 });
+  const craftOverflow = await t.page.evaluate(async () => {
+    const m = window.minicrafter; m.setMode('survival'); m.forcePlay(); m.openOverlay();
+    await new Promise((r) => setTimeout(r, 300));
+    const p = document.querySelector('#craft .panel');
+    return p.offsetParent ? p.scrollWidth - p.clientWidth : -1;
+  });
+  ok(craftOverflow === 0, 'phones: crafting panel fits an upright phone', `${craftOverflow}px sideways`);
   ok(t.errors.length === 0, 'no console errors (touch)', t.errors.slice(0, 3).join(' | '));
   await t.page.close();
 
