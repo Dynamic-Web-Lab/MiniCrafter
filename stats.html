@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>MiniCrafter insights</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="stylesheet" href="legal.css">
+  <style>
+    .legal { max-width: 1000px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .card { background: rgba(255,255,255,.05); border: 1px solid #2c3446; border-radius: 10px; padding: 10px 12px; }
+    .card b { display: block; font-size: 1.6rem; color: #9be06a; }
+    .card span { color: #9aa3b5; font-size: .85rem; }
+    .bars div { display: grid; grid-template-columns: 140px 1fr 60px; gap: 8px; align-items: center; margin: 4px 0; font-size: .9rem; }
+    .bars i { display: block; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #66b043, #9be06a); }
+    .bars em { font-style: normal; text-align: right; color: #cfd6e4; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    td code { font-size: .8rem; color: #ffd479; word-break: break-word; }
+    #login { display: flex; gap: 8px; }
+    #login input { flex: 1; padding: 8px 10px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; font: inherit; }
+    button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 2px solid #66b043; background: #3f7d2a; color: #fff; cursor: pointer; }
+    select { font: inherit; padding: 6px; border-radius: 6px; background: #121622; color: #fff; border: 2px solid #4b556b; }
+  </style>
+</head>
+<body>
+<main class="legal">
+  <a class="back" href="./">← Back to the game</a>
+  <h1>📊 Insights</h1>
+  <p class="meta">Anonymous daily counts and error reports from the online edition. No cookies, no player IDs, no IP addresses.</p>
+  <form id="login" class="hidden">
+    <input id="token" type="password" placeholder="Stats key" autocomplete="off">
+    <button type="submit">Show</button>
+  </form>
+  <p id="msg"></p>
+  <div id="out" hidden>
+    <p>Period: <select id="days"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></p>
+    <div class="cards" id="totals"></div>
+    <div class="grid2">
+      <section><h2>📱 Devices</h2><div class="bars" id="device"></div></section>
+      <section><h2>💻 Systems</h2><div class="bars" id="os"></div></section>
+      <section><h2>🌐 Browsers</h2><div class="bars" id="browser"></div></section>
+      <section><h2>🎮 Modes</h2><div class="bars" id="mode"></div></section>
+      <section><h2>✨ Features used (sessions)</h2><div class="bars" id="features"></div></section>
+      <section><h2>🔢 Game versions</h2><div class="bars" id="version"></div></section>
+    </div>
+    <section><h2>📈 Visits per day</h2><div class="bars" id="perday"></div></section>
+    <section><h2>🐞 Errors</h2><table id="errors"></table></section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const FEATURES = { play: 'Started playing', touch: 'Touch screen', installed: 'Installed app', adventure: 'Adventure', together_host: 'Hosted Play Together', together_join: 'Joined Play Together', course_finish: 'Finished a course', photo_saved: 'Saved a photo', bit_run: 'Ran Bit', circuit: 'Built a circuit', quest_done: 'Finished a quest', world_new: 'Made a world', account_register: 'Made an account', account_login: 'Logged in' };
+let token = '';
+try { token = sessionStorage.getItem('mc-stats') || ''; } catch {}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function bars(el, rows) {
+  const max = Math.max(1, ...rows.map((r) => r[1]));
+  el.innerHTML = rows.length ? rows.map(([k, n]) => `<div><span>${esc(k)}</span><i style="width:${Math.max(2, n / max * 100)}%"></i><em>${n}</em></div>`).join('') : '<p class="meta">No data yet.</p>';
+}
+async function load() {
+  $('msg').textContent = 'Loading…';
+  const r = await fetch(`./api/stats?days=${$('days').value}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
+  if (!r || r.status === 401) { $('msg').textContent = r ? 'That key is not right.' : "Couldn't reach the server."; $('login').classList.remove('hidden'); $('login').hidden = false; $('out').hidden = true; return; }
+  const { counts, errors } = await r.json();
+  $('msg').textContent = ''; $('login').hidden = true; $('out').hidden = false;
+  const sum = {}; const perDay = {};
+  for (const { day, key, n } of counts) { sum[key] = (sum[key] || 0) + n; if (key === 'visit') perDay[day] = (perDay[day] || 0) + n; }
+  const group = (prefix) => Object.entries(sum).filter(([k]) => k.startsWith(prefix + ':')).map(([k, n]) => [k.slice(prefix.length + 1), n]).sort((a, b) => b[1] - a[1]);
+  $('totals').innerHTML = [['visit', 'Visits'], ['play', 'Started playing'], ['together_host', 'Play Together games'], ['account_register', 'New accounts'], ['error', 'Errors']]
+    .map(([k, label]) => `<div class="card"><b>${sum[k] || 0}</b><span>${label}</span></div>`).join('');
+  bars($('device'), group('device')); bars($('os'), group('os')); bars($('browser'), group('browser')); bars($('mode'), group('mode')); bars($('version'), group('version'));
+  bars($('features'), Object.entries(FEATURES).map(([k, label]) => [label, sum[k] || 0]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]));
+  bars($('perday'), Object.entries(perDay).sort());
+  $('errors').innerHTML = errors.length ? '<tr><th>Error</th><th>Where</th><th>Device</th><th>Version</th><th>Times</th><th>Day</th></tr>' + errors.map((e) =>
+    `<tr><td><code>${esc(e.message)}</code></td><td><code>${esc(e.place)}</code></td><td>${esc(e.device)} · ${esc(e.os)} · ${esc(e.browser)}</td><td>${esc(e.version)}</td><td>${e.count}</td><td>${esc(e.day)}</td></tr>`).join('') : '<tr><td>No errors 🎉</td></tr>';
+}
+$('login').addEventListener('submit', (e) => { e.preventDefault(); token = $('token').value.trim(); try { sessionStorage.setItem('mc-stats', token); } catch {} load(); });
+$('days').addEventListener('change', load);
+if (token) load(); else { $('login').hidden = false; $('login').classList.remove('hidden'); }
+</script>
+</body>
+</html>

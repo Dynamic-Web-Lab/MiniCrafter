@@ -27,6 +27,9 @@ import { Together, COLORS, ANIMALS, EMOJI, profileName, saveProfile, loadSiteCon
 import { Account, accountMessage } from './account.js';
 import { Course, fmtTime } from './course.js';
 import { PhotoMode, FRAMES, FILTERS, STICKERS } from './photo.js';
+import { Insights, REPORTS } from './insights.js';
+
+const insights = new Insights(); // anonymous counts + error reports, online edition only
 
 const account = new Account();
 import { IDEAS, ideaOfTheDay } from './ideas.js';
@@ -109,6 +112,7 @@ const course = new Course({
     hint(`🏁 Finished in ${fmtTime(r.time)}${coins}${r.newBest ? (r.beatOld ? ' · 🏆 New best time!' : '') : ` · Best ${fmtTime(r.best)}`}`, 4500);
     renderCourseHud();
     quests.emit('course', { kind: 'finish', time: r.time, coins: r.coins, total: r.total, beatOld: r.beatOld });
+    insights.event('course_finish');
     dirtySave = true;
   },
   onCancel(reason) {
@@ -126,6 +130,7 @@ function renderCourseHud() {
 // ---------- Photo Mode ----------
 const photo = new PhotoMode();
 async function openPhoto() {
+  insights.step('opened Photo Mode');
   if (state !== 'playing') return;
   renderer.render(scene, camera); // capture a clean frame (the HUD is not part of the 3D view)
   await photo.capture(canvas);
@@ -179,6 +184,7 @@ $('ph-save').addEventListener('click', async () => {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast('📷 Photo saved!');
+  insights.event('photo_saved');
   quests.emit('photo', {});
 });
 $('ph-share').addEventListener('click', async () => {
@@ -214,6 +220,7 @@ const together = new Together({
     closeTogether();
     sfx.fanfare?.();
     toast('👫 You joined the game! Press T (or 😊) to wave.');
+    insights.event('together_join');
     if (state !== 'playing') enterPlay();
   },
   endGuest(reason) {
@@ -604,6 +611,7 @@ function renderQuestBook() {
 
 let celebrateTimer;
 quests.onComplete = (q) => {
+  insights.event('quest_done');
   gainXp(q.stars * 5);
   const c = $('celebrate');
   c.querySelector('.c-name').textContent = `${q.icon} ${q.title}`;
@@ -710,6 +718,7 @@ function refreshMode() {
 }
 
 function setMode(m) {
+  insights.step(`mode ${m}`);
   if (m === mode) return;
   if (adv.hardcore) { toast('Hardcore worlds stay in Adventure mode'); return; }
   if (together.isGuest) { toast("The host picks the game mode"); return; }
@@ -787,6 +796,7 @@ function clearInput() {
 }
 
 function showMenu() {
+  insights.step('menu');
   state = 'menu';
   touch?.setEnabled(false);
   $('menu').classList.remove('hidden');
@@ -797,6 +807,7 @@ function showMenu() {
 }
 
 function openOverlay() {
+  insights.step('opened inventory');
   clearInput();
   touch?.setEnabled(false);
   if (isSurvival()) {
@@ -812,6 +823,7 @@ function openOverlay() {
 
 let bookFromMenu = false;
 function openQuestBook(fromMenu) {
+  insights.step('opened quest book');
   bookFromMenu = fromMenu;
   clearInput();
   touch?.setEnabled(false);
@@ -830,6 +842,8 @@ const robotUI = new RobotUI({
   getRobot: () => robot,
   onRun: (name, program) => {
     robotRun.program = program;
+    insights.event('bit_run');
+    insights.step('Bit run');
     robotRun.custom = !EXAMPLE_KEYS.has(stripIds(program));
     robotRun.startY = robot.y;
     dirtySave = true;
@@ -848,6 +862,7 @@ const robotUI = new RobotUI({
 // ---------- villager trading ----------
 let tradeWith = null;
 function openTrade(mob) {
+  insights.step('opened trading');
   clearInput();
   touch?.setEnabled(false);
   state = 'trade';
@@ -895,6 +910,7 @@ function renderTrade() {
 $('tr-done').addEventListener('click', () => closeOverlay(true));
 
 function openRobotPanel() {
+  insights.step("opened Bit's panel");
   clearInput();
   touch?.setEnabled(false);
   state = 'robot';
@@ -930,6 +946,11 @@ document.addEventListener('pointerlockerror', () => {
 
 /** Switch to the in-game view (after pointer lock on desktop, immediately on touch). */
 function startPlaying() {
+  insights.step(`playing ${mode}${touchMode ? ' (touch)' : ''}`);
+  insights.event('play', { mode });
+  if (touchMode) insights.event('touch');
+  if (isAdventure()) insights.event('adventure');
+  if (navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) insights.event('installed');
   state = 'playing';
   hasPlayed = true;
   $('menu').classList.add('hidden');
@@ -946,6 +967,7 @@ function startPlaying() {
 }
 
 function enterPlay() {
+  insights.step('pressed Play');
   // Adventure worlds sit behind the grown-up gate (once per browser session).
   if (isAdventure() && !gateUnlocked()) { showGate(() => enterPlay(), () => showMenu()); return; }
   if (touchMode && upright.matches) { askSideways(); return; }
@@ -1015,6 +1037,7 @@ function renderTogether() {
       : r === 'guest' ? `👫 You're in game ${together.code}.` : (together.error || '');
   $('tg-close').textContent = r === 'waiting' ? 'Cancel' : r === 'guest' ? 'Leave the game' : 'Back';
   if (hosting) {
+    insights.event('together_host');
     $('tg-code-big').textContent = together.code;
     $('tg-lock').textContent = together.locked ? '🔒 Room locked' : '🔓 Room open';
     const ul = $('tg-players');
@@ -1080,6 +1103,7 @@ loadSiteConfig().then(() => {
   // The free edition links to the online edition for Play Together and accounts.
   if (!SITE.online && SITE.onlineUrl) { $('btn-online').href = SITE.onlineUrl; $('btn-online').classList.remove('hidden'); }
   account.enabled = SITE.accounts;
+  if (SITE.online && SITE.insights) { insights.start('online'); $('btn-report').classList.remove('hidden'); }
   $('btn-account').classList.toggle('hidden', !SITE.accounts);
   if (SITE.accounts) account.refresh();
 });
@@ -1094,8 +1118,8 @@ async function withLogin(fn) {
   if (SITE.accounts && !(await account.refresh())) { renderTogether(); openAccount('login'); return; }
   fn();
 }
-$('tg-host').addEventListener('click', () => withLogin(() => { together.error = ''; together.host(); }));
-$('tg-join').addEventListener('click', () => withLogin(() => { together.error = ''; together.join($('tg-code').value); }));
+$('tg-host').addEventListener('click', () => (insights.step('Play Together: host'), withLogin(() => { together.error = ''; together.host(); })));
+$('tg-join').addEventListener('click', () => (insights.step('Play Together: join'), withLogin(() => { together.error = ''; together.join($('tg-code').value); })));
 $('tg-login-btn').addEventListener('click', () => openAccount('login'));
 $('tg-code').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
 $('tg-code').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') $('tg-join').click(); });
@@ -1179,6 +1203,7 @@ $('acc-form').addEventListener('submit', async (e) => {
   $('acc-pass').value = ''; $('acc-pass2').value = '';
   if (!r.ok) { $('acc-msg').textContent = accountMessage(r.error); return; }
   $('acc-msg').textContent = '';
+  insights.event(accMode === 'new' ? 'account_register' : 'account_login');
   toast(accMode === 'new' ? `🎉 Welcome, ${r.username}! Your account is ready.` : `👋 Welcome back, ${r.username}!`);
   closeAccount();
   if (!$('together').classList.contains('hidden')) renderTogether();
@@ -1201,7 +1226,7 @@ $('acc-delete').addEventListener('click', async () => {
 // Every pop-up panel gets a ✕ that is always on screen, and tapping the dimmed area
 // outside a panel closes it too. (Phones have no Escape key, and on a small screen the
 // Done button can be scrolled out of sight under a long list.)
-for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel'], ['photo', 'ph-close']]) {
+for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel'], ['photo', 'ph-close'], ['report', 'report-done']]) {
   const ov = $(overlay);
   const x = document.createElement('button');
   x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
@@ -1224,6 +1249,23 @@ window.caches?.keys().then((keys) => {
   if (v) $('game-version').textContent = `Version ${v}`;
 }).catch(() => {});
 
+// ---------- Report a problem (online edition) ----------
+{
+  const box = $('report-choices');
+  for (const label of REPORTS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'wide-btn'; b.textContent = label;
+    b.addEventListener('click', () => {
+      insights.report(label);
+      $('report').classList.add('hidden');
+      toast('🐞 Thanks! We got your report and will look into it.');
+    });
+    box.appendChild(b);
+  }
+}
+$('btn-report').addEventListener('click', () => { insights.where = state; $('report').classList.remove('hidden'); });
+$('report-done').addEventListener('click', () => $('report').classList.add('hidden'));
+
 // ---------- today's building idea ----------
 $('idea-text').textContent = ideaOfTheDay();
 $('btn-idea').addEventListener('click', () => { $('idea-text').textContent = IDEAS[Math.floor(Math.random() * IDEAS.length)]; });
@@ -1231,6 +1273,7 @@ $('btn-idea').addEventListener('click', () => { $('idea-text').textContent = IDE
 // ---------- worlds screen ----------
 /** Switches to a saved world (saving the current one first). */
 function openWorld(id) {
+  insights.step('opened a world');
   const meta = worlds.get(id);
   if (!meta) return;
   if (together.isHost) { together.leave(); toast('Play Together ended (you switched worlds)'); }
@@ -1245,6 +1288,7 @@ function openWorld(id) {
 }
 
 function createWorld(name, seed, newMode, hardcore = false) {
+  insights.event('world_new');
   const w = worlds.add({ name, seed: seed || String(Math.floor(Math.random() * 1e9)), mode: newMode, hardcore });
   openWorld(w.id);
   return w;
@@ -1769,6 +1813,7 @@ function placeBlock(item) {
   world.flushDirty();
   sfx.place(id);
   quests.emit('place', { id: item, x: px, y: py, z: pz });
+  if (BLOCKS[id].spark) insights.event('circuit');
   if (BLOCKS[id].spark) tip('spark', 'Spark circuits! Wire a Lever, Button, Plate or Battery to a Lamp, Door or Piston. Right-click a lever to flip it.');
   return true;
 }
@@ -1923,6 +1968,7 @@ function actRobot(now) {
 
 /** Places Bit on the targeted face, facing the same way as the player. */
 function placeRobot() {
+  insights.step('placed Bit');
   const x = target.x + target.normal[0], y = target.y + target.normal[1], z = target.z + target.normal[2];
   if (SOLID[world.getBlock(x, y, z)]) return false;
   const fwd = [-Math.sin(player.yaw), -Math.cos(player.yaw)];
@@ -2318,6 +2364,7 @@ function frame(now, manual = false) {
   particles.update(dt, light);
   renderer.render(scene, camera);
 
+  insights.beat(now);
   frames++;
   if (now - fpsTime > 500) { fps = Math.round(frames * 1000 / (now - fpsTime)); frames = 0; fpsTime = now; updateDebug(pending); }
   if (!manual) requestAnimationFrame(frame);
@@ -2418,7 +2465,7 @@ $('btn-install').addEventListener('click', () => {
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, adv, projectiles, spark, together, account, course, photo, openPhoto, closePhoto, get state() { return state; }, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, projectiles, spark, together, account, course, photo, insights, openPhoto, closePhoto, get state() { return state; }, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

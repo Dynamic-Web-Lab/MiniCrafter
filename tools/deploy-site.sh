@@ -26,7 +26,7 @@ rsync -a \
   --include='docs/' --include='docs/screenshots/***' --exclude='*' \
   ./ "$BUILD/"
 
-printf '{ "online": true, "rooms": "/rooms", "accounts": true }\n' > "$BUILD/site-config.json"
+printf '{ "online": true, "rooms": "/rooms", "accounts": true, "insights": true }\n' > "$BUILD/site-config.json"
 
 # Site-specific tags on the features page (absolute addresses for search engines and link previews).
 META="<link rel=\"canonical\" href=\"${SITE_URL}features.html\">\n  <meta property=\"og:url\" content=\"${SITE_URL}features.html\">\n  <meta property=\"og:image\" content=\"${SITE_URL}docs/screenshots/course.jpg\">\n  <meta name=\"twitter:image\" content=\"${SITE_URL}docs/screenshots/course.jpg\">"

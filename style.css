@@ -481,3 +481,9 @@ body.touch #quest-tracker { right: calc(max(10px, env(safe-area-inset-right)) + 
 .ph-stickers .chip { font-size: 1.2rem; padding: 2px 8px; }
 #ph-caption-row { display: grid; gap: 4px; }
 #ph-caption { font: inherit; padding: 8px 10px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; user-select: text; -webkit-user-select: text; }
+
+/* Report a problem */
+.report-btn { background: #3a2b2b; border-color: #9a5a5a; }
+.report-panel { width: min(420px, 100%); }
+.report-choices { display: grid; gap: 6px; margin: 10px 0; }
+.report-choices .wide-btn { margin-top: 0; text-align: left; }
