@@ -1,0 +1,21 @@
+/* Features page (builds on legal.css) */
+.features { max-width: 1040px; }
+.f-hero { text-align: center; }
+.f-logo { border-radius: 22px; box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
+.f-hero h1 { font-size: 2.6rem; margin-top: 10px; }
+.f-tagline { max-width: 720px; margin: 10px auto; font-size: 1.1rem; }
+.f-cta { margin: 18px 0; text-align: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.f-btn { display: inline-block; padding: 12px 22px; border-radius: 10px; background: #3f7d2a; border: 2px solid #66b043; color: #fff; font-weight: 700; text-decoration: none; font-size: 1.1rem; }
+.f-btn:hover { background: #4a9132; }
+.f-btn.alt { background: #24324f; border-color: #3b82f6; }
+.f-shot { width: 100%; height: auto; border-radius: 12px; margin-top: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
+.f-why li { margin: 8px 0; }
+.f-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.f-grid article { background: rgba(255, 255, 255, .04); border: 1px solid #2c3446; border-radius: 12px; overflow: hidden; }
+.f-grid article img { width: 100%; height: auto; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
+.f-grid article h3 { margin: 12px 14px 4px; font-size: 1.05rem; color: #9be06a; }
+.f-grid article p { margin: 0 14px 14px; font-size: .95rem; }
+.f-grid .f-text { grid-column: 1 / -1; padding-bottom: 4px; }
+#faq h3 { margin: 18px 0 4px; font-size: 1.05rem; color: #9be06a; }
+#faq p { margin: 0; }
+section { margin-top: 8px; }
