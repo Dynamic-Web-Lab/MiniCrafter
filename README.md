@@ -57,7 +57,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/animals.jpg" alt="A cow, pigs, a chicken and colourful sheep in a meadow, with love hearts above a pig">
       <h3>🐷 Friendly animals</h3>
-      Pigs, cows, chickens and sheep in six wool colours. Pat them, feed them apples and they'll have <b>babies</b> that grow up. Shear sheep for coloured wool. Befriend a <b>dog or cat</b> as your named pet that follows you everywhere. Nothing can hurt you, and you can't hurt them.
+      Pigs, cows, chickens and sheep in six wool colours. Pat them, feed them apples and they'll have <b>babies</b> that grow up. Shear sheep for coloured wool. Befriend a <b>dog or cat</b> as your named pet that follows you everywhere, then upgrade it with <b>pet armor</b>, a <b>pet backpack</b> that carries 9 stacks for you, and a <b>pet bed or doghouse</b> to rest in. Animals can't be hurt by you, and pets never die: if night creatures bump them too much in Adventure, they just take a nap.
     </td>
   </tr>
   <tr>
@@ -296,6 +296,7 @@ Inverters, delays and pistons point away from you when you place them (look down
 - **Feed an apple** (right click): hearts appear, and two animals in love make a baby. Feeding babies helps them grow.
 - **Shear sheep** (right click without an apple): 1–3 wool in the sheep's colour, which regrows after a minute.
 - **Pets:** now and then a lone dog or cat appears. Feed it an apple and it becomes your pet with its own name tag and a red collar. It follows you and catches up if you go far. Right-click it to make it sit and stay, or follow again. Feed two pets for a puppy or kitten. Creative has dog and cat eggs.
+- **Pet upgrades:** craft pet armor (Cozy Coat, Iron, Starlight: blocks 25%, 50% or 75% of bumps) and right-click your pet while holding it. Craft a Pet Backpack for 9 slots of storage; right-click a pet with gear to open its panel (works on touch too). Place a Pet Bed or Doghouse and tell a pet to sit nearby: it walks over and heals while it rests. Saved with your world; in Play Together friends see the gear and the backpack stays with the host.
 - Animals you've fed, bred or spawned are saved with your world.
 
 ### Quests and stars

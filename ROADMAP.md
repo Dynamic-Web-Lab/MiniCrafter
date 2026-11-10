@@ -65,6 +65,7 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
   - a wooden coop makes chickens hatch from eggs
 - [x] **Fireflies at night:** tap one to catch a glowing lantern block for your room.
 - [x] **Pet accessories:** party hat, tiny crown, sunglasses (small box models on the head).
+- [x] **Pet upgrades:** pet armor in 3 tiers, a 9-slot pet backpack with its own panel, Pet Bed and Doghouse blocks, pet hearts that heal while resting (`src/petui.js`, `src/mobs.js`).
 - [x] Quests: *Rainbow Garden*, *Little Farmer*, *Baker*, *Flutter By*, *Ribbit!*, *Firefly Catcher*, *Party Time*.
 
 **Watch out:** check habitats occasionally (for example when a chunk loads or every few seconds near the player), not every frame.
