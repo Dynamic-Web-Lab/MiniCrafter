@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 source tools/.deploy.env
 : "${DEPLOY_SSH:?}" "${DEPLOY_DIR:?}"
 cp site-config.json "${TMPDIR:-/tmp}/site-config.json.keep" 2>/dev/null || true
-printf '{ "online": true, "rooms": "/rooms" }\n' > site-config.json
+printf '{ "online": true, "rooms": "/rooms", "accounts": true }\n' > site-config.json
 trap 'mv -f "${TMPDIR:-/tmp}/site-config.json.keep" site-config.json 2>/dev/null || true' EXIT
 rsync -az --delete \
   --include='index.html' --include='style.css' --include='sw.js' --include='manifest.webmanifest' --include='site-config.json' \

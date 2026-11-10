@@ -78,6 +78,7 @@
         <p id="loading">Generating world…</p>
         <button id="btn-play" class="primary">▶ Play</button>
         <button id="btn-together" class="wide-btn together-btn">👫 Play Together <span id="tg-menu-state"></span></button>
+        <button id="btn-account" class="wide-btn hidden">👤 <span id="acc-menu">Log in or create an account</span></button>
         <div class="section world-row">
           <div><span class="note">World</span><div id="world-name">—</div><div class="note" id="world-info"></div></div>
           <button id="btn-worlds" type="button">🗂 My worlds</button>
@@ -163,6 +164,10 @@
         <div id="tg-colors" class="chips" aria-label="Pick a colour"></div>
         <div id="tg-animals" class="chips" aria-label="Pick an animal"></div>
       </div>
+      <div id="tg-login" class="tg-login hidden">
+        <p>🔒 <b>Log in to play together.</b> It keeps Play Together safe: only people with an account can make or join a game.</p>
+        <button id="tg-login-btn" class="primary" type="button">👤 Log in or create an account</button>
+      </div>
       <div id="tg-start" class="tg-start">
         <div class="tg-card">
           <h3>🏠 Host this world</h3>
@@ -184,6 +189,36 @@
       </div>
       <p id="tg-status" class="note"></p>
       <button id="tg-close" class="wide-btn" type="button">Back</button>
+    </div>
+  </div>
+
+  <div id="account" class="overlay hidden">
+    <div class="panel acc-panel">
+      <h2>👤 Your account</h2>
+      <div id="acc-out">
+        <div class="seg acc-tabs"><button id="acc-tab-login" type="button" class="on">Log in</button><button id="acc-tab-new" type="button">Create an account</button></div>
+        <form id="acc-form" autocomplete="on">
+          <label>Username<input id="acc-user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required></label>
+          <label>Password<input id="acc-pass" type="password" autocomplete="current-password" maxlength="200" required></label>
+          <label id="acc-pass2-row" class="hidden">Password again<input id="acc-pass2" type="password" autocomplete="new-password" maxlength="200"></label>
+          <button id="acc-submit" class="primary" type="submit">Log in</button>
+        </form>
+        <p class="note acc-privacy">🛡️ <b>Make up a username, don't use your real name.</b> Your username is private: other players only see your colour-and-animal name. We don't ask for an email address or anything else about you. Kids: ask a grown-up to help you.</p>
+      </div>
+      <div id="acc-in" class="hidden">
+        <p>You're logged in as <b id="acc-name"></b>.</p>
+        <button id="acc-logout" class="wide-btn" type="button">Log out</button>
+        <details class="fold">
+          <summary>Delete my account</summary>
+          <div class="section">
+            <p class="note">This deletes your account straight away. It can't be undone. Your worlds on this device stay.</p>
+            <label>Your password<input id="acc-del-pass" type="password" autocomplete="current-password" maxlength="200"></label>
+            <button id="acc-delete" type="button" class="danger">Delete my account</button>
+          </div>
+        </details>
+      </div>
+      <p id="acc-msg" class="note" role="status"></p>
+      <button id="acc-done" class="wide-btn" type="button">Back</button>
     </div>
   </div>
 

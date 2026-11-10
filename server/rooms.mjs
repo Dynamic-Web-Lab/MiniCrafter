@@ -7,9 +7,11 @@
 //  - Nothing is stored or logged: rooms live in memory and vanish when the host leaves.
 //
 // Zero dependencies (Node 18+): a minimal WebSocket server (RFC 6455, text frames only).
-// Run: node server/rooms.mjs   (PORT=8787, ALLOWED_ORIGINS=comma,separated,origins)
+// Run: node server/rooms.mjs   (PORT=8787, ALLOWED_ORIGINS=comma,separated,origins, AUTH_URL=accounts service)
+// or use attachRelay() inside another server (see server/dev.mjs).
 import http from 'node:http';
 import crypto from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 
 const PORT = Number(process.env.PORT || 8787);
 const ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:8765,http://localhost:8766,http://127.0.0.1')
@@ -173,36 +175,62 @@ function leave(sock) {
 }
 
 // ---------- HTTP + upgrade ----------
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end(`ok ${rooms.size}`); }
-  res.writeHead(404); res.end();
-});
-
-server.on('upgrade', (req, sock) => {
-  const origin = req.headers.origin || '';
-  const okOrigin = ORIGINS.some((o) => origin === o || (o.endsWith('127.0.0.1') && origin.startsWith('http://127.0.0.1')));
-  const key = req.headers['sec-websocket-key'];
-  if (!okOrigin || !key || req.headers.upgrade?.toLowerCase() !== 'websocket') {
-    sock.end('HTTP/1.1 403 Forbidden\r\n\r\n');
-    return;
-  }
-  const accept = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
-  sock.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
-  sock.setNoDelay(true);
-  sock.buf = Buffer.alloc(0);
-  sock.tokens = RATE; sock.last = Date.now();
-  sock.addr = String(req.headers['x-real-ip'] || req.socket.remoteAddress || '');
-  let idle = setTimeout(() => close(sock, 1001), IDLE_MS);
-  sock.on('data', (chunk) => {
-    clearTimeout(idle); idle = setTimeout(() => close(sock, 1001), IDLE_MS);
-    sock.buf = sock.buf.length ? Buffer.concat([sock.buf, chunk]) : chunk;
-    if (sock.buf.length > MAX_MSG + 16) return close(sock, 1009);
-    readFrames(sock, (text) => handle(sock, text));
+/**
+ * Handles WebSocket upgrades for the relay on any Node HTTP server.
+ * @param {object} o { origins: [..], verify(req) -> Promise<user|null> (when set, players must be logged in) }
+ */
+export function attachRelay(server, o = {}) {
+  server.on('upgrade', async (req, sock) => {
+    if (o.path && !(req.url || '').startsWith(o.path)) return; // someone else's upgrade
+    const origin = req.headers.origin || '';
+    const okOrigin = (o.origins || ORIGINS).some((x) => origin === x || (x.endsWith('127.0.0.1') && origin.startsWith('http://127.0.0.1')));
+    const key = req.headers['sec-websocket-key'];
+    if (!okOrigin || !key || req.headers.upgrade?.toLowerCase() !== 'websocket') { sock.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
+    let user = null;
+    if (o.verify) {
+      try { user = await o.verify(req); } catch { user = null; }
+      if (!user) { sock.end('HTTP/1.1 401 Unauthorized\r\n\r\n'); return; } // Play Together needs a login
+    }
+    if (sock.destroyed) return;
+    const accept = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+    sock.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+    sock.setNoDelay(true);
+    sock.buf = Buffer.alloc(0);
+    sock.tokens = RATE; sock.last = Date.now();
+    sock.user = user;
+    sock.addr = String(req.headers['x-real-ip'] || req.socket.remoteAddress || '');
+    let idle = setTimeout(() => close(sock, 1001), IDLE_MS);
+    sock.on('data', (chunk) => {
+      clearTimeout(idle); idle = setTimeout(() => close(sock, 1001), IDLE_MS);
+      sock.buf = sock.buf.length ? Buffer.concat([sock.buf, chunk]) : chunk;
+      if (sock.buf.length > MAX_MSG + 16) return close(sock, 1009);
+      readFrames(sock, (text) => handle(sock, text));
+    });
+    sock.on('close', () => { clearTimeout(idle); leave(sock); });
+    sock.on('error', () => { clearTimeout(idle); leave(sock); });
   });
-  sock.on('close', () => { clearTimeout(idle); leave(sock); });
-  sock.on('error', () => { clearTimeout(idle); leave(sock); });
-});
+}
+
+export const roomCount = () => rooms.size;
 
 setInterval(() => { const now = Date.now(); for (const [a, t] of tries) if (now > t.reset) tries.delete(a); }, 60000).unref();
 
-server.listen(PORT, () => console.log(`MiniCrafter Rooms on :${PORT}`));
+/** Asks the accounts service whether the request's login cookie is valid (production). */
+function verifyWith(authURL) {
+  return async (req) => {
+    const m = /(?:^|;\s*)mc_session=([A-Za-z0-9_-]{20,100})/.exec(req.headers.cookie || '');
+    if (!m) return null;
+    const r = await fetch(`${authURL}/internal/verify`, { headers: { 'x-session': m[1] }, signal: AbortSignal.timeout(3000) });
+    return r.ok ? r.json() : null;
+  };
+}
+
+// Run on its own: node server/rooms.mjs   (AUTH_URL=http://accounts:8788 to require logins)
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const server = http.createServer((req, res) => {
+    if (req.url === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end(`ok ${rooms.size}`); }
+    res.writeHead(404); res.end();
+  });
+  attachRelay(server, { verify: process.env.AUTH_URL ? verifyWith(process.env.AUTH_URL) : null });
+  server.listen(PORT, () => console.log(`MiniCrafter Rooms on :${PORT}${process.env.AUTH_URL ? ' (login required)' : ''}`));
+}
