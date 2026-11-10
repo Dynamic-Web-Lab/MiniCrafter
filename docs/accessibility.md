@@ -1,6 +1,6 @@
 # MiniCrafter accessibility
 
-Audit date: 2026-11-10 · Game version: 32 · Tools: axe-core 4.12.1 (injected with Playwright, as in `tests/smoke.mjs`), plus a manual pass at 1280×720 (desktop) and 812×375 sideways with `?touch=1` (phone).
+Audit date: 2026-11-10 · Game version: 33 · Tools: axe-core 4.12.1 (injected with Playwright, as in `tests/smoke.mjs`), plus a manual pass at 1280×720 (desktop) and 812×375 sideways with `?touch=1` (phone).
 
 MiniCrafter is a 3D block game. Looking around and placing blocks needs sight and a mouse, keyboard or touch screen, so it is **not playable with a screen reader**. This page says what we do support, what we checked, and what is still open.
 
@@ -21,7 +21,7 @@ Not supported yet: playing with a screen reader, a text-size setting, remapping 
 
 ## Findings
 
-Severity: **High** blocks a group of players, **Medium** makes things hard, **Low** is a polish or best-practice item. "Fixed" means fixed in game version 32.
+Severity: **High** blocks a group of players, **Medium** makes things hard, **Low** is a polish or best-practice item. "Fixed" means fixed in game version 33.
 
 | # | Issue | Where | Severity | Status |
 |---|---|---|---|---|
@@ -44,7 +44,7 @@ Severity: **High** blocks a group of players, **Medium** makes things hard, **Lo
 | 17 | Axe `meta-viewport`: pinch-zoom is switched off (`user-scalable=no`) | All game screens | Medium | **Not fixed.** On phones the canvas uses touch gestures and the browser zoom would fight them. Needs a design decision; see follow-ups |
 | 18 | Smallest text is 11.5 px (item names under inventory blocks, "Quests (Q)" key hint, hotbar numbers 11 px) | Inventory, HUD | Low | Not fixed. Fits the layout and passes contrast; a text-size setting is the real fix |
 | 19 | "Oops!" screen uses a second `h1` | Death screen | Low | Not fixed (it is a separate screen, so order is still fine) |
-| 20 | Quest tracker looks odd on phones | `#quest-tracker` | Not an accessibility fault | Out of scope here. Another change is handling it. Its header is 32–40 px tall on phones, so it still misses 44 px |
+| 20 | Quest tracker layout on phones (fold, mini view and a `#quest-view` setting) | `#quest-tracker` | Not an accessibility fault | Out of scope here. Handled in PR #44, which is not covered by this audit. Re-check its header height (32–40 px before that change) against 44 px once it lands |
 | 21 | Hotbar slots, block grid and crafting slots are not keyboard-reachable (1–9 and the wheel select hotbar slots, the inventory uses the mouse/touch) | Inventory, crafting | High | Not fixed (follow-up) |
 | 22 | The 3D game cannot be played with a screen reader | Game | High | Not fixed (follow-up) |
 | 23 | No in-game text-size setting | Settings | Medium | Not fixed (follow-up) |
