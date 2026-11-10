@@ -201,6 +201,7 @@ export class World {
     if (c.data[i] === id) return false;
     const was = c.data[i];
     c.data[i] = id;
+    this.onChange?.(x, y, z, was, id); // used by undo history
     c.dirty = true;
     if (LIGHT[id] || LIGHT[was]) { // light reaches up to 15 blocks: relight all 8 neighbours
       for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {

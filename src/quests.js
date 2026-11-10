@@ -17,6 +17,8 @@ export const QUESTS = [
   { id: 'pat3', track: 'all', icon: '🐷', title: 'Say Hello', text: 'Pat 3 different kinds of animals. Can you name them? Pig, Cow, Sheep, Chicken!', event: 'pat', distinct: (d) => d.type, count: 3, stars: 2 },
   { id: 'table', track: 'survival', icon: '🛠️', title: 'Crafting Time', text: 'Open your inventory and craft a Crafting Table from 4 planks.', event: 'craft', test: (d) => d.id === B.CRAFTING_TABLE, count: 1, stars: 1 },
   { id: 'place10', track: 'all', icon: '🔟', title: 'Count to 10', text: 'Place 10 blocks. Count them out loud: 1, 2, 3…', event: 'place', count: 10, stars: 1 },
+  { id: 'tool', track: 'creative', icon: '🪄', title: 'Magic Builder', text: 'Pick a block, then grab the Bridge Wand, Box Builder, House Walls or Dome Maker. Right-click two points to build in a flash!', event: 'tool', test: (d) => d.kind !== 'paint', count: 1, stars: 2 },
+  { id: 'undo', track: 'creative', icon: '↶', title: 'Oops, Undo!', text: 'Made a mistake? Press Z (or tap ↶) to undo your last build.', event: 'undo', count: 1, stars: 1 },
   { id: 'pick', track: 'survival', icon: '⛏️', title: 'My First Tool', text: 'Stand next to your Crafting Table and craft a Wooden Pickaxe.', event: 'craft', test: (d) => d.id === I.WOOD_PICK, count: 1, stars: 1 },
   { id: 'bounce', track: 'all', icon: '🦘', title: 'Boing Boing!', text: 'Build a yellow Trampoline and bounce 6 blocks high. Hold jump for a super bounce!', event: 'bounce', value: (d) => Math.floor(d), count: 6, stars: 2 },
   { id: 'song', track: 'all', icon: '🎵', title: 'Little Composer', text: 'Walk over 5 different Music Stones to play a tune. Do, re, mi…', event: 'note', distinct: (d) => d.note, count: 5, stars: 2 },

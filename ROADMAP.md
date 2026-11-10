@@ -40,15 +40,15 @@ Very high delight for little work. Each one is a new block plus a few lines of p
 
 **Watch out:** bounce and fan heights must respect the world ceiling (y 95), and survival fall damage must ignore trampoline landings.
 
-## Phase 2 · Power tools for builders (M)
+## Phase 2 · Power tools for builders (M) ✅ done
 
 Building big things one click at a time is tiring for kids. Magic tools make castles in seconds.
 
-- [ ] **Undo / redo:** add this first. Power tools make big mistakes easy.
-- [ ] **Line / bridge wand:** click two points to fill a straight line of blocks.
-- [ ] **Fill tool:** box, sphere and dome, with a size picker.
-- [ ] **Rainbow paint roller:** repaint blocks in place (wool and other colour families) without breaking them.
-- [ ] Creative only at first. Survival versions would use up your blocks.
+- [x] **Undo / redo:** add this first. Power tools make big mistakes easy.
+- [x] **Line / bridge wand:** click two points to fill a straight line of blocks.
+- [x] **Fill tool:** Box Builder (filled), House Walls (hollow box with a floor) and Dome Maker (sphere shell). Size comes from the second click; capped at 2,000 blocks.
+- [x] **Paint Roller** (repaints with your block) and **Rainbow Brush** (cycles rainbow wool and neon), with no breaking needed.
+- [x] Creative only at first. Survival versions would use up your blocks.
 
 **Watch out:** cap each action (for example 2,000 blocks) so saves don't balloon and chunk rebuilds don't freeze tablets. Batch chunk rebuilds after a big edit.
 
@@ -104,4 +104,4 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 
 **Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5.**
 
-Phase 1 is done. Phase 2 (power tools and undo) is next. Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.
+Phases 1 and 2 are done. Phase 3 (cozy nature and critters) is next. Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.

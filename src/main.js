@@ -18,6 +18,7 @@ import { Robot, EXAMPLES } from './robot.js';
 import { RobotUI } from './robotui.js';
 import { WorldStore } from './worlds.js';
 import { TRADES, JOB_INFO } from './villages.js';
+import { SHAPES, MAX_CELLS, previewBounds, ToolPreview, History } from './tools.js';
 
 const SETTINGS_KEY = 'minicrafter:settings:v1';
 const REACH = 6;
@@ -59,6 +60,8 @@ const particles = new Particles(scene, atlas.avgColors);
 const survival = new Survival(scene);
 const mobs = new Mobs(scene, sfx);
 const quests = new Quests();
+const history = new History();
+const toolPreview = new ToolPreview(scene);
 const robot = new Robot({
   world: null, scene, sfx, particles,
   getPlayer: () => player,
@@ -156,6 +159,9 @@ function startWorld(seedStr, saved, newMode) {
   world.onEdit = () => { dirtySave = true; };
   player = new Player(world);
   player.onLand = (dist) => { if (isSurvival()) survival.landed(dist); };
+  world.onChange = (x, y, z, from, to) => history.record(x, y, z, from, to);
+  history.clear();
+  tool.anchor = null;
   attachFunHooks();
   inv = new Inventory();
   survival.reset();
@@ -374,6 +380,16 @@ function select(i) {
   renderHotbar();
   const id = heldItem();
   if (id != null) toast(itemName(id));
+  noteHeld();
+}
+
+/** Remembers the last block you held: power tools build and paint with it. */
+function noteHeld() {
+  const id = heldItem();
+  if (id != null && ITEMS.get(id)?.block !== undefined) tool.block = id;
+  tool.anchor = null;
+  const def = ITEMS.get(id);
+  if (def?.shape || def?.paint === 'block') setTimeout(() => toast(`${itemName(id)}: building with ${itemName(tool.block)}`), 700);
 }
 
 function buildCreativePicker() {
@@ -386,6 +402,7 @@ function buildCreativePicker() {
     b.addEventListener('click', () => {
       creativeBar[selected] = id;
       renderHotbar();
+      noteHeld();
       dirtySave = true;
       closeOverlay(true);
     });
@@ -798,6 +815,8 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyF') toggleFly();
   if (e.code === 'KeyE') openOverlay();
   if (e.code === 'KeyQ') openQuestBook(false);
+  if (e.code === 'KeyZ') undoRedo(false);
+  if (e.code === 'KeyY') undoRedo(true);
 });
 document.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', clearInput);
@@ -859,6 +878,7 @@ const touch = touchMode ? new TouchControls({
     else if (name === 'fly' && state === 'playing') toggleFly();
     else if (name === 'inventory' && state === 'playing') openOverlay();
     else if (name === 'pause' && state === 'playing') showMenu();
+    else if (name === 'undo' && state === 'playing') undoRedo(false);
   },
 }) : null;
 
@@ -908,6 +928,66 @@ function act(now, dt) {
   if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
   if (!target || now < mouse.nextAction) return;
+  // Every creative action is one undo step.
+  history.begin();
+  actCreative(now);
+  history.commit();
+}
+
+// ---------- power tools (creative) ----------
+const tool = { block: B.STONE, anchor: null, erase: false, rainbow: 0 };
+const RAINBOW = [B.WOOL_RED, B.NEON_PINK, B.WOOL_YELLOW, B.NEON_LIME, B.WOOL_GREEN, B.NEON_CYAN, B.WOOL_BLUE, B.NEON_PURPLE];
+const cellOf = (t, erase) => (erase ? [t.x, t.y, t.z] : [t.x + t.normal[0], t.y + t.normal[1], t.z + t.normal[2]]);
+
+/** Returns true if the held tool handled the click. */
+function useTool(def, now) {
+  if (def.paint) {
+    if (!mouse.right) return false;
+    const { x, y, z, id } = target;
+    if (id === B.BEDROCK || BLOCKS[id]?.shape) return true;
+    const paint = def.paint === 'rainbow' ? RAINBOW[tool.rainbow++ % RAINBOW.length] : tool.block;
+    if (paint !== id && world.setBlock(x, y, z, paint)) { world.flushDirty(); sfx.place(paint); quests.emit('tool', { kind: 'paint' }); }
+    mouse.nextAction = now + 0.12;
+    return true;
+  }
+  const erase = mouse.left;
+  const point = cellOf(target, erase);
+  mouse.nextAction = now + 0.3;
+  if (!tool.anchor || tool.erase !== erase) {
+    tool.anchor = point; tool.erase = erase;
+    sfx.tone(660, 0.08, 'triangle', 0.15);
+    hint(erase ? 'Now left-click the other corner to erase' : `Now right-click the end point (${def.shape === 'sphere' ? 'distance = size' : 'corner'})`, 2500);
+    return true;
+  }
+  let cells = SHAPES[def.shape](tool.anchor, point);
+  tool.anchor = null;
+  if (!cells || cells.length > MAX_CELLS) { toast(`Too big! Try a smaller shape (max ${MAX_CELLS} blocks)`); return true; }
+  let changed = 0;
+  for (const [x, y, z] of cells) {
+    if (y < 1 || y >= 95) continue;
+    const there = world.getBlock(x, y, z);
+    if (there === B.BEDROCK) continue;
+    if (erase) { if (there !== B.AIR && world.setBlock(x, y, z, B.AIR)) changed++; continue; }
+    if (there !== B.AIR && there !== B.WATER) continue;      // build into empty space only
+    if (SOLID[tool.block] && player.intersectsBlock(x, y, z)) continue;
+    if (world.setBlock(x, y, z, tool.block)) changed++;
+  }
+  world.flushDirty();
+  if (changed) { sfx.craft(); toast(`${erase ? 'Erased' : 'Built'} ${changed} blocks · Z to undo`); quests.emit('tool', { kind: def.shape }); }
+  return true;
+}
+
+function undoRedo(redo) {
+  if (isSurvival()) { toast('Undo works in Creative mode'); return; }
+  const n = redo ? history.redo((x, y, z, id) => world.setBlock(x, y, z, id)) : history.undo((x, y, z, id) => world.setBlock(x, y, z, id));
+  world.flushDirty();
+  if (n) { toast(`${redo ? 'Redid' : 'Undid'} ${n} block${n === 1 ? '' : 's'}`); sfx.tone(redo ? 700 : 500, 0.1, 'triangle', 0.15); if (!redo) quests.emit('undo', {}); dirtySave = true; }
+  else toast(redo ? 'Nothing to redo' : 'Nothing to undo');
+}
+
+function actCreative(now) {
+  const heldDef = ITEMS.get(creativeBar[selected]);
+  if ((heldDef?.shape || heldDef?.paint) && (mouse.left || mouse.right)) { useTool(heldDef, now); dirtySave = true; return; }
   if (mouse.left) {
     const { x, y, z, id } = target;
     if (id === B.BEDROCK) return;
@@ -1208,6 +1288,12 @@ function frame(now, manual = false) {
     robotTarget = rd !== null && (!target || rd < target.dist) && (!hit || rd < hit.dist);
     if (robotTarget) { target = null; mobTarget = null; }
   }
+  // Power-tool preview: anchor corner plus the shape's bounding box.
+  const toolDef = state === 'playing' && !isSurvival() ? ITEMS.get(creativeBar[selected]) : null;
+  if (tool.anchor && toolDef?.shape) {
+    if (target) { const [mn, mx] = previewBounds(toolDef.shape, tool.anchor, cellOf(target, tool.erase)); toolPreview.show(tool.anchor, mn, mx, tool.erase); }
+    else toolPreview.show(tool.anchor);
+  } else toolPreview.hide();
   if (target) { outline.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5); outline.visible = true; }
   else outline.visible = false;
   if (state === 'playing') act(simTime, dt);
@@ -1279,7 +1365,7 @@ window.addEventListener('appinstalled', () => $('btn-install').classList.add('hi
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, history, tool, undoRedo, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */
