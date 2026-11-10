@@ -455,3 +455,29 @@ label.check input { width: 22px; height: 22px; flex: none; margin: 0; accent-col
 a.online-link { display: block; text-align: center; text-decoration: none; color: #fff; padding: 8px 14px; border-radius: 6px; border: 2px solid #3b82f6; background: #24324f; font-weight: 600; margin-top: 8px; }
 a.online-link:hover { background: #2c3d60; }
 a.online-link small { display: block; font-weight: 400; color: #9cc3ff; }
+
+/* ---------- Course Maker ---------- */
+#course-hud { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; padding: 6px 14px; border-radius: 999px; background: rgba(20, 40, 20, .78); border: 2px solid #66b043; font-size: 1.05rem; white-space: nowrap; }
+#course-hud b { font-variant-numeric: tabular-nums; color: #ffe27a; }
+#course-hud .course-key { font-size: .75rem; color: #cfd6e4; }
+body.touch #course-hud .course-key { display: none; }
+#t-photo { top: 14px; right: max(14px, env(safe-area-inset-right)); left: auto; width: 52px; height: 52px; font-size: 22px; }
+#t-respawn { left: max(24px, env(safe-area-inset-left)); bottom: 200px; }
+body.touch #quest-tracker { right: calc(max(10px, env(safe-area-inset-right)) + 60px); }
+@media (max-height: 520px) {
+  #course-hud { top: 34px; font-size: .9rem; padding: 4px 10px; }
+  #t-photo { top: 8px; width: 44px; height: 44px; font-size: 18px; }
+  #t-respawn { bottom: 134px; left: max(14px, env(safe-area-inset-left)); }
+}
+
+/* ---------- Photo Mode ---------- */
+.photo-panel { width: min(900px, 100%); }
+.ph-canvas { margin-top: 8px; border-radius: 8px; overflow: hidden; background: #000; cursor: crosshair; }
+.ph-canvas { display: flex; justify-content: center; }
+.ph-canvas canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 52vh; }
+.ph-controls { display: grid; gap: 8px; margin-top: 10px; }
+.ph-label { font-size: .8rem; color: #9aa3b5; }
+.ph-controls .chips { margin-top: 4px; }
+.ph-stickers .chip { font-size: 1.2rem; padding: 2px 8px; }
+#ph-caption-row { display: grid; gap: 4px; }
+#ph-caption { font: inherit; padding: 8px 10px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; user-select: text; -webkit-user-select: text; }

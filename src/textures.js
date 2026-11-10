@@ -4,7 +4,7 @@ import { mulberry32 } from './noise.js';
 
 export const T = 16;          // tile size in px
 export const COLS = 8;
-export const ROWS = 13;
+export const ROWS = 14;
 export const ATLAS_W = COLS * T;
 export const ATLAS_H = ROWS * T;
 
@@ -26,6 +26,7 @@ export const TILE = {
   BATTERY: 83, GATE_SIDE: 84, INVERTER: 85, INVERTER_ON: 86, DELAY: 87, DELAY_ON: 88,
   SPARK_LAMP: 89, SPARK_LAMP_ON: 90, SPARK_DOOR: 91, SPARK_DOOR_OPEN: 92,
   PISTON_FRONT: 93, PISTON_SIDE: 94, PISTON_BACK: 95, PISTON_INNER: 96,
+  COURSE_START: 97, COURSE_CHECK: 98, COURSE_FINISH: 99, COIN: 100, COIN_TAKEN: 101, PAD_SIDE: 102,
 };
 
 /** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
@@ -371,6 +372,29 @@ export function createAtlas() {
     return vary([110, 112, 120], 0.12);
   });
   paint(TILE.PISTON_BACK, (x, y) => (edge(x, y) ? [50, 52, 60] : Math.hypot(x - 7.5, y - 7.5) < 3 ? [70, 72, 82] : vary([110, 112, 120], 0.12)));
+  // ---- Course Maker pads and coins ----
+  const padEdge = (x, y) => x === 0 || y === 0 || x === T - 1 || y === T - 1;
+  const flag = (tile, base, cloth) => paint(tile, (x, y) => {
+    if (padEdge(x, y)) return [235, 235, 240];
+    if (x === 5 && y >= 3 && y <= 12) return [80, 60, 40]; // pole
+    if (x >= 6 && x <= 11 && y >= 3 && y <= 7 && (x - 6) <= 6 - Math.abs(y - 5) * 0.6) return cloth;
+    return vary(base, 0.06);
+  });
+  flag(TILE.COURSE_START, [70, 170, 80], [255, 255, 255]);
+  flag(TILE.COURSE_CHECK, [60, 120, 210], [255, 215, 60]);
+  paint(TILE.COURSE_FINISH, (x, y) => (padEdge(x, y) ? [235, 235, 240] : ((x >> 2) + (y >> 2)) % 2 ? [30, 30, 36] : [245, 245, 250]));
+  paint(TILE.PAD_SIDE, (x, y) => (y < 3 ? [235, 235, 240] : y === 3 ? [180, 180, 190] : vary([120, 125, 135], 0.08)));
+  const coin = (tile, alpha, c) => paint(tile, (x, y) => {
+    const dx = x - 7.5, dy = y - 7.5, r = Math.hypot(dx * 1.25, dy);
+    if (r > 6.2) return [0, 0, 0, 0];
+    if (r > 5.2) return [c[0] * 0.75, c[1] * 0.75, c[2] * 0.6, alpha];
+    if ((x === 7 || x === 8) && y >= 4 && y <= 11) return [c[0] * 0.8, c[1] * 0.78, c[2] * 0.5, alpha]; // a star line on the face
+    if (dx < -1 && dy < -1 && r < 3.6) return [255, 255, 235, alpha]; // shine
+    return [c[0], c[1], c[2], alpha];
+  });
+  coin(TILE.COIN, 255, [255, 205, 50]);
+  coin(TILE.COIN_TAKEN, 255, [120, 120, 130]);
+
   paint(TILE.PISTON_INNER, (x, y) => (edge(x, y) ? [50, 52, 60] : x >= 6 && x <= 9 && y >= 6 && y <= 9 ? [140, 140, 150] : vary([60, 62, 70], 0.1)));
 
   // Ores: stone + clusters of mineral pixels.
