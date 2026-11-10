@@ -38,7 +38,8 @@
   <a href="#-for-parents-and-teachers">Parents &amp; teachers</a> ·
   <a href="#-controls">Controls</a> ·
   <a href="#-run-it-yourself">Run it yourself</a> ·
-  <a href="#-roadmap">Roadmap</a>
+  <a href="#-roadmap">Roadmap</a> ·
+  <a href="#-community">Community</a>
 </p>
 
 ---
@@ -387,6 +388,12 @@ The online features switch on through `site-config.json`: the copy in Git keeps 
 Next up are flowing water and slides, marble runs, music boxes, smoother tablets and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
 
 Have an idea? [Open an issue](https://github.com/Dynamic-Web-Lab/MiniCrafter/issues).
+
+## 💬 Community
+
+Join us on **[Discord](https://discord.gg/RPWMmJSJqd)** to share builds, report bugs, suggest features and follow the beta.
+
+> **For parents, teachers and players aged 13+.** Discord requires users to be at least 13, and it is open chat, so the game itself never links to it. Younger players: ask a grown-up to share your ideas for you, or use the **💬 feedback** in the game.
 
 ## 🙏 Credits
 
