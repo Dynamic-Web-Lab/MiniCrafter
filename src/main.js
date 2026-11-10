@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { B, BLOCKS, PLACEABLE, SOLID, FLOWERS, LIGHT } from './blocks.js';
+import { B, BLOCKS, PLACEABLE, SOLID, FLOWERS, LIGHT, sparkFacing } from './blocks.js';
 import { createAtlas, TILE } from './textures.js';
 import { World, CS, SEA, applyVoxelLighting, lightUniforms } from './world.js';
 import { Player, EYE } from './player.js';
@@ -21,6 +21,7 @@ import { TRADES, JOB_INFO } from './villages.js';
 import { SHAPES, MAX_CELLS, previewBounds, ToolPreview, History } from './tools.js';
 import { Critters } from './critters.js';
 import { Projectiles } from './combat.js';
+import { Spark } from './spark.js';
 import { makeShareLink, readSharedFromHash } from './share.js';
 import { IDEAS, ideaOfTheDay } from './ideas.js';
 import { xpNeeded, addXp, MINING_XP, showGate, initGate, gateUnlocked } from './adventure.js';
@@ -69,6 +70,13 @@ const history = new History();
 const critters = new Critters(scene);
 critters.onSpawnButterfly = (b) => { if (b.pos.distanceTo(player.pos) < 14) quests.emit('butterfly', {}); };
 const toolPreview = new ToolPreview(scene);
+const spark = new Spark({
+  sfx,
+  getPlayer: () => player,
+  getMobs: () => mobs.list,
+  onChange: () => { dirtySave = true; },
+  onEvent: (kind) => quests.emit('spark', { kind }),
+});
 const robot = new Robot({
   world: null, scene, sfx, particles,
   getPlayer: () => player,
@@ -85,13 +93,19 @@ const robot = new Robot({
     dirtySave = true;
     return true;
   },
+  useBlock(x, y, z) {
+    if (!spark.interact(x, y, z)) return false;
+    quests.emit('robot', { kind: 'use' });
+    return true;
+  },
+  isPowered: (x, y, z) => spark.isPowered(x, y, z),
   placeBlock(x, y, z, id) {
     if (SOLID[id] && player.intersectsBlock(x, y, z)) return 'You are standing there!';
     if (isSurvival()) {
       if (inv.count(id) < 1) return `I need more ${itemName(id)}!`;
       inv.remove(id, 1); renderHotbar();
     }
-    if (!world.setBlock(x, y, z, id)) return false;
+    if (!world.setBlock(x, y, z, sparkFacing(id, robot.f))) return false;
     world.flushDirty();
     sfx.place(id);
     quests.emit('robot', { kind: 'place', id, x, y, z });
@@ -172,7 +186,10 @@ function startWorld(seedStr, saved, newMode) {
   world.onEdit = () => { dirtySave = true; };
   player = new Player(world);
   player.onLand = (dist) => { if (isSurvival()) survival.landed(dist); };
-  world.onChange = (x, y, z, from, to) => history.record(x, y, z, from, to);
+  world.onChange = (x, y, z, from, to) => {
+    spark.track(x, y, z, from, to);
+    if (!spark.internal) history.record(x, y, z, from, to); // circuits switching aren't undo steps
+  };
   history.clear();
   tool.anchor = null;
   crops.clear();
@@ -219,6 +236,7 @@ function startWorld(seedStr, saved, newMode) {
     spawnPoint = null;
     spawn();
   }
+  spark.reset(world);
   if (!spawnPoint) spawnPoint = findSpawnColumn();
   const meta = worlds.get(currentWorldId);
   adv.hardcore = !!meta?.hardcore;
@@ -1233,7 +1251,16 @@ function useGardenItem(held) {
   return true;
 }
 
-function placeBlock(id) {
+/** Which way facing blocks (gates, pistons) point when you place them: away from you. */
+function placeFacing() {
+  if (player.pitch < -0.85) return 4; // looking down: pistons push up
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  if (Math.abs(fx) > Math.abs(fz)) return fx > 0 ? 1 : 3;
+  return fz > 0 ? 2 : 0;
+}
+
+function placeBlock(item) {
+  const id = sparkFacing(item, placeFacing());
   const px = target.x + target.normal[0], py = target.y + target.normal[1], pz = target.z + target.normal[2];
   const there = world.getBlock(px, py, pz);
   const replaceable = there === B.AIR || there === B.WATER || (BLOCKS[there]?.plant && BLOCKS[there].crop === undefined);
@@ -1243,7 +1270,8 @@ function placeBlock(id) {
   if (!world.setBlock(px, py, pz, id)) return false;
   world.flushDirty();
   sfx.place(id);
-  quests.emit('place', { id, x: px, y: py, z: pz });
+  quests.emit('place', { id: item, x: px, y: py, z: pz });
+  if (BLOCKS[id].spark) tip('spark', 'Spark circuits! Wire a Lever, Button, Plate or Battery to a Lamp, Door or Piston. Right-click a lever to flip it.');
   return true;
 }
 
@@ -1253,6 +1281,13 @@ function act(now, dt) {
   if (adv.over) return; // hardcore game over: look, don't touch
   if (target?.id === B.STAR && (mouse.left || mouse.right) && now >= mouse.nextAction) return foundStar(now);
   if (target?.id === B.LOST_CHEST && (mouse.left || mouse.right) && now >= mouse.nextAction) return openLostChest(now);
+  if (target && mouse.right && now >= mouse.nextAction && ['lever', 'button', 'door'].includes(BLOCKS[target.id]?.spark)) {
+    survival.stopMining();
+    spark.interact(target.x, target.y, target.z);
+    mouse.nextAction = now + 0.3;
+    dirtySave = true;
+    return;
+  }
   if (robotTarget) return actRobot(now);
   if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
@@ -1762,7 +1797,7 @@ function frame(now, manual = false) {
   mobs.isDay = !isNight();
   mobs.maxHostile = settings.monsters === 'easy' ? 4 : 8;
   player.blocking = state === 'playing' && isAdventure() && mouse.right && !!ITEMS.get(heldItem())?.shield;
-  if (state === 'playing') { updateBow(simTime); projectiles.update(dt); }
+  if (state === 'playing') { updateBow(simTime); projectiles.update(dt); spark.update(dt); }
   mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
   critters.update(dt, player, light, timeOfDay > 0.55 && timeOfDay < 0.95, state === 'playing' || (state === 'menu' && !hasPlayed));
   robot.update(dt, light);
@@ -1832,7 +1867,7 @@ window.addEventListener('appinstalled', () => $('btn-install').classList.add('hi
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, adv, projectiles, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, projectiles, spark, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

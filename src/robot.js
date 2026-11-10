@@ -13,7 +13,9 @@
 //        | { op: 'while', cond, body: [...] }
 //        | { op: 'if', cond, then: [...], else: [...] }
 //        | { op: 'say', text }
-//   cond = { op: 'detect', dir } | { op: 'is', dir, block } | { op: 'not', a: cond }
+//        | { op: 'use', dir }      (flip a Spark Lever, press a Button, open a Spark Door)
+//        | { op: 'wait', secs }
+//   cond = { op: 'detect', dir } | { op: 'is', dir, block } | { op: 'spark', dir } | { op: 'not', a: cond }
 import * as THREE from 'three';
 import { B, BLOCKS, SOLID } from './blocks.js';
 
@@ -22,7 +24,7 @@ const MAX_ACTIONS = 3000;       // per run
 const MAX_EVALS_PER_FRAME = 5000; // guards loops that never do anything
 const MAX_RANGE = 64;           // blocks from the player
 
-const DUR = { move: 0.32, turn: 0.22, dig: 0.38, place: 0.28, say: 1.2, fail: 0.6 };
+const DUR = { move: 0.32, turn: 0.22, dig: 0.38, place: 0.28, say: 1.2, fail: 0.6, use: 0.3 };
 
 // ---------- model ----------
 function box(w, h, d, color, x = 0, y = 0, z = 0, emissive = false) {
@@ -245,6 +247,11 @@ export class Robot {
         const res = this.placeBlock(bx, by, bz, id);
         if (res !== true) return this.blocked(a, typeof res === 'string' ? res : 'I could not place that.');
       }
+    } else if (act.kind === 'use') {
+      const [dx, dy, dz] = this.offset(act.dir);
+      if (!this.useBlock?.(this.x + dx, this.y + dy, this.z + dz)) return this.blocked(a, 'There is nothing to flip or press there.');
+    } else if (act.kind === 'wait') {
+      a.dur = Math.max(0.1, Math.min(10, Number(act.secs) || 1));
     } else if (act.kind === 'say') {
       this.say(act.text, 2.2);
     }
@@ -272,7 +279,7 @@ export class Robot {
     } else if (a.kind === 'turn') {
       let d = a.toYaw - a.fromYaw; d = Math.atan2(Math.sin(d), Math.cos(d));
       m.root.rotation.y = a.fromYaw + d * e;
-    } else if (a.kind === 'dig' || a.kind === 'place' || a.kind === 'idleArm') {
+    } else if (a.kind === 'dig' || a.kind === 'place' || a.kind === 'idleArm' || a.kind === 'use') {
       const s = Math.sin(k * Math.PI);
       const tilt = a.dir === 'up' ? -1.6 : a.dir === 'down' ? -0.4 : -1.1;
       m.armR.rotation.x = tilt * s; m.armL.rotation.x = tilt * s * 0.6;
@@ -303,6 +310,7 @@ export class Robot {
     if (cond.op === 'not') return !this.test(cond.a);
     if (cond.op === 'detect') return SOLID[this.blockAt(cond.dir)] === 1;
     if (cond.op === 'is') return this.blockAt(cond.dir) === cond.block;
+    if (cond.op === 'spark') { const [dx, dy, dz] = this.offset(cond.dir); return !!this.isPowered?.(this.x + dx, this.y + dy, this.z + dz); }
     return false;
   }
 
@@ -327,6 +335,8 @@ function* exec(stmts, robot) {
         case 'dig': evals = 0; yield { kind: 'dig', dir: s.dir || 'forward', id: s.id }; break;
         case 'place': evals = 0; yield { kind: 'place', dir: s.dir || 'forward', block: s.block, id: s.id }; break;
         case 'say': evals = 0; yield { kind: 'say', text: String(s.text ?? ''), id: s.id }; break;
+        case 'use': evals = 0; yield { kind: 'use', dir: s.dir || 'forward', id: s.id }; break;
+        case 'wait': evals = 0; yield { kind: 'wait', secs: s.secs, id: s.id }; break;
         case 'repeat': for (let i = 0; i < clampN(s.times, 1000); i++) { tick(); yield* run(s.body); } break;
         case 'while': { let n = 0; while (robot.test(s.cond)) { tick(); if (++n > 1000) throw kidError('That loop went around 1000 times, so I stopped.'); yield* run(s.body); } break; }
         case 'if': if (robot.test(s.cond)) yield* run(s.then); else yield* run(s.else); break;

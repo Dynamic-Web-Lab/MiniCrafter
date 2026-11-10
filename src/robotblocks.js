@@ -21,7 +21,7 @@ export function loadBlockly() {
   return loading;
 }
 
-const C = { start: 45, move: 210, build: 25, loops: 120, logic: 270, talk: 330 };
+const C = { start: 45, move: 210, build: 25, loops: 120, logic: 270, talk: 330, spark: 50 };
 const DIR_MOVE = [['forward ⬆', 'forward'], ['back ⬇', 'back'], ['up ⤒', 'up'], ['down ⤓', 'down']];
 const DIR_ACT = [['in front', 'forward'], ['above', 'up'], ['below', 'down']];
 const blockOptions = () => [['the block I am holding', 'held'],
@@ -43,6 +43,9 @@ export function defineBlocks(Blockly) {
     { type: 'bit_if', message0: '❓ if %1', args0: [{ type: 'input_value', name: 'COND', check: 'Boolean' }], message1: 'then %1', args1: [{ type: 'input_statement', name: 'THEN' }], message2: 'else %1', args2: [{ type: 'input_statement', name: 'ELSE' }], previousStatement: null, nextStatement: null, colour: C.logic, tooltip: 'Choose what to do' },
     { type: 'bit_detect', message0: 'there is a block %1', args0: [{ type: 'field_dropdown', name: 'DIR', options: DIR_ACT }], output: 'Boolean', colour: C.logic, tooltip: 'True if a solid block is there' },
     { type: 'bit_is', message0: 'the block %1 is %2', args0: [{ type: 'field_dropdown', name: 'DIR', options: DIR_ACT }, { type: 'field_dropdown', name: 'BLOCK', options: () => blockOptions().slice(1).concat([['air (nothing)', '0'], ['water', '14']]) }], output: 'Boolean', colour: C.logic, tooltip: 'Check which block is there' },
+    { type: 'bit_use', message0: '🖐 use the block %1', args0: [{ type: 'field_dropdown', name: 'DIR', options: DIR_ACT }], previousStatement: null, nextStatement: null, colour: C.spark, tooltip: 'Flip a Spark Lever, press a Button or open a Spark Door' },
+    { type: 'bit_wait', message0: '⏳ wait %1 seconds', args0: [{ type: 'field_number', name: 'N', value: 1, min: 0.1, max: 10 }], previousStatement: null, nextStatement: null, colour: C.spark, tooltip: 'Bit waits a moment' },
+    { type: 'bit_spark', message0: 'the block %1 has spark power', args0: [{ type: 'field_dropdown', name: 'DIR', options: DIR_ACT }], output: 'Boolean', colour: C.spark, tooltip: 'True if that block is switched on or powered' },
     { type: 'bit_not', message0: 'not %1', args0: [{ type: 'input_value', name: 'A', check: 'Boolean' }], output: 'Boolean', colour: C.logic, tooltip: 'The opposite' },
   ]);
 }
@@ -60,6 +63,8 @@ export const TOOLBOX = {
     { kind: 'category', name: '❓ Logic', colour: String(C.logic), contents: [
       { kind: 'block', type: 'bit_if', inputs: { COND: { block: { type: 'bit_detect' } } } },
       { kind: 'block', type: 'bit_detect' }, { kind: 'block', type: 'bit_is' }, { kind: 'block', type: 'bit_not' }] },
+    { kind: 'category', name: '⚡ Spark', colour: String(C.spark), contents: [
+      { kind: 'block', type: 'bit_use' }, { kind: 'block', type: 'bit_wait' }, { kind: 'block', type: 'bit_spark' }] },
     { kind: 'category', name: '💬 Talk', colour: String(C.talk), contents: [{ kind: 'block', type: 'bit_say' }] },
   ],
 };
@@ -85,6 +90,8 @@ function stmt(b) {
     case 'bit_dig': return { id, op: 'dig', dir: b.getFieldValue('DIR') };
     case 'bit_place': return { id, op: 'place', dir: b.getFieldValue('DIR'), block: blk(b.getFieldValue('BLOCK')) };
     case 'bit_say': return { id, op: 'say', text: b.getFieldValue('TEXT') };
+    case 'bit_use': return { id, op: 'use', dir: b.getFieldValue('DIR') };
+    case 'bit_wait': return { id, op: 'wait', secs: num('N', 1) };
     case 'bit_repeat': return { id, op: 'repeat', times: num('N', 1), body: stmtList(b.getInputTargetBlock('DO')) };
     case 'bit_while': return { id, op: 'while', cond: cond(b.getInputTargetBlock('COND')), body: stmtList(b.getInputTargetBlock('DO')) };
     case 'bit_if': return { id, op: 'if', cond: cond(b.getInputTargetBlock('COND')), then: stmtList(b.getInputTargetBlock('THEN')), else: stmtList(b.getInputTargetBlock('ELSE')) };
@@ -97,6 +104,7 @@ function cond(b) {
   switch (b.type) {
     case 'bit_detect': return { op: 'detect', dir: b.getFieldValue('DIR') };
     case 'bit_is': return { op: 'is', dir: b.getFieldValue('DIR'), block: Number(b.getFieldValue('BLOCK')) };
+    case 'bit_spark': return { op: 'spark', dir: b.getFieldValue('DIR') };
     case 'bit_not': return { op: 'not', a: cond(b.getInputTargetBlock('A')) };
     default: return null;
   }
@@ -132,6 +140,8 @@ function stmtJSON(s) {
     case 'dig': return { type: 'bit_dig', ...f({ DIR: s.dir || 'forward' }) };
     case 'place': return { type: 'bit_place', ...f({ DIR: s.dir || 'forward', BLOCK: String(s.block ?? 'held') }) };
     case 'say': return { type: 'bit_say', ...f({ TEXT: s.text ?? '' }) };
+    case 'use': return { type: 'bit_use', ...f({ DIR: s.dir || 'forward' }) };
+    case 'wait': return { type: 'bit_wait', ...f({ N: s.secs ?? 1 }) };
     case 'repeat': return { type: 'bit_repeat', fields: { N: s.times }, inputs: clean({ DO: stack(s.body) }) };
     case 'while': return { type: 'bit_while', inputs: clean({ COND: condJSON(s.cond), DO: stack(s.body) }) };
     case 'if': return { type: 'bit_if', inputs: clean({ COND: condJSON(s.cond), THEN: stack(s.then), ELSE: stack(s.else) }) };
@@ -142,6 +152,7 @@ function stmtJSON(s) {
 function condJSON(c) {
   if (!c) return undefined;
   if (c.op === 'detect') return { block: { type: 'bit_detect', fields: { DIR: c.dir } } };
+  if (c.op === 'spark') return { block: { type: 'bit_spark', fields: { DIR: c.dir } } };
   if (c.op === 'is') return { block: { type: 'bit_is', fields: { DIR: c.dir, BLOCK: String(c.block) } } };
   if (c.op === 'not') { const a = condJSON(c.a); return { block: { type: 'bit_not', ...(a ? { inputs: { A: a } } : {}) } }; }
   return undefined;
@@ -158,6 +169,7 @@ function condText(c) {
   if (!c) return 'false';
   if (c.op === 'not') return `!${condText(c.a)}`;
   if (c.op === 'detect') return `bit.detect('${c.dir}')`;
+  if (c.op === 'spark') return `bit.hasSpark('${c.dir}')`;
   if (c.op === 'is') return `bit.inspect('${c.dir}') === ${blockName(c.block)}`;
   return 'false';
 }
@@ -172,6 +184,8 @@ export function programToText(program, indent = '', depth = 0) {
       case 'dig': lines.push(`${indent}bit.dig('${s.dir}');`); break;
       case 'place': lines.push(`${indent}bit.place(${blockName(s.block)}, '${s.dir}');`); break;
       case 'say': lines.push(`${indent}bit.say(${JSON.stringify(s.text ?? '')});`); break;
+      case 'use': lines.push(`${indent}bit.use('${s.dir}');`); break;
+      case 'wait': lines.push(`${indent}bit.wait(${s.secs ?? 1});`); break;
       case 'repeat':
         lines.push(`${indent}for (let ${v} = 0; ${v} < ${s.times}; ${v}++) {`, programToText(s.body, indent + '  ', depth + 1), `${indent}}`); break;
       case 'while':

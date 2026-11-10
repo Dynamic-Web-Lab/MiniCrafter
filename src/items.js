@@ -123,6 +123,7 @@ mine([B.FARMLAND], 0.5, 'shovel');
 mine([B.LANTERN], 0.3);
 mine([B.PORTAL_BLUE, B.PORTAL_ORANGE, B.PORTAL_GREEN, B.PORTAL_PURPLE], 0.4);
 mine([B.CACTUS], 0.4);
+mine(BLOCKS.filter((b) => b?.spark).map((b) => b.id), 0.3);
 mine([B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK], 0.8);
 
 const DROPS = {
@@ -155,6 +156,7 @@ export function dropFor(blockId, rand = Math.random()) {
   if (blockId >= B.WHEAT_0 && blockId < B.WHEAT_3) return I.SEEDS;
   if (blockId === B.FARMLAND) return B.DIRT;
   if (blockId === B.WATER || blockId === B.BEDROCK || blockId === B.AIR) return null;
+  if (BLOCKS[blockId]?.spark) return BLOCKS[blockId].base ?? null; // on/off and facing variants give the plain item back
   return DROPS[blockId] ?? (ITEMS.has(blockId) ? blockId : null);
 }
 
@@ -188,6 +190,17 @@ recipe(B.PORTAL_PURPLE, 2, [[I.DIAMOND, 1], [B.WOOL_BLACK, 1], [B.WOOL_RED, 1]],
 recipe(I.SUNGLASSES, 1, [[B.GLASS, 1], [B.WOOL_BLACK, 1]]);
 recipe(I.WATERING_CAN, 1, [[I.IRON_INGOT, 1], [B.PLANKS, 2]], 'table');
 recipe(B.TORCH, 4, [[I.STICK, 1], [I.COAL, 1]]);
+// Spark circuits
+recipe(B.WIRE, 8, [[I.GOLD_INGOT, 1], [I.COAL, 1]], 'table');
+recipe(B.LEVER, 1, [[I.STICK, 1], [B.COBBLE, 1], [B.WIRE, 1]]);
+recipe(B.BUTTON, 1, [[B.STONE, 1], [B.WIRE, 1]]);
+recipe(B.PLATE, 1, [[B.PLANKS, 2], [B.WIRE, 1]]);
+recipe(B.BATTERY, 1, [[B.WIRE, 4], [I.GOLD_INGOT, 1]], 'table');
+recipe(B.INVERTER, 1, [[B.WIRE, 2], [B.TORCH, 1], [B.STONE, 2]], 'table');
+recipe(B.DELAY, 1, [[B.WIRE, 2], [B.TORCH, 2], [B.STONE, 2]], 'table');
+recipe(B.SPARK_LAMP, 1, [[B.WIRE, 2], [B.GLASS, 2], [B.TORCH, 1]], 'table');
+recipe(B.SPARK_DOOR, 1, [[I.IRON_INGOT, 4], [B.WIRE, 1]], 'table');
+recipe(B.PISTON, 1, [[B.PLANKS, 3], [B.COBBLE, 4], [I.IRON_INGOT, 1], [B.WIRE, 1]], 'table');
 const MATERIAL = [B.PLANKS, B.COBBLE, I.IRON_INGOT, I.DIAMOND];
 TIERS.forEach((t, i) => {
   recipe(I[`${t.key}_PICK`], 1, [[MATERIAL[i], 3], [I.STICK, 2]], 'table');

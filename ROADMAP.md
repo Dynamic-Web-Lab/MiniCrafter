@@ -108,10 +108,12 @@ A separate **Adventure** game mode for teens and grown-ups who want excitement. 
 - [x] Knock-back, hit flash, "poof" defeat with drops and XP; Easy / Normal difficulty
 - [x] Quests: Night Watch, Suit Up, Archer, Monster Hunter
 
-### A3 · Spark circuits (redstone-style) (L)
-- [ ] Spark dust wires, levers, buttons, pressure plates
-- [ ] Inverter, delay (repeater), lamps, doors, pistons
-- [ ] Bit can read sensors and flip levers (coding with circuits)
+### A3 · Spark circuits (redstone-style) ✅ done
+Available in every mode (building, not fighting), so younger kids can use them with Bit too.
+- [x] Spark Wire, levers, buttons, pressure plates, batteries
+- [x] Inverter (NOT gate, makes clocks), delay (repeater), lamps, doors, pistons (push up to 12 blocks, carry the player)
+- [x] Bit can read spark power, wait, and flip levers / press buttons (coding with circuits)
+- [x] Quests: Light It Up, Secret Door, Push It!, Robot Electrician
 
 ### A4 · Dungeons and loot (L)
 - [ ] Generated dungeons and ruins with chests and monster spawners

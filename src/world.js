@@ -117,7 +117,7 @@ function computeLight(ns) {
 }
 
 // Precompute UVs per block/face kind.
-const UVS = BLOCKS.map((b) => ({ top: tileUV(b.top), bottom: tileUV(b.bottom), side: tileUV(b.side) }));
+const UVS = BLOCKS.map((b) => ({ top: tileUV(b.top), bottom: tileUV(b.bottom), side: tileUV(b.side), f: b.faces?.map(tileUV) }));
 
 class Chunk {
   constructor(cx, cz) {
@@ -373,6 +373,7 @@ export class World {
       if (id === B.AIR) continue;
       const blk = BLOCKS[id];
       if (blk.shape === 'torch') { addTorch(groups.glow, x, y, z, UVS[id].side); continue; }
+      if (blk.shape === 'flat') { const i = ri(x, y, z); addFlat(blk.emissive ? groups.glow : groups.solid, x, y, z, UVS[id].top, blk.emissive ? null : [rSky[i] / 15, rBlk[i] / 15]); continue; }
       if (blk.shape === 'plant') { const i = ri(x, y, z); addPlant(groups.solid, x, y, z, UVS[id].side, rSky[i] / 15, rBlk[i] / 15); continue; }
       const isWater = id === B.WATER;
       const g = isWater ? groups.water : blk.emissive ? groups.glow : groups.solid;
@@ -388,7 +389,8 @@ export class World {
           if (isWater) continue;                       // water only shows against air
         }
 
-        const uv = UVS[id][face.kind];
+        const uv = UVS[id].f ? UVS[id].f[f] : UVS[id][face.kind];
+        const rot = face.kind === 'top' ? blk.rot | 0 : 0;
         const base = g.pos.length / 3;
         const ao = [0, 0, 0, 0];
         for (let v = 0; v < 4; v++) {
@@ -396,7 +398,9 @@ export class World {
           let cy = c[1];
           if (waterTop && cy === 1) cy = 0.875;
           g.pos.push(x + c[0], y + cy, z + c[2]);
-          g.uv.push(c[3] ? uv.u1 : uv.u0, c[4] ? uv.vTop : uv.vBot);
+          let cu = c[3], cv = c[4];
+          for (let r = 0; r < rot; r++) [cu, cv] = [cv, 1 - cu]; // turn facing blocks' top arrows
+          g.uv.push(cu ? uv.u1 : uv.u0, cv ? uv.vTop : uv.vBot);
 
           let light = 1;
           const fx = x + dx, fy = y + dy, fz = z + dz;
@@ -548,6 +552,15 @@ function addPlant(g, x, y, z, uv, ls, lb) {
     g.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3); // front
     g.idx.push(base, base + 2, base + 1, base + 2, base + 3, base + 1); // back
   }
+}
+
+/** Flat floor pieces (Spark wire, pressure plates): one quad just above the floor. */
+function addFlat(g, x, y, z, uv, lt) {
+  const h = 1 / 16, base = g.pos.length / 3;
+  g.pos.push(x, y + h, z + 1, x + 1, y + h, z + 1, x, y + h, z, x + 1, y + h, z);
+  g.uv.push(uv.u0, uv.vBot, uv.u1, uv.vBot, uv.u0, uv.vTop, uv.u1, uv.vTop);
+  for (let k = 0; k < 4; k++) { g.col.push(1, 1, 1); if (lt) g.lt.push(lt[0], lt[1]); }
+  g.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
 }
 
 /** A torch: a thin stick with a flame, using the middle columns of its tile. */
