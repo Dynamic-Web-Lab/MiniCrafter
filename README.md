@@ -137,6 +137,20 @@
 - 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
 - 💾 **Auto-save:** each world's buildings, inventory, animals, pets, robot program and stars are kept in the browser.
 
+## 🏁 Course Maker: build your own games
+
+Not just a world to build in: build **games** in it.
+
+- Place a **🏁 Course Start** pad, a **🚩 Checkpoint** or two and a **🏁 Course Finish** pad, then step on Start: a timer begins.
+- Scatter **🪙 coins** along the way and see who can collect them all.
+- Fall off and you land back at your last checkpoint (or press **R** / tap **↺**).
+- Finishing celebrates with confetti and remembers your **best time** for each course.
+- Combine with trampolines, speed strips, ice, fan vents, portals and Spark pistons for wild obstacle courses, then challenge your family (or race friends in Play Together).
+
+## 📷 Photo Mode
+
+Press **P** (or tap **📷**) to snap a picture of your world. Add a **frame** (Polaroid with a caption, rainbow, starry), a **filter** (sunny, frosty, black & white, retro) and **stickers**, then save it or share it. Photos stay on your device; nothing is uploaded.
+
 ## 👫 Play Together (online edition)
 
 Build with family and friends, **up to 4 players** in the host's world. Play Together is part of our hosted online edition (it needs our server), so it doesn't appear in the free GitHub Pages copy. Everyone in a game needs an account (see below).

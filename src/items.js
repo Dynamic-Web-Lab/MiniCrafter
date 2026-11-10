@@ -124,6 +124,7 @@ mine([B.LANTERN], 0.3);
 mine([B.PORTAL_BLUE, B.PORTAL_ORANGE, B.PORTAL_GREEN, B.PORTAL_PURPLE], 0.4);
 mine([B.CACTUS], 0.4);
 mine(BLOCKS.filter((b) => b?.spark).map((b) => b.id), 0.3);
+mine(BLOCKS.filter((b) => b?.course).map((b) => b.id), 0.3);
 mine([B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK], 0.8);
 
 const DROPS = {
@@ -157,6 +158,7 @@ export function dropFor(blockId, rand = Math.random()) {
   if (blockId === B.FARMLAND) return B.DIRT;
   if (blockId === B.WATER || blockId === B.BEDROCK || blockId === B.AIR) return null;
   if (BLOCKS[blockId]?.spark) return BLOCKS[blockId].base ?? null; // on/off and facing variants give the plain item back
+  if (blockId === B.COIN_TAKEN) return B.COIN;
   return DROPS[blockId] ?? (ITEMS.has(blockId) ? blockId : null);
 }
 
@@ -192,6 +194,11 @@ recipe(I.WATERING_CAN, 1, [[I.IRON_INGOT, 1], [B.PLANKS, 2]], 'table');
 recipe(B.TORCH, 4, [[I.STICK, 1], [I.COAL, 1]]);
 // Spark circuits
 recipe(B.WIRE, 8, [[I.GOLD_INGOT, 1], [I.COAL, 1]], 'table');
+// Course Maker
+recipe(B.COURSE_START, 1, [[B.PLANKS, 2], [B.WOOL_GREEN, 1]]);
+recipe(B.COURSE_CHECK, 1, [[B.PLANKS, 2], [B.WOOL_BLUE, 1]]);
+recipe(B.COURSE_FINISH, 1, [[B.PLANKS, 2], [B.WOOL_WHITE, 1], [B.WOOL_BLACK, 1]]);
+recipe(B.COIN, 8, [[I.GOLD_INGOT, 1]]);
 recipe(B.LEVER, 1, [[I.STICK, 1], [B.COBBLE, 1], [B.WIRE, 1]]);
 recipe(B.BUTTON, 1, [[B.STONE, 1], [B.WIRE, 1]]);
 recipe(B.PLATE, 1, [[B.PLANKS, 2], [B.WIRE, 1]]);

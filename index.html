@@ -37,6 +37,8 @@
     <button class="tbtn" id="t-inv" data-btn="inventory" aria-label="Inventory">🎒</button>
     <button class="tbtn" id="t-fly" data-btn="fly" aria-label="Fly">🕊️</button>
     <button class="tbtn" id="t-emoji" data-btn="emoji" aria-label="Emoji">😊</button>
+    <button class="tbtn" id="t-photo" data-btn="photo" aria-label="Take a photo">📷</button>
+    <button class="tbtn hidden" id="t-respawn" data-btn="respawn" aria-label="Back to checkpoint">↺</button>
     <button class="tbtn big" id="t-jump" data-btn="jump" aria-label="Jump / up">⬆</button>
     <button class="tbtn" id="t-down" data-btn="down" aria-label="Down">⬇</button>
   </div>
@@ -44,6 +46,7 @@
   <div id="hud" class="hidden">
     <div id="crosshair"></div>
     <div id="tg-chip" class="hidden"></div>
+    <div id="course-hud" class="hidden"><span>⏱ <b id="course-time">0.00 s</b></span><span id="course-coins"></span><span class="course-key">R: back to checkpoint</span></div>
     <div id="knock" class="hidden"><span id="knock-text"></span><button id="knock-yes" type="button">Let in <kbd>L</kbd></button><button id="knock-no" type="button">Not now <kbd>N</kbd></button></div>
     <div id="emoji-bar" class="hidden"></div>
     <div id="debug" class="hidden"></div>
@@ -146,6 +149,8 @@
             <tr><td>Z / Y</td><td>Undo / redo (creative)</td></tr>
             <tr><td>F3</td><td>Debug info</td></tr>
             <tr><td>T then 1–8</td><td>Send an emoji (Play Together)</td></tr>
+            <tr><td>P</td><td>📷 Photo Mode</td></tr>
+            <tr><td>R</td><td>Back to the last checkpoint (Course Maker)</td></tr>
             <tr><td>L / N</td><td>Let a friend in / not now (host)</td></tr>
             <tr><td>Esc</td><td>Pause</td></tr>
           </table>
@@ -230,6 +235,26 @@
       </div>
       <p id="acc-msg" class="note" role="status"></p>
       <button id="acc-done" class="wide-btn" type="button">Back</button>
+    </div>
+  </div>
+
+  <div id="photo" class="overlay hidden">
+    <div class="panel photo-panel">
+      <h2>📷 Photo Mode</h2>
+      <div id="ph-canvas" class="ph-canvas" title="Tap the photo to add a sticker"></div>
+      <div class="ph-controls">
+        <div><span class="ph-label">Frame</span><div id="ph-frames" class="chips"></div></div>
+        <div><span class="ph-label">Filter</span><div id="ph-filters" class="chips"></div></div>
+        <div><span class="ph-label">Stickers: pick one, then tap the photo</span><div id="ph-stickers" class="chips ph-stickers"></div></div>
+        <label id="ph-caption-row"><span class="ph-label">Caption</span><input id="ph-caption" type="text" maxlength="40" placeholder="My amazing castle!" autocomplete="off"></label>
+      </div>
+      <div class="tg-row">
+        <button id="ph-undo" type="button">↶ Undo sticker</button>
+        <button id="ph-share" type="button">📤 Share</button>
+        <button id="ph-save" class="primary" type="button">💾 Save photo</button>
+      </div>
+      <p class="note">Photos are saved on your device. Nothing is uploaded.</p>
+      <button id="ph-close" class="wide-btn" type="button">Back to the game</button>
     </div>
   </div>
 

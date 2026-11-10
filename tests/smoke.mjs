@@ -217,6 +217,19 @@ try {
       out.a3 = lit && inverted && pushed;
     }
 
+    // Course Maker: start pad starts a timed run, coins are collected, finish records a best time.
+    {
+      const C = m.course, cx = Math.floor(p.pos.x), cz = Math.floor(p.pos.z), cy = Math.min(88, Math.floor(p.pos.y) + 10);
+      for (let i = -1; i <= 6; i++) { W.setBlock(cx + i, cy, cz, B.STONE); for (let h = 1; h < 4; h++) W.setBlock(cx + i, cy + h, cz, 0); }
+      W.setBlock(cx, cy, cz, B.COURSE_START); W.setBlock(cx + 5, cy, cz, B.COURSE_FINISH); W.setBlock(cx + 2, cy + 1, cz, B.COIN);
+      W.flushDirty();
+      const stand = (i) => { p.flying = false; p.pos.set(cx + i + 0.5, cy + 1, cz + 0.5); p.vel.set(0, 0, 0); m.step(3, 16.7); };
+      stand(0); const started = !!C.run && C.run.total === 1;
+      stand(1); stand(2); const gotCoin = C.run?.coins === 1 && W.getBlock(cx + 2, cy + 1, cz) === B.COIN_TAKEN;
+      stand(5); const finished = !C.run && C.best.size === 1;
+      out.course = started && gotCoin && finished;
+    }
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -243,6 +256,7 @@ try {
   ok(features.adventure, 'adventure: XP levels, hunger, tougher falls (gentle modes unchanged)');
   ok(features.a2, 'adventure A2: no monsters in gentle modes; arrows and swords defeat them');
   ok(features.a3, 'adventure A3: spark wire, inverter and piston work');
+  ok(features.course, 'course maker: start, coin, finish and best time');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });

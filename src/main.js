@@ -25,6 +25,8 @@ import { Spark } from './spark.js';
 import { makeShareLink, readSharedFromHash, validateShared } from './share.js';
 import { Together, COLORS, ANIMALS, EMOJI, profileName, saveProfile, loadSiteConfig, SITE } from './together.js';
 import { Account, accountMessage } from './account.js';
+import { Course, fmtTime } from './course.js';
+import { PhotoMode, FRAMES, FILTERS, STICKERS } from './photo.js';
 
 const account = new Account();
 import { IDEAS, ideaOfTheDay } from './ideas.js';
@@ -81,6 +83,112 @@ const spark = new Spark({
   onChange: () => { dirtySave = true; },
   onEvent: (kind) => quests.emit('spark', { kind }),
 });
+// ---------- Course Maker ----------
+const course = new Course({
+  getWorld: () => world,
+  getPlayer: () => player,
+  now: () => simTime,
+  onStart(run) {
+    sfx.tone(520, 0.12, 'square', 0.12); setTimeout(() => sfx.tone(780, 0.18, 'square', 0.14), 150);
+    toast(run.total ? `🏁 Go! Collect ${run.total} coin${run.total === 1 ? '' : 's'} and reach the Finish!` : '🏁 Go! Reach the Finish pad!');
+    renderCourseHud();
+    quests.emit('course', { kind: 'start' });
+  },
+  onCheckpoint() { sfx.tone(880, 0.15, 'triangle', 0.14, 300); toast('🚩 Checkpoint! Fall off and you come back here.'); },
+  onCoin(run, [x, y, z]) {
+    sfx.tone(1200 + run.coins * 40, 0.08, 'square', 0.1, 600);
+    particles.burst(x, y, z, TILE.COIN);
+    renderCourseHud();
+  },
+  onRespawn() { sfx.whoosh?.(); },
+  onFinish(r) {
+    const p = player.pos;
+    for (const tile of [TILE.WOOL_RED, TILE.WOOL_BLUE, TILE.WOOL_YELLOW, TILE.WOOL_GREEN, TILE.COIN]) particles.burst(Math.floor(p.x), Math.floor(p.y) + 1, Math.floor(p.z), tile);
+    sfx.fanfare?.(); sfx.yay?.();
+    const coins = r.total ? ` · 🪙 ${r.coins}/${r.total}` : '';
+    hint(`🏁 Finished in ${fmtTime(r.time)}${coins}${r.newBest ? (r.beatOld ? ' · 🏆 New best time!' : '') : ` · Best ${fmtTime(r.best)}`}`, 4500);
+    renderCourseHud();
+    quests.emit('course', { kind: 'finish', time: r.time, coins: r.coins, total: r.total, beatOld: r.beatOld });
+    dirtySave = true;
+  },
+  onCancel(reason) {
+    toast(reason === 'flying' ? 'Course run stopped: no flying during a run! Step on Start to try again.' : 'Course run stopped.');
+    renderCourseHud();
+  },
+});
+function renderCourseHud() {
+  const run = course.run;
+  $('course-hud').classList.toggle('hidden', !run);
+  document.getElementById('t-respawn')?.classList.toggle('hidden', !run);
+  if (run) $('course-coins').textContent = run.total ? `🪙 ${run.coins}/${run.total}` : '';
+}
+
+// ---------- Photo Mode ----------
+const photo = new PhotoMode();
+async function openPhoto() {
+  if (state !== 'playing') return;
+  renderer.render(scene, camera); // capture a clean frame (the HUD is not part of the 3D view)
+  await photo.capture(canvas);
+  state = 'photo';
+  clearInput();
+  touch?.setEnabled(false);
+  if (document.pointerLockElement) document.exitPointerLock();
+  sfx.tone(1400, 0.05, 'square', 0.12); setTimeout(() => sfx.tone(900, 0.08, 'square', 0.1), 60); // click!
+  $('photo').classList.remove('hidden');
+  renderPhoto();
+}
+function closePhoto() {
+  $('photo').classList.add('hidden');
+  state = 'menu';
+  enterPlay();
+}
+function renderPhoto() {
+  const chips = (box, items, current, pick) => {
+    box.innerHTML = '';
+    for (const [key, label] of items) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip' + (key === current ? ' on' : ''); b.textContent = label;
+      b.addEventListener('click', () => { pick(key); renderPhoto(); });
+      box.appendChild(b);
+    }
+  };
+  chips($('ph-frames'), FRAMES, photo.frame, (k) => { photo.frame = k; });
+  chips($('ph-filters'), FILTERS, photo.filter, (k) => { photo.filter = k; });
+  chips($('ph-stickers'), STICKERS.map((e) => [e, e]), photo.sticker, (k) => { photo.sticker = k; });
+  $('ph-caption-row').classList.toggle('hidden', photo.frame !== 'polaroid');
+  const c = photo.draw();
+  const box = $('ph-canvas');
+  if (c.parentNode !== box) { box.innerHTML = ''; box.appendChild(c); }
+}
+$('ph-canvas').addEventListener('click', (e) => {
+  const pt = photo.photoPoint(e, photo.canvas);
+  if (!pt) return;
+  photo.addSticker(pt);
+  sfx.pop();
+  renderPhoto();
+});
+$('ph-undo').addEventListener('click', () => { photo.stickers.pop(); renderPhoto(); });
+$('ph-caption').addEventListener('input', (e) => { photo.caption = e.target.value; renderPhoto(); });
+$('ph-caption').addEventListener('keydown', (e) => e.stopPropagation());
+$('ph-close').addEventListener('click', closePhoto);
+$('ph-save').addEventListener('click', async () => {
+  const blob = await photo.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `minicrafter-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('📷 Photo saved!');
+  quests.emit('photo', {});
+});
+$('ph-share').addEventListener('click', async () => {
+  const blob = await photo.blob();
+  const file = new File([blob], 'minicrafter.png', { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'My MiniCrafter build' }); quests.emit('photo', {}); } catch { /* cancelled */ }
+  } else $('ph-save').click();
+});
+
 // ---------- Play Together ----------
 let guestReturnId = null; // the world to go back to after visiting a friend's game
 const together = new Together({
@@ -248,6 +356,7 @@ function startWorld(seedStr, saved, newMode) {
   player.onLand = (dist) => { if (isSurvival()) survival.landed(dist); };
   world.onChange = (x, y, z, from, to) => {
     spark.track(x, y, z, from, to);
+    if (course.internal) return; // collected coins are only part of this player's run
     together.queueEdit(x, y, z, to); // Play Together: share every change (unless it came from the network)
     if (!spark.internal && !together.applying) history.record(x, y, z, from, to); // circuits switching and friends' edits aren't undo steps
   };
@@ -298,6 +407,8 @@ function startWorld(seedStr, saved, newMode) {
     spawn();
   }
   spark.reset(world);
+  course.reset(world, saved?.courses);
+  renderCourseHud();
   if (!spawnPoint) spawnPoint = findSpawnColumn();
   const meta = worlds.get(currentWorldId);
   adv.hardcore = !!meta?.hardcore;
@@ -338,6 +449,7 @@ function save() {
     mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(), robotCode: robotUI.getState(),
     crops: [...crops].map(([k, t]) => [...k.split(',').map(Number), Math.round(t)]),
     xp: adv.xp, level: adv.level, hunger: survival.hunger, over: adv.over, graves: [...adv.graves], armor: adv.armor,
+    courses: course.toJSON(),
   }, { mode, stars: quests.stars });
   if (ok) dirtySave = false;
 }
@@ -538,6 +650,7 @@ function pickerTab(id) {
   const def = ITEMS.get(id), blk = id < 256 ? BLOCKS[id] : null;
   if (blk) {
     if (blk.spark) return 'spark';
+    if (blk.course) return 'fun';
     if (blk.plant || NATURE.has(id)) return 'nature';
     if (blk.bounce || blk.speed || blk.slippery || blk.fan || blk.note !== undefined || blk.confetti || blk.portal || blk.star || blk.emissive) return 'fun';
     return 'build';
@@ -1088,7 +1201,7 @@ $('acc-delete').addEventListener('click', async () => {
 // Every pop-up panel gets a ✕ that is always on screen, and tapping the dimmed area
 // outside a panel closes it too. (Phones have no Escape key, and on a small screen the
 // Done button can be scrolled out of sight under a long list.)
-for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel']]) {
+for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel'], ['photo', 'ph-close']]) {
   const ov = $(overlay);
   const x = document.createElement('button');
   x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
@@ -1407,6 +1520,10 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyQ' || e.code === 'Escape') closeOverlay(e.code === 'KeyQ');
     return;
   }
+  if (state === 'photo') {
+    if (e.code === 'Escape' || e.code === 'KeyP') closePhoto();
+    return;
+  }
   if (state === 'robot' || state === 'trade') {
     if (e.code === 'Escape') closeOverlay(false);
     return;
@@ -1432,6 +1549,8 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyZ') undoRedo(false);
   if (e.code === 'KeyY') undoRedo(true);
   if (e.code === 'KeyT' && together.active) toggleEmojiBar();
+  if (e.code === 'KeyR' && course.run) course.respawn();
+  if (e.code === 'KeyP') openPhoto();
   if (e.code === 'KeyL' && knockId != null) answerKnock(true);
   if (e.code === 'KeyN' && knockId != null) answerKnock(false);
 });
@@ -1504,6 +1623,8 @@ const touch = touchMode ? new TouchControls({
     else if (name === 'pause' && state === 'playing') showMenu();
     else if (name === 'undo' && state === 'playing') undoRedo(false);
     else if (name === 'emoji' && state === 'playing') toggleEmojiBar();
+    else if (name === 'respawn' && state === 'playing') course.respawn();
+    else if (name === 'photo' && state === 'playing') openPhoto();
   },
 }) : null;
 
@@ -2188,7 +2309,8 @@ function frame(now, manual = false) {
   mobs.maxHostile = settings.monsters === 'easy' ? 4 : 8;
   player.blocking = state === 'playing' && isAdventure() && mouse.right && !!ITEMS.get(heldItem())?.shield;
   spark.passive = together.isGuest; // the host runs the circuits; guests see the results
-  if (state === 'playing') { updateBow(simTime); projectiles.update(dt); if (!together.isGuest) spark.update(dt); }
+  if (state === 'playing') { updateBow(simTime); projectiles.update(dt); if (!together.isGuest) spark.update(dt); course.update(); }
+  if (course.run) $('course-time').textContent = fmtTime(simTime - course.run.t0);
   together.update(dt);
   mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
   critters.update(dt, player, light, timeOfDay > 0.55 && timeOfDay < 0.95, state === 'playing' || (state === 'menu' && !hasPlayed));
@@ -2296,7 +2418,7 @@ $('btn-install').addEventListener('click', () => {
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, adv, projectiles, spark, together, account, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, projectiles, spark, together, account, course, photo, openPhoto, closePhoto, get state() { return state; }, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

@@ -21,6 +21,8 @@ export const B = {
   BATTERY: 75, INVERTER: 76, INVERTER_ON: 80, DELAY: 84, DELAY_ON: 88,
   SPARK_LAMP: 92, SPARK_LAMP_ON: 93, SPARK_DOOR: 94, SPARK_DOOR_OPEN: 95,
   PISTON: 96, PISTON_OUT: 101, PISTON_HEAD: 106,
+  // Course Maker: build your own obstacle courses and races.
+  COURSE_START: 107, COURSE_CHECK: 108, COURSE_FINISH: 109, COIN: 110, COIN_TAKEN: 111,
 };
 
 export const BLOCKS = [];
@@ -144,6 +146,15 @@ for (let d = 0; d < 5; d++) {
   def(B.PISTON_OUT + d, 'Spark Piston (pushed out)', { top: TILE.PISTON_INNER, bottom: TILE.PISTON_BACK, side: TILE.PISTON_SIDE }, { spark: 'piston', dir: d, on: true, faces: faces(TILE.PISTON_INNER), base: B.PISTON, placeable: false });
 }
 def(B.PISTON_HEAD, 'Piston Pusher', TILE.PISTON_FRONT, { spark: 'head', placeable: false });
+
+// ---- Course Maker ----
+// Step on Start to begin a timed run, Checkpoints save your spot, Finish ends the run.
+// Coins are collected during a run and come back when it ends.
+def(B.COURSE_START, 'Course Start', { top: TILE.COURSE_START, bottom: TILE.PAD_SIDE, side: TILE.PAD_SIDE }, { course: 'start' });
+def(B.COURSE_CHECK, 'Checkpoint', { top: TILE.COURSE_CHECK, bottom: TILE.PAD_SIDE, side: TILE.PAD_SIDE }, { course: 'check' });
+def(B.COURSE_FINISH, 'Course Finish', { top: TILE.COURSE_FINISH, bottom: TILE.PAD_SIDE, side: TILE.PAD_SIDE }, { course: 'finish' });
+def(B.COIN, 'Coin', TILE.COIN, { solid: false, transparent: true, shape: 'plant', emissive: true, course: 'coin' });
+def(B.COIN_TAKEN, 'Coin (collected)', TILE.COIN_TAKEN, { solid: false, transparent: true, shape: 'plant', course: 'taken', placeable: false });
 /** Facing-aware block: turns a placed directional item into the variant facing `dir`. */
 export function sparkFacing(id, dir) {
   const b = BLOCKS[id];
