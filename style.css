@@ -450,3 +450,8 @@ label.check input { width: 22px; height: 22px; flex: none; margin: 0; accent-col
 .legal-links a, .acc-privacy a { color: #9cc3ff; }
 #account a { color: #9cc3ff; }
 #account .hint { color: #9aa3b5; font-size: .85em; }
+
+/* Free edition: link to the online edition */
+a.online-link { display: block; text-align: center; text-decoration: none; color: #fff; padding: 8px 14px; border-radius: 6px; border: 2px solid #3b82f6; background: #24324f; font-weight: 600; margin-top: 8px; }
+a.online-link:hover { background: #2c3d60; }
+a.online-link small { display: block; font-weight: 400; color: #9cc3ff; }

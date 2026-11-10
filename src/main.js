@@ -964,6 +964,8 @@ $('btn-together').addEventListener('click', openTogether);
 $('btn-together').classList.add('hidden');
 loadSiteConfig().then(() => {
   $('btn-together').classList.toggle('hidden', !SITE.online);
+  // The free edition links to the online edition for Play Together and accounts.
+  if (!SITE.online && SITE.onlineUrl) { $('btn-online').href = SITE.onlineUrl; $('btn-online').classList.remove('hidden'); }
   account.enabled = SITE.accounts;
   $('btn-account').classList.toggle('hidden', !SITE.accounts);
   if (SITE.accounts) account.refresh();

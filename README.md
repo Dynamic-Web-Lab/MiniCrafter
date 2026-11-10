@@ -12,7 +12,13 @@
 </p>
 
 <p align="center">
-  <a href="https://dynamic-web-lab.github.io/MiniCrafter/"><img alt="Play now" src="https://img.shields.io/badge/%E2%96%B6%20Play%20now-in%20your%20browser-4a9132?style=for-the-badge"></a>
+  <a href="https://portal.dynamicweblab.com/"><img alt="Play online (beta)" src="https://img.shields.io/badge/%F0%9F%8C%90%20Play%20online-with%20friends%20(beta)-2b6cb0?style=for-the-badge"></a>
+  <a href="https://dynamic-web-lab.github.io/MiniCrafter/"><img alt="Play the free edition" src="https://img.shields.io/badge/%E2%96%B6%20Free%20edition-no%20account-4a9132?style=for-the-badge"></a>
+</p>
+
+<p align="center">
+  <b>🌐 <a href="https://portal.dynamicweblab.com/">Online edition (beta)</a></b>: Play Together with friends, optional accounts &nbsp;·&nbsp;
+  <b>▶ <a href="https://dynamic-web-lab.github.io/MiniCrafter/">Free edition</a></b>: the whole game, offline, no account
 </p>
 
 <p align="center">
@@ -371,8 +377,8 @@ src/noise.js        Seeded Perlin noise and hashes
 
 | Edition | What | How it's updated |
 |---|---|---|
-| **Free** ([GitHub Pages](https://dynamic-web-lab.github.io/MiniCrafter/)) | The whole game, offline-ready, no server features. It will be retired once the online edition launches. | Automatically from `main` |
-| **Online** (our own server) | The same game plus server features: Play Together now, then accounts (register / log in). Those features need a login. | `tools/deploy-site.sh` |
+| **🌐 Online (beta)**: [portal.dynamicweblab.com](https://portal.dynamicweblab.com/) | The same game plus server features: Play Together and optional accounts (Play Together needs a login). | `tools/deploy-site.sh` |
+| **▶ Free**: [GitHub Pages](https://dynamic-web-lab.github.io/MiniCrafter/) | The whole game, offline-ready, no account and no server features. It links to the online edition, and will be retired once the online edition launches. | Automatically from `main` |
 
 The online features switch on through `site-config.json`: the copy in Git keeps them off, and the deploy script uploads an "on" version to our site. The relay ([`server/`](server/README.md)) only accepts the site that hosts the game.
 
