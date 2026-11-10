@@ -264,6 +264,18 @@ try {
     return 0;
   });
   ok(cached > 20, 'service worker caches the game for offline play', `${cached} files`);
+  // Real offline start: cut the network, reload, and the game must still boot and build a world.
+  await s.page.evaluate(() => new Promise((r) => (navigator.serviceWorker.controller ? r() : navigator.serviceWorker.addEventListener('controllerchange', r))));
+  await s.page.context().setOffline(true);
+  const offlineErrors = [];
+  s.page.on('requestfailed', (r) => offlineErrors.push(r.url()));
+  await s.page.reload();
+  const offline = await s.page.waitForFunction(() => {
+    const m = window.minicrafter;
+    return m && m.world && [...m.world.chunks.values()].some((c) => c.meshed) ? m.world.chunks.size : 0;
+  }, null, { timeout: 30000 }).then((h) => h.jsonValue()).catch(() => 0);
+  ok(offline > 0 && offlineErrors.length === 0, 'game starts with no network (offline reload)', offlineErrors.slice(0, 3).join(' | ') || `${offline} chunks`);
+  await s.page.context().setOffline(false);
   await s.page.close();
 } catch (e) {
   ok(false, 'smoke test crashed', e.message);
