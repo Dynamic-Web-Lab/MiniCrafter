@@ -488,6 +488,13 @@ body.touch #quest-tracker { right: calc(max(10px, env(safe-area-inset-right)) + 
 .report-choices { display: grid; gap: 6px; margin: 10px 0; }
 .report-choices .wide-btn { margin-top: 0; text-align: left; }
 
+/* What's new card (once after an update) */
+.news-panel { width: min(440px, 100%); }
+.news-list { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8px; }
+.news-list li { display: grid; grid-template-columns: 2em 1fr; gap: 6px; align-items: start; line-height: 1.35; }
+.news-list li span { font-size: 1.3rem; text-align: center; }
+.news-panel a { color: #9be06a; }
+
 /* Pet panel (armor + backpack) */
 .pet-panel { width: min(520px, 100%); }
 .pet-panel h3 { margin: 14px 0 6px; font-size: 1rem; }

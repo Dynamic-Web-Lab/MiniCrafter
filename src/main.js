@@ -29,6 +29,7 @@ import { Account, accountMessage } from './account.js';
 import { Course, fmtTime } from './course.js';
 import { PhotoMode, FRAMES, FILTERS, STICKERS } from './photo.js';
 import { Insights, REPORTS } from './insights.js';
+import { unseenNews, markNewsSeen } from './news.js';
 
 const insights = new Insights(); // anonymous counts + error reports, online edition only
 
@@ -1270,7 +1271,7 @@ $('acc-delete').addEventListener('click', async () => {
 // Every pop-up panel gets a ✕ that is always on screen, and tapping the dimmed area
 // outside a panel closes it too. (Phones have no Escape key, and on a small screen the
 // Done button can be scrolled out of sight under a long list.)
-for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['pet', 'pet-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel'], ['photo', 'ph-close'], ['report', 'report-done']]) {
+for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['pet', 'pet-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel'], ['photo', 'ph-close'], ['report', 'report-done'], ['news', 'news-done']]) {
   const ov = $(overlay);
   const x = document.createElement('button');
   x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
@@ -1292,6 +1293,22 @@ window.caches?.keys().then((keys) => {
   const v = Math.max(0, ...keys.map((k) => Number((/^minicrafter-v(\d+)$/.exec(k) || [])[1] || 0)));
   if (v) $('game-version').textContent = `Version ${v}`;
 }).catch(() => {});
+
+// ---------- What's new (once after an update, returning players only) ----------
+{
+  const news = unseenNews();
+  if (news.length) {
+    $('news-title').textContent = news[0].title;
+    $('news-list').replaceChildren(...news.flatMap((n) => n.items).map(([icon, text]) => {
+      const li = document.createElement('li');
+      const span = document.createElement('span'); span.textContent = icon;
+      li.append(span, document.createTextNode(text));
+      return li;
+    }));
+    $('news').classList.remove('hidden');
+  }
+  $('news-done').addEventListener('click', () => { $('news').classList.add('hidden'); markNewsSeen(); });
+}
 
 // ---------- Report a problem (online edition) ----------
 {
