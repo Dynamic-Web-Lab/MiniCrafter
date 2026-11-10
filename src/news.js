@@ -7,6 +7,14 @@
 // newer than the last one this player saw).
 export const NEWS = [
   {
+    v: 32,
+    title: 'More room to play',
+    items: [
+      ['⭐', 'The quest list can fold away: tap ▴ to fold it, tap ⭐ to open it again. Phones start folded.'],
+      ['⚙️', 'Settings has a new choice: show, fold or hide quests on screen.'],
+    ],
+  },
+  {
     v: 31,
     title: 'Pets got upgrades!',
     items: [
