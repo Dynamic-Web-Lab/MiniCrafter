@@ -30,7 +30,11 @@ export const TYPES = {
   dog: { name: 'Dog', plural: 'Dogs', hw: 0.3, h: 0.85, speed: 2.4, pet: true },
   cat: { name: 'Cat', plural: 'Cats', hw: 0.25, h: 0.7, speed: 2.6, pet: true },
   chicken: { name: 'Chicken', plural: 'Chickens', hw: 0.2, h: 0.65, speed: 1.4 },
+  // Adventure-only night creatures (original, cartoonish; they poof when defeated).
+  gloomling: { name: 'Gloomling', plural: 'Gloomlings', hw: 0.35, h: 0.8, speed: 2.3, hostile: true, hp: 10, dmg: 3 },
+  sporeling: { name: 'Sporeling', plural: 'Sporelings', hw: 0.3, h: 1.2, speed: 1.5, hostile: true, ranged: true, hp: 8, dmg: 2 },
 };
+const MAX_HOSTILE = 8;
 
 // ---------- model building ----------
 const SHADE = [0.8, 0.8, 1.0, 0.55, 0.68, 0.68]; // +x -x +y -y +z -z (BoxGeometry face order)
@@ -74,7 +78,7 @@ function buildModel(type, mat, woolColor, sheared, job = 'farmer') {
   const legs = [];
   const add = (geo, px = 0, py = 0, pz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); group.add(m); return m; };
   const leg = (w, h, rgb, x, z, top) => { const m = add(box(w, h, w, rgb, 0, -h / 2, 0), x, top, z); legs.push(m); return m; };
-  let head, wool = null, tail = null, collar = null;
+  let head, wool = null, tail = null, collar = null, eyes = null;
 
   if (type === 'pig') {
     const pink = [240, 165, 165];
@@ -129,6 +133,27 @@ function buildModel(type, mat, woolColor, sheared, job = 'farmer') {
       box(0.46, 0.1, 0.44, [110, 75, 45], 0, 0.2, 0),                   // hair
       ...hat,
     ]), 0, 1.52, 0);
+  } else if (type === 'gloomling') {
+    // A hopping shadow blob with glowing eyes and little horns.
+    const body = [70, 40, 110], dark = [45, 25, 75];
+    add(merge([box(0.66, 0.6, 0.66, body, 0, 0.42, 0), box(0.5, 0.08, 0.5, dark, 0, 0.12, 0)]));
+    for (const x of [-0.16, 0.16]) leg(0.16, 0.14, dark, x, 0, 0.14);
+    head = add(merge([
+      box(0.1, 0.16, 0.1, dark, -0.2, 0.42, 0), box(0.1, 0.16, 0.1, dark, 0.2, 0.42, 0), // horns
+      box(0.4, 0.06, 0.02, [20, 10, 30], 0, -0.02, 0.33),                                // grumpy mouth
+    ]), 0, 0.42, 0);
+    eyes = [[-0.15, 0.16, 0.335], [0.15, 0.16, 0.335]];
+  } else if (type === 'sporeling') {
+    // A grumpy walking mushroom that puffs spore balls.
+    const cap = [200, 50, 50], spot = [245, 235, 220], stalk = [225, 210, 180];
+    add(merge([box(0.36, 0.55, 0.32, stalk, 0, 0.6, 0)]));
+    for (const x of [-0.1, 0.1]) leg(0.14, 0.32, [190, 170, 140], x, 0, 0.32);
+    head = add(merge([
+      box(0.8, 0.3, 0.8, cap, 0, 0.18, 0), box(0.6, 0.12, 0.6, cap, 0, 0.38, 0),
+      box(0.14, 0.04, 0.14, spot, -0.2, 0.34, 0.18), box(0.12, 0.04, 0.12, spot, 0.22, 0.34, -0.1), box(0.1, 0.04, 0.1, spot, 0.05, 0.45, 0.1),
+      box(0.18, 0.05, 0.02, [60, 40, 30], 0, -0.16, 0.17),
+    ]), 0, 0.95, 0);
+    eyes = [[-0.08, -0.07, 0.17], [0.08, -0.07, 0.17]];
   } else if (type === 'frog') {
     const green = [80, 170, 70], belly = [200, 225, 140];
     add(merge([box(0.4, 0.22, 0.44, green, 0, 0.2, 0), box(0.34, 0.06, 0.36, belly, 0, 0.09, 0.02)]));
@@ -180,7 +205,7 @@ function buildModel(type, mat, woolColor, sheared, job = 'farmer') {
     ]), 0, 0.72, 0.22);
   }
   if (collar) collar.visible = false;
-  return { group, head, legs, wool, tail, collar };
+  return { group, head, legs, wool, tail, collar, eyes };
 }
 
 // ---------- hearts / effect sprites ----------
@@ -227,6 +252,16 @@ export class Mobs {
     this.heartMat = new THREE.SpriteMaterial({ map: heartTexture([235, 50, 60]), transparent: true, depthWrite: false });
     this.happyMat = new THREE.SpriteMaterial({ map: heartTexture([120, 220, 90]), transparent: true, depthWrite: false });
     this.onBaby = null; // (mob)
+    // Adventure night creatures (set by the game each frame).
+    this.hostileEnabled = false;
+    this.isDay = true;
+    this.maxHostile = MAX_HOSTILE;
+    this.canSpawnMonster = null; // (x, y, z) -> bool  (is it dark enough?)
+    this.onAttack = null;        // (mob, damage)
+    this.onShoot = null;         // (mob)
+    this.onPoof = null;          // (mob, cause)
+    this.monsterTimer = 0;
+    this.eyeMat = new THREE.MeshBasicMaterial({ color: 0xffe14a, fog: false });
   }
 
   reset(world) {
@@ -240,7 +275,14 @@ export class Mobs {
   spawn(type, x, y, z, opts = {}) {
     if (!TYPES[type]) return null;
     const woolColor = opts.woolColor ?? (type === 'sheep' ? pickWool() : null);
-    const model = buildModel(type, this.mat, woolColor, !!opts.sheared, opts.job);
+    const hostile = !!TYPES[type].hostile;
+    const mat = hostile ? this.mat.clone() : this.mat; // own material so it can flash when hit
+    const model = buildModel(type, mat, woolColor, !!opts.sheared, opts.job);
+    if (model.eyes) for (const [ex, ey, ez] of model.eyes) { // eyes glow in the dark
+      const e = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.02), this.eyeMat);
+      e.position.set(ex, ey, ez);
+      model.head.add(e);
+    }
     const mob = {
       type, ...model,
       pos: new THREE.Vector3(x, y, z), vel: new THREE.Vector3(),
@@ -252,6 +294,7 @@ export class Mobs {
       soundTimer: 4 + Math.random() * 10, hop: 0,
       tamed: false, sitting: !!opts.sitting, petName: null, tag: null, wag: 0,
       job: opts.job || null, home: opts.home || null, villagerName: opts.villagerName || null,
+      hostile, hp: TYPES[type].hp || 0, mat, flash: 0, attackCd: 1, shootCd: 2 + Math.random() * 2,
     };
     mob.targetYaw = mob.yaw;
     if (opts.tamed) this.tame(mob, opts.petName);
@@ -279,6 +322,7 @@ export class Mobs {
 
   remove(mob) {
     this.scene.remove(mob.group);
+    if (mob.mat && mob.mat !== this.mat) mob.mat.dispose();
     mob.group.traverse((o) => o.geometry?.dispose());
     this.list.splice(this.list.indexOf(mob), 1);
   }
@@ -315,15 +359,33 @@ export class Mobs {
     this.mat.color.setScalar(light);
     const W = this.world;
 
+    // Night creatures: only in Adventure, only in the dark, and they poof in sunlight.
+    for (const mob of [...this.list]) {
+      if (!mob.hostile) continue;
+      const far = Math.hypot(mob.pos.x - player.pos.x, mob.pos.z - player.pos.z) > 56;
+      const inSun = this.isDay && W.topSolid(Math.floor(mob.pos.x), Math.floor(mob.pos.z)) <= Math.floor(mob.pos.y); // open sky above
+      if (!this.hostileEnabled || far) this.remove(mob);
+      else if (inSun) this.poof(mob, 'sun');
+      else {
+        mob.flash = Math.max(0, mob.flash - dt);
+        mob.mat.color.setRGB(light, mob.flash > 0 ? light * 0.35 : light, mob.flash > 0 ? light * 0.35 : light);
+      }
+    }
+    this.monsterTimer -= dt;
+    if (allowSpawn && this.hostileEnabled && this.monsterTimer <= 0) {
+      this.monsterTimer = 1;
+      if (this.list.filter((m) => m.hostile).length < this.maxHostile) this.trySpawnMonster(player);
+    }
+
     // Spawning and despawning around the player
     this.spawnTimer -= dt;
     if (allowSpawn && this.spawnTimer <= 0) {
       this.spawnTimer = 3;
-      if (this.list.length < MAX_MOBS) this.trySpawnHerd(player.pos);
+      if (this.list.filter((m) => !m.hostile).length < MAX_MOBS) this.trySpawnHerd(player.pos);
     }
     for (const mob of [...this.list]) {
       const d = Math.hypot(mob.pos.x - player.pos.x, mob.pos.z - player.pos.z);
-      if (d > DESPAWN_DIST && !mob.kept && !mob.home) this.remove(mob); // villagers come and go as a group
+      if (d > DESPAWN_DIST && !mob.kept && !mob.home && !mob.hostile) this.remove(mob); // villagers come and go as a group
     }
     if (allowSpawn) this.spawnVillagers(player.pos);
 
@@ -402,6 +464,7 @@ export class Mobs {
 
   think(mob, dt, player) {
     mob.timer -= dt;
+    if (mob.hostile) { this.thinkHostile(mob, dt, player); return; }
     mob.loveCooldown = Math.max(0, mob.loveCooldown - dt);
     if (mob.hop > 0) mob.hop -= dt;
 
@@ -534,6 +597,68 @@ export class Mobs {
       }
       return;
     }
+  }
+
+  // ---------- night creatures ----------
+  thinkHostile(mob, dt, player) {
+    const t = TYPES[mob.type];
+    const dx = player.pos.x - mob.pos.x, dz = player.pos.z - mob.pos.z;
+    const d = Math.hypot(dx, dz), dy = player.pos.y - mob.pos.y;
+    mob.attackCd -= dt; mob.shootCd -= dt;
+    if (d > 18) { // not noticed you yet: wander
+      if (mob.timer <= 0) { mob.walking = Math.random() < 0.5; mob.targetYaw = Math.random() * Math.PI * 2; mob.timer = 2 + Math.random() * 3; }
+      return;
+    }
+    mob.targetYaw = Math.atan2(dx, dz);
+    if (t.ranged) {
+      // Keep a comfy distance and puff spores.
+      mob.walking = d > 9 || d < 4;
+      if (d < 4) mob.targetYaw += Math.PI;
+      if (d < 14 && mob.shootCd <= 0) { mob.shootCd = 2.4 + Math.random(); this.onShoot?.(mob); this.voice(mob); }
+    } else {
+      mob.walking = d > 0.9;
+      if (mob.walking && mob.onGround && Math.random() < dt * 3) mob.vel.y = 5.5; // hop hop
+      if (d < this.size(mob).hw + 0.9 && Math.abs(dy) < 1.6 && mob.attackCd <= 0) {
+        mob.attackCd = 1.1;
+        this.onAttack?.(mob, t.dmg);
+      }
+    }
+    mob.soundTimer -= dt;
+    if (mob.soundTimer <= 0) { mob.soundTimer = 4 + Math.random() * 6; this.voice(mob); }
+  }
+
+  trySpawnMonster(player) {
+    const W = this.world;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const a = Math.random() * Math.PI * 2, r = 14 + Math.random() * 16;
+      const x = Math.floor(player.pos.x + Math.cos(a) * r), z = Math.floor(player.pos.z + Math.sin(a) * r);
+      if (!this.isLoaded(x, z)) continue;
+      const py = Math.floor(player.pos.y);
+      for (let y = py + 8; y >= py - 8; y--) {
+        if (!SOLID[W.getBlock(x, y - 1, z)] || W.getBlock(x, y, z) !== B.AIR || W.getBlock(x, y + 1, z) !== B.AIR) continue;
+        if (this.canSpawnMonster && !this.canSpawnMonster(x, y, z)) break;
+        const mob = this.spawn(Math.random() < 0.7 ? 'gloomling' : 'sporeling', x + 0.5, y, z + 0.5);
+        if (mob && this.collides(mob)) this.remove(mob);
+        return;
+      }
+    }
+  }
+
+  /** Damage a night creature. Returns true if it was defeated. */
+  hurt(mob, dmg, from) {
+    if (!mob.hostile || mob.hp <= 0) return false;
+    mob.hp -= dmg;
+    mob.flash = 0.25;
+    const ax = mob.pos.x - from.x, az = mob.pos.z - from.z, al = Math.hypot(ax, az) || 1;
+    mob.vel.x = ax / al * 7; mob.vel.z = az / al * 7; mob.vel.y = 4.5; // knock-back
+    mob.attackCd = Math.max(mob.attackCd, 0.6);
+    if (mob.hp <= 0) { this.poof(mob, 'player'); return true; }
+    return false;
+  }
+
+  poof(mob, cause) {
+    this.onPoof?.(mob, cause);
+    this.remove(mob);
   }
 
   /** Puts one villager in each house of villages near the player (once per visit). */

@@ -1,6 +1,6 @@
 // Service worker: caches the whole game so it works offline once loaded.
 // Bump VERSION whenever files change so players get the update.
-const VERSION = 'minicrafter-v9';
+const VERSION = 'minicrafter-v10';
 const CORE = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
@@ -8,6 +8,7 @@ const CORE = [
   './src/adventure.js',
   './src/audio.js',
   './src/blocks.js',
+  './src/combat.js',
   './src/craftui.js',
   './src/critters.js',
   './src/ideas.js',

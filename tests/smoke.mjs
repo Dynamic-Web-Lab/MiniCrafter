@@ -178,6 +178,19 @@ try {
     m.survival.health = 20;
     out.adventure = levels === 2 && ate && advFall === 3 && gentleFall === 2 && !!document.getElementById('gate') && B.LOST_CHEST > 0;
 
+    // Adventure A2: monsters stay out of gentle modes; arrows and sword hits defeat them with a poof.
+    const THREE2 = await import('three');
+    m.mobs.isDay = false;
+    const gentleSpawn = m.mobs.hostileEnabled === false;
+    const gl = m.mobs.spawn('gloomling', p.pos.x + 4, p.pos.y + 1, p.pos.z);
+    let poofed = null; const prevPoof = m.mobs.onPoof; m.mobs.onPoof = (mob, cause) => { poofed = cause; };
+    m.projectiles.fire('arrow', new THREE2.Vector3(p.pos.x + 1, gl.pos.y + 0.4, p.pos.z), new THREE2.Vector3(1, 0, 0), 30, 4);
+    for (let i = 0; i < 20; i++) m.projectiles.update(1 / 60);
+    const arrowHit = gl.hp === 6;
+    m.mobs.hurt(gl, 10, p.pos);
+    m.mobs.onPoof = prevPoof;
+    out.a2 = gentleSpawn && arrowHit && poofed === 'arrow' && !m.mobs.list.includes(gl) && !!document.getElementById('monsters');
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -202,6 +215,7 @@ try {
   ok(features.critters, 'frogs spawn, pets wear hats, fireflies can be targeted');
   ok(features.phase4, 'share links round-trip and reject bad data; portals; daily idea');
   ok(features.adventure, 'adventure: XP levels, hunger, tougher falls (gentle modes unchanged)');
+  ok(features.a2, 'adventure A2: no monsters in gentle modes; arrows and swords defeat them');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });

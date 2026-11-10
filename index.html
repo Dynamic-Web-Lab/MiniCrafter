@@ -52,6 +52,8 @@
       <div id="hearts"></div>
       <div class="status-right"><div id="bubbles"></div><div id="hunger"></div></div>
     </div>
+    <div id="charge" class="hidden"><div id="charge-fill"></div></div>
+    <div id="armor-ind"></div>
     <div id="xpbar" class="hidden"><div id="xp-fill"></div><span id="xp-level">0</span></div>
     <div id="hotbar"></div>
   </div>
@@ -84,6 +86,9 @@
         </label>
         <label>Field of view <span id="fov-val"></span>
           <input id="fov" type="range" min="55" max="100" step="1">
+        </label>
+        <label>Night creatures (⚔️ Adventure only)
+          <select id="monsters"><option value="easy">Easy: fewer, gentler</option><option value="normal">Normal</option></select>
         </label>
       </div>
 

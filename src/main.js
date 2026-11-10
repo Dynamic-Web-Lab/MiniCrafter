@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { B, BLOCKS, PLACEABLE, SOLID, FLOWERS } from './blocks.js';
+import { B, BLOCKS, PLACEABLE, SOLID, FLOWERS, LIGHT } from './blocks.js';
 import { createAtlas, TILE } from './textures.js';
 import { World, CS, SEA, applyVoxelLighting, lightUniforms } from './world.js';
 import { Player, EYE } from './player.js';
@@ -20,6 +20,7 @@ import { WorldStore } from './worlds.js';
 import { TRADES, JOB_INFO } from './villages.js';
 import { SHAPES, MAX_CELLS, previewBounds, ToolPreview, History } from './tools.js';
 import { Critters } from './critters.js';
+import { Projectiles } from './combat.js';
 import { makeShareLink, readSharedFromHash } from './share.js';
 import { IDEAS, ideaOfTheDay } from './ideas.js';
 import { xpNeeded, addXp, MINING_XP, showGate, initGate, gateUnlocked } from './adventure.js';
@@ -125,17 +126,19 @@ scene.add(outline);
 const touchMode = isTouchDevice();
 if (touchMode) document.body.classList.add('touch');
 // Tablets get a lighter default view distance.
-const settings = Object.assign({ renderDistance: touchMode ? 5 : 7, sensitivity: 1, fov: 75 }, store.get(SETTINGS_KEY) || {});
+const settings = Object.assign({ renderDistance: touchMode ? 5 : 7, sensitivity: 1, fov: 75, monsters: 'normal' }, store.get(SETTINGS_KEY) || {});
 function applySettings() {
   camera.fov = settings.fov; camera.updateProjectionMatrix();
   $('rd').value = settings.renderDistance; $('rd-val').textContent = settings.renderDistance;
   $('sens').value = settings.sensitivity; $('sens-val').textContent = settings.sensitivity.toFixed(1);
   $('fov').value = settings.fov; $('fov-val').textContent = settings.fov;
+  $('monsters').value = settings.monsters;
   store.set(SETTINGS_KEY, settings);
 }
 $('rd').addEventListener('input', (e) => { settings.renderDistance = +e.target.value; applySettings(); });
 $('sens').addEventListener('input', (e) => { settings.sensitivity = +e.target.value; applySettings(); });
 $('fov').addEventListener('input', (e) => { settings.fov = +e.target.value; applySettings(); });
+$('monsters').addEventListener('change', (e) => { settings.monsters = e.target.value; applySettings(); });
 applySettings();
 
 // ---------- world state ----------
@@ -154,7 +157,7 @@ let shownTips = new Set();
 const isSurvival = () => mode === 'survival' || mode === 'adventure';
 const isAdventure = () => mode === 'adventure';
 const MODE_NAMES = { creative: 'Creative', survival: 'Survival', adventure: '⚔️ Adventure' };
-const adv = { xp: 0, level: 0, hardcore: false, over: false, graves: new Map() }; // graves: "x,y,z" -> inventory JSON
+const adv = { xp: 0, level: 0, hardcore: false, over: false, graves: new Map(), armor: null }; // graves: "x,y,z" -> inventory JSON
 
 /** Item id held in the selected hotbar slot (or null). */
 function heldItem() {
@@ -176,7 +179,8 @@ function startWorld(seedStr, saved, newMode) {
   attachFunHooks();
   inv = new Inventory();
   survival.reset();
-  adv.xp = 0; adv.level = 0; adv.over = false; adv.graves = new Map();
+  adv.xp = 0; adv.level = 0; adv.over = false; adv.graves = new Map(); adv.armor = null;
+  projectiles?.clear();
   shownTips = new Set();
   mobs.reset(world);
   critters.reset(world);
@@ -195,6 +199,7 @@ function startWorld(seedStr, saved, newMode) {
     timeOfDay = saved.time ?? timeOfDay;
     mode = ['survival', 'adventure'].includes(saved.mode) ? saved.mode : 'creative';
     adv.xp = saved.xp | 0; adv.level = saved.level | 0; adv.over = !!saved.over;
+    adv.armor = ITEMS.get(saved.armor)?.armor ? saved.armor : null;
     if (Number.isFinite(saved.hunger)) survival.hunger = Math.max(0, Math.min(MAX_HUNGER, saved.hunger));
     if (Array.isArray(saved.graves)) for (const [k, items] of saved.graves) adv.graves.set(k, items);
     inv = Inventory.fromJSON(saved.inv);
@@ -253,7 +258,7 @@ function save() {
     hotbar: creativeBar, selected, time: timeOfDay,
     mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(), robotCode: robotUI.getState(),
     crops: [...crops].map(([k, t]) => [...k.split(',').map(Number), Math.round(t)]),
-    xp: adv.xp, level: adv.level, hunger: survival.hunger, over: adv.over, graves: [...adv.graves],
+    xp: adv.xp, level: adv.level, hunger: survival.hunger, over: adv.over, graves: [...adv.graves], armor: adv.armor,
   }, { mode, stars: quests.stars });
   if (ok) dirtySave = false;
 }
@@ -300,6 +305,8 @@ function renderStatus() {
     f += `<span class="food ${v >= 2 ? '' : v === 1 ? 'half' : 'empty'}">🍗</span>`;
   }
   $('hunger').innerHTML = f;
+  const armor = isAdventure() && adv.armor ? ITEMS.get(adv.armor) : null;
+  $('armor-ind').textContent = armor ? `🛡️ ${itemName(adv.armor)} (−${Math.round(armor.armor * 100)}%)` : '';
   renderXp();
 }
 
@@ -852,7 +859,7 @@ survival.onDamage = () => {
 survival.onDeath = (reason) => {
   state = 'dead';
   clearInput();
-  $('death-msg').textContent = reason === 'drown' ? 'You ran out of air.' : reason === 'fall' ? 'That was a big fall!' : reason === 'hunger' ? 'You were too hungry.' : 'You fainted.';
+  $('death-msg').textContent = reason === 'drown' ? 'You ran out of air.' : reason === 'fall' ? 'That was a big fall!' : reason === 'hunger' ? 'You were too hungry.' : reason === 'monster' ? 'A night creature got you!' : 'You fainted.';
   $('death-title').textContent = 'Oops!';
   $('btn-respawn').classList.remove('hidden');
   $('btn-spectate').classList.add('hidden');
@@ -885,6 +892,99 @@ $('btn-spectate').addEventListener('click', () => {
   save();
   enterPlay();
 });
+
+// ---------- night creatures and combat (Adventure) ----------
+/** Approximate light level 0-15 at a cell: open sky (by day) plus nearby torches/lamps. */
+function lightLevel(x, y, z) {
+  const sky = world.topSolid(x, z) < y ? (isNight() ? 4 : 15) : 0;
+  let blk = 0;
+  for (let dy = -7; dy <= 7; dy++) for (let dz = -7; dz <= 7; dz++) for (let dx = -7; dx <= 7; dx++) {
+    const e = LIGHT[world.getBlock(x + dx, y + dy, z + dz)];
+    if (e) blk = Math.max(blk, e - Math.abs(dx) - Math.abs(dy) - Math.abs(dz));
+  }
+  return Math.max(sky, blk);
+}
+const isNight = () => timeOfDay > 0.55 && timeOfDay < 0.95;
+const difficulty = () => (settings.monsters === 'easy' ? 0.5 : 1);
+
+/** Damage from a night creature: armour and a raised shield soak it up. */
+function hurtPlayer(dmg, from) {
+  if (!isAdventure() || adv.over || survival.dead) return;
+  let d = dmg * difficulty();
+  if (adv.armor) d *= 1 - (ITEMS.get(adv.armor)?.armor || 0);
+  if (player.blocking && from) {
+    const fx = from.x - player.pos.x, fz = from.z - player.pos.z;
+    const facing = -Math.sin(player.yaw) * fx - Math.cos(player.yaw) * fz; // > 0 when in front of you
+    if (facing > 0) { d *= 0.15; sfx.tone(240, 0.08, 'square', 0.12); }
+  }
+  if (from) { // knock-back
+    const ax = player.pos.x - from.x, az = player.pos.z - from.z, al = Math.hypot(ax, az) || 1;
+    player.vel.x += ax / al * 5; player.vel.z += az / al * 5; player.vel.y = Math.max(player.vel.y, 4);
+  }
+  survival.damage(Math.max(d >= 0.5 ? 1 : 0, Math.round(d)), 'monster');
+}
+
+mobs.canSpawnMonster = (x, y, z) => lightLevel(x, y, z) < 7;
+mobs.onAttack = (mob) => hurtPlayer(TYPES[mob.type].dmg, mob.pos);
+mobs.onShoot = (mob) => {
+  const from = mob.pos.clone(); from.y += TYPES[mob.type].h * 0.85;
+  const eye = player.eye;
+  projectiles.fire('spore', from, eye.clone().sub(from), 7, TYPES[mob.type].dmg);
+};
+mobs.onPoof = (mob, cause) => {
+  for (const tile of [TILE.WOOL_BLACK, TILE.WOOL_WHITE, TILE.NEON_PURPLE]) particles.burst(Math.floor(mob.pos.x), Math.floor(mob.pos.y), Math.floor(mob.pos.z), tile);
+  if (cause !== 'player' && cause !== 'arrow') return;
+  sfx.tone(520, 0.18, 'triangle', 0.18, -300);
+  gainXp(5);
+  const drop = mob.type === 'sporeling' ? (Math.random() < 0.6 ? [I.ARROW, 1 + Math.floor(Math.random() * 2)] : null)
+    : (Math.random() < 0.3 ? [I.COAL, 1] : Math.random() < 0.15 ? [I.APPLE, 1] : null);
+  if (drop) { inv.add(drop[0], drop[1]); renderHotbar(); toast(`+${drop[1]} ${itemName(drop[0])}`); }
+  quests.emit('defeat', { type: mob.type, how: cause });
+  dirtySave = true;
+};
+const projectiles = new Projectiles({
+  scene, mobs, getWorld: () => world, getPlayer: () => player,
+  onHitPlayer: (dmg, pos) => hurtPlayer(dmg, pos),
+  onHitMob: (mob, dmg) => { sfx.hit?.(B.WOOL_WHITE); mob.byArrow = true; mobs.hurt(mob, dmg, player.pos); },
+  onHitBlock: () => {},
+});
+// Arrow defeats count as 'arrow' for the Archer quest.
+const _poof = mobs.poof.bind(mobs);
+mobs.poof = (mob, cause) => _poof(mob, cause === 'player' && mob.byArrow ? 'arrow' : cause);
+
+/** Sword (or fist) attack on a night creature. */
+function attackMob(mob, now) {
+  const dmg = ITEMS.get(heldItem())?.damage || 1;
+  mob.byArrow = false;
+  mobs.hurt(mob, dmg, player.pos);
+  sfx.hit?.(B.STONE);
+  survival.exhaust(0.1);
+  mouse.nextAction = now + 0.45;
+}
+
+const bow = { charging: false, start: 0 };
+/** Bow: hold right-click to draw, let go to shoot. More draw = faster, harder arrows. */
+function updateBow(now) {
+  const holdingBow = isAdventure() && ITEMS.get(heldItem())?.bow;
+  if (holdingBow && mouse.right && !bow.charging) {
+    if (inv.count(I.ARROW) < 1) { if (now >= mouse.nextAction) { toast('You need arrows (stick + cobblestone)'); mouse.nextAction = now + 1; } }
+    else { bow.charging = true; bow.start = now; }
+  }
+  const charge = bow.charging ? Math.min(1, (now - bow.start) / 0.9) : 0;
+  $('charge').classList.toggle('hidden', !bow.charging);
+  $('charge-fill').style.width = `${Math.round(charge * 100)}%`;
+  if (bow.charging && (!mouse.right || !holdingBow)) {
+    bow.charging = false;
+    $('charge').classList.add('hidden');
+    if (!holdingBow || !inv.remove(I.ARROW, 1)) return;
+    renderHotbar();
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+    const from = player.eye.clone().addScaledVector(dir, 0.6);
+    projectiles.fire('arrow', from, dir, 14 + 18 * charge, Math.round(2 + 6 * charge));
+    sfx.tone(300, 0.12, 'triangle', 0.18, 500);
+    mouse.nextAction = now + 0.2;
+  }
+}
 
 /** Adventure: put the whole inventory into a Lost Items Chest where you fainted. Returns "x, y, z". */
 function dropLostItems() {
@@ -1318,6 +1418,7 @@ function actMob(now) {
   const mob = mobTarget;
   const held = heldItem();
   mouse.nextAction = now + 0.45;
+  if (mob.hostile) { if (mouse.left) attackMob(mob, now); return; }
   if (mob.type === 'villager') {
     if (mouse.right) { mouse.right = false; openTrade(mob); }
     else { mobs.pat(mob, player); }
@@ -1410,6 +1511,19 @@ function actSurvival(now, dt) {
       } else if (info.hint) hint(info.hint, 3000);
       dirtySave = true;
     }
+  } else if (mouse.right && now >= mouse.nextAction && (ITEMS.get(held)?.bow || ITEMS.get(held)?.shield)) {
+    survival.stopMining(); // bow and shield are handled by updateBow / blocking
+  } else if (mouse.right && now >= mouse.nextAction && ITEMS.get(held)?.armor) {
+    survival.stopMining();
+    if (!isAdventure()) { toast('Armour is for Adventure mode'); mouse.nextAction = now + 1; return; }
+    const old = adv.armor;
+    adv.armor = held; inv.takeFromSlot(selected, 1);
+    if (old) inv.add(old, 1);
+    renderHotbar(); renderStatus(); sfx.craft();
+    toast(`Wearing ${itemName(held)}`);
+    quests.emit('armor', {});
+    dirtySave = true;
+    mouse.nextAction = now + 0.5;
   } else if (mouse.right && now >= mouse.nextAction) {
     survival.stopMining();
     const garden = useGardenItem(held);
@@ -1644,6 +1758,11 @@ function frame(now, manual = false) {
   scene.background = scene.fog.color;
   $('water-overlay').classList.toggle('hidden', !(player.headInWater && state === 'playing'));
 
+  mobs.hostileEnabled = isAdventure() && !adv.over;
+  mobs.isDay = !isNight();
+  mobs.maxHostile = settings.monsters === 'easy' ? 4 : 8;
+  player.blocking = state === 'playing' && isAdventure() && mouse.right && !!ITEMS.get(heldItem())?.shield;
+  if (state === 'playing') { updateBow(simTime); projectiles.update(dt); }
   mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
   critters.update(dt, player, light, timeOfDay > 0.55 && timeOfDay < 0.95, state === 'playing' || (state === 'menu' && !hasPlayed));
   robot.update(dt, light);
@@ -1713,7 +1832,7 @@ window.addEventListener('appinstalled', () => $('btn-install').classList.add('hi
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, adv, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, projectiles, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

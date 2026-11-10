@@ -15,6 +15,8 @@ export const I = {
   LINE_WAND: 310, BOX_TOOL: 311, WALLS_TOOL: 312, SPHERE_TOOL: 313, PAINT_ROLLER: 314, RAINBOW_BRUSH: 315,
   SEEDS: 320, WHEAT: 321, BREAD: 322, HOE: 323, WATERING_CAN: 324,
   PARTY_HAT: 330, CROWN: 331, SUNGLASSES: 332,
+  WOOD_SWORD: 340, STONE_SWORD: 341, IRON_SWORD: 342, DIAMOND_SWORD: 343,
+  BOW: 344, ARROW: 345, SHIELD: 346, WOOL_ARMOR: 347, IRON_ARMOR: 348, DIAMOND_ARMOR: 349,
 };
 
 const TIERS = [
@@ -58,6 +60,16 @@ item(I.WHEAT, 'Wheat', { sprite: 'wheat', color: [225, 195, 80] });
 item(I.BREAD, 'Bread', { sprite: 'bread', color: [200, 140, 70], food: 5 });
 item(I.HOE, 'Hoe', { sprite: 'hoe', color: [150, 115, 65], stack: 1, hoe: true });
 item(I.WATERING_CAN, 'Watering Can', { sprite: 'can', color: [90, 160, 230], stack: 1, water: true });
+
+// Adventure combat gear (only useful in Adventure mode, where night creatures roam).
+[['WOOD', 'Wooden', [150, 115, 65], 4], ['STONE', 'Stone', [125, 125, 125], 5], ['IRON', 'Iron', [225, 225, 228], 6], ['DIAMOND', 'Diamond', [90, 225, 215], 7]]
+  .forEach(([k, n, c, dmg]) => item(I[`${k}_SWORD`], `${n} Sword`, { sprite: 'sword', color: c, stack: 1, damage: dmg }));
+item(I.BOW, 'Bow', { sprite: 'bow', color: [150, 105, 60], stack: 1, bow: true });
+item(I.ARROW, 'Arrow', { sprite: 'arrow', color: [200, 200, 205] });
+item(I.SHIELD, 'Shield', { sprite: 'shield', color: [150, 110, 65], stack: 1, shield: true });
+item(I.WOOL_ARMOR, 'Wool Armor', { sprite: 'armor', color: [235, 235, 235], stack: 1, armor: 0.2 });
+item(I.IRON_ARMOR, 'Iron Armor', { sprite: 'armor', color: [215, 215, 222], stack: 1, armor: 0.4 });
+item(I.DIAMOND_ARMOR, 'Diamond Armor', { sprite: 'armor', color: [90, 225, 215], stack: 1, armor: 0.6 });
 
 // Pet accessories: right-click your pet while holding one.
 item(I.PARTY_HAT, 'Party Hat', { sprite: 'partyhat', color: [240, 80, 160], stack: 16, accessory: 'party' });
@@ -159,6 +171,16 @@ recipe(I.HOE, 1, [[B.PLANKS, 2], [I.STICK, 2]]);
 recipe(I.PARTY_HAT, 1, [[B.WOOL_RED, 1], [B.WOOL_YELLOW, 1]]);
 recipe(I.CROWN, 1, [[I.GOLD_INGOT, 2]], 'table');
 recipe(B.STAR, 1, [[I.GOLD_INGOT, 1], [B.GLASS, 1]], 'table');
+recipe(I.WOOD_SWORD, 1, [[B.PLANKS, 2], [I.STICK, 1]], 'table');
+recipe(I.STONE_SWORD, 1, [[B.COBBLE, 2], [I.STICK, 1]], 'table');
+recipe(I.IRON_SWORD, 1, [[I.IRON_INGOT, 2], [I.STICK, 1]], 'table');
+recipe(I.DIAMOND_SWORD, 1, [[I.DIAMOND, 2], [I.STICK, 1]], 'table');
+recipe(I.BOW, 1, [[I.STICK, 3], [B.WOOL_WHITE, 1]], 'table');
+recipe(I.ARROW, 4, [[I.STICK, 1], [B.COBBLE, 1]], 'table');
+recipe(I.SHIELD, 1, [[B.PLANKS, 6], [I.IRON_INGOT, 1]], 'table');
+recipe(I.WOOL_ARMOR, 1, [[B.WOOL_WHITE, 8]], 'table');
+recipe(I.IRON_ARMOR, 1, [[I.IRON_INGOT, 8]], 'table');
+recipe(I.DIAMOND_ARMOR, 1, [[I.DIAMOND, 8]], 'table');
 recipe(B.PORTAL_BLUE, 2, [[I.DIAMOND, 1], [B.WOOL_BLUE, 2]], 'table');
 recipe(B.PORTAL_ORANGE, 2, [[I.DIAMOND, 1], [B.WOOL_RED, 1], [B.WOOL_YELLOW, 1]], 'table');
 recipe(B.PORTAL_GREEN, 2, [[I.DIAMOND, 1], [B.WOOL_GREEN, 2]], 'table');
@@ -247,6 +269,31 @@ const SPRITES = {
     '.....######.....', '....###s####....', '....########....', '...####s#####...',
     '...##########...', '...###s######...', '...##########...', '....####s###....',
     '.....######.....', '......####......', '................', '................',
+  ],
+  sword: [
+    '..............##', '.............###', '............###.', '...........###..', '..........###...', '.........###....',
+    '........###.....', '...d...###......', '....d.###.......', '.....d##........', '......dd........', '.....ssdd.......',
+    '....ss...d......', '...ss...........', '..ss............', '................',
+  ],
+  bow: [
+    '................', '.......sss......', '......s...d.....', '.....s.....d....', '....s.......d...', '....s.......d...',
+    '...s........d...', '...s........d...', '...s........d...', '...s........d...', '....s.......d...', '....s.......d...',
+    '.....s.....d....', '......s...d.....', '.......sss......', '................',
+  ],
+  arrow: [
+    '................', '.............##.', '............###.', '...........s##..', '..........s.....', '.........s......',
+    '........s.......', '.......s........', '......s.........', '.....s..........', '..dds...........', '..dd............',
+    '...d............', '................', '................', '................',
+  ],
+  shield: [
+    '................', '...##########...', '...#ssssssss#...', '...#ssd##dss#...', '...#ssd##dss#...', '...#sssddsss#...',
+    '...#ssssssss#...', '...#ssssssss#...', '....#ssssss#....', '....#ssssss#....', '.....#ssss#.....', '......####......',
+    '................', '................', '................', '................',
+  ],
+  armor: [
+    '................', '...###....###...', '..#####..#####..', '..############..', '..############..', '...##########...',
+    '....########....', '....##dddd##....', '....########....', '....########....', '....########....', '....########....',
+    '.....######.....', '................', '................', '................',
   ],
   partyhat: [
     '.......dd.......', '.......##.......', '......####......', '......#dd#......', '.....######.....', '.....##dd##.....',
