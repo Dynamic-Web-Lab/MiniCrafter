@@ -132,7 +132,7 @@
 
 ## 👫 Play Together (online edition)
 
-Build with family and friends, **up to 4 players** in the host's world. Play Together is part of our hosted online edition (it needs our server), so it doesn't appear in the free GitHub Pages copy.
+Build with family and friends, **up to 4 players** in the host's world. Play Together is part of our hosted online edition (it needs our server), so it doesn't appear in the free GitHub Pages copy. Everyone in a game needs an account (see below).
 
 1. The host opens **👫 Play Together** in the menu and taps **Start a game**. A 4-letter room code appears.
 2. Friends pick a name (a colour and an animal, like *Blue Fox*), type the code and tap **Join**.
@@ -152,6 +152,16 @@ Play Together works in Creative and Survival worlds and needs an internet connec
 
 **The relay:** players connect through a single-file relay ([`server/rooms.mjs`](server/rooms.mjs)) that only accepts connections from the site that hosts the game. To run your own copy (for a school network, say), see [`server/README.md`](server/README.md).
 
+## 👤 Accounts (online edition)
+
+Playing never needs an account. In the online edition, an account unlocks Play Together (and, later, more online features).
+
+- **Just a made-up username and a password.** No email address, no real name, no birthday.
+- **The username is private:** it's only for logging in. Other players only ever see your picked colour-and-animal name.
+- **Passwords are hashed** (scrypt), and logins are kept in secure, HttpOnly cookies.
+- **Delete your account any time** from the account screen. It's removed straight away, and your worlds on the device stay.
+- Kids: ask a grown-up to help you make one.
+
 ## ⚔️ Adventure mode (for older players)
 
 Want more excitement? **Adventure** is an opt-in third mode for teens and grown-ups. It sits behind a quick grown-up check and never changes the kids' Creative and gentle Survival worlds.
@@ -170,7 +180,7 @@ Want more excitement? **Adventure** is an opt-in third mode for teens and grown-
 | | |
 |---|---|
 | 🚫 **No monsters, no fighting** | Animals are friends: you can pat, feed and shear them, but never hurt them. (Night creatures exist only in grown-up ⚔️ Adventure worlds.) |
-| 🔒 **No accounts, no chat, no ads** | Nothing to sign up for, no strangers to talk to, and nothing to buy. |
+| 🔒 **No chat, no ads, no purchases** | No strangers to talk to and nothing to buy. Accounts are optional (online edition only) and need just a made-up username and a password. |
 | 💾 **Private** | Saves stay in the browser on your device, with no tracking. The only server is the small Play Together relay, which stores nothing. |
 | 🙂 **Forgiving** | Fainting keeps your items, hearts come back on their own, and tips guide new players. |
 | 🤖 **Friendly errors** | If Bit's program hits a problem, Bit shakes its head, says why in plain words, and keeps going. |
@@ -287,6 +297,14 @@ python3 -m http.server 8765
 
 Open http://localhost:8765. To play on a tablet on the same Wi-Fi, open `http://<your-computer-ip>:8765`.
 
+**Online edition locally** (accounts and Play Together, accounts kept in memory):
+
+```bash
+node server/dev.mjs
+```
+
+Then open http://localhost:8770. In production, accounts use Postgres; see [`server/README.md`](server/README.md).
+
 It needs a modern browser with WebGL. Everything, including three.js and Blockly, is bundled in `vendor/`, so there are no external requests.
 
 **Deploy:** push to GitHub and enable **GitHub Pages** on the `main` branch root (that's how the [live version](https://dynamic-web-lab.github.io/MiniCrafter/) is hosted), or drop the folder on any static host.
@@ -330,7 +348,10 @@ src/adventure.js    Adventure mode: XP / levels and the grown-up gate
 src/combat.js       Adventure combat: arrows and spore projectiles
 src/spark.js        Spark circuits: wire power, gates, lamps, doors, pistons
 src/together.js     Play Together: rooms, world snapshot, block / animal sync, avatars, emoji
-server/rooms.mjs    Play Together relay (zero dependencies, nothing stored)
+src/account.js      Optional accounts (online edition): register, log in, log out, delete
+server/rooms.mjs    Play Together relay (nothing stored; checks logins)
+server/accounts.mjs Accounts API (Postgres in production, memory in development)
+server/dev.mjs      Local online edition: game + accounts + relay on one address
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds

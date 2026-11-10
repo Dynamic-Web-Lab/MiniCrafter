@@ -1,6 +1,23 @@
-# MiniCrafter Rooms (Play Together relay)
+# MiniCrafter online edition server
 
-A tiny relay that lets up to 4 players share one world in the online edition. Single-player still needs no server at all.
+Two small services for the hosted online edition, plus a database. Single-player still needs no server at all.
+
+| Service | File | What it does |
+|---|---|---|
+| Relay | `rooms.mjs` | Play Together rooms for up to 4 logged-in players (zero dependencies, nothing stored) |
+| Accounts | `accounts.mjs` | Register, log in, log out and delete an account (Postgres; only dependency: `pg`) |
+| Database | Postgres 16 | Usernames, password hashes and sessions. **Back it up.** |
+| Dev server | `dev.mjs` | All of the above on one local address, with accounts in memory |
+
+## Accounts: privacy by design
+- Only a username and a password. No email address, no real name, no birthday, no tracking.
+- The username is private: other players only see the picked colour-and-animal name.
+- Passwords are hashed with scrypt. Sessions are random tokens stored only as SHA-256 hashes and sent as HttpOnly, Secure, SameSite=Lax cookies (30 days).
+- Cross-site protection: requests need an allowed Origin, a JSON body and an `X-Minicrafter` header.
+- Rate limits: new accounts per address per hour, and wrong passwords per address and per username.
+- Deleting an account deletes its sessions too, straight away.
+
+# The Play Together relay
 
 ## Why a relay (and not direct peer-to-peer)
 - **No IP addresses shared between kids:** every player talks only to the relay.
@@ -14,15 +31,16 @@ A tiny relay that lets up to 4 players share one world in the online edition. Si
 ```bash
 node server/rooms.mjs          # listens on :8787
 ```
-The game uses `ws://localhost:8787` automatically when served from localhost (Play Together is always on there for development). Tests can pick another relay with `?rooms=ws://host:port`.
+For the whole online edition locally, run `node server/dev.mjs` and open http://localhost:8770 (accounts in memory). The game uses `ws://localhost:8787` when served from a plain localhost static server. Tests can pick another relay with `?rooms=ws://host:port`.
 
 ## Deploy (Docker, behind a reverse proxy)
 ```bash
 cd server
-echo "ALLOWED_ORIGINS=https://your-site.example" > .env   # the site that hosts the game
+printf "ALLOWED_ORIGINS=https://your-site.example\nPOSTGRES_PASSWORD=%s\n" "$(openssl rand -hex 24)" > .env
+chmod 600 .env
 docker compose up -d --build
 ```
-The relay has no public port. Proxy the `/rooms` path of the game's own site (the game connects to `wss://<its own host>/rooms`) to `minicrafter-rooms:8787` with WebSocket upgrade headers, and turn off access logs for it:
+Nothing has a public port. Proxy `/api/` to `minicrafter-accounts:8788` (and never `/internal/`, which only the relay uses), and the `/rooms` path of the game's own site (the game connects to `wss://<its own host>/rooms`) to `minicrafter-rooms:8787` with WebSocket upgrade headers, and turn off access logs for it:
 ```nginx
 location /rooms {
   proxy_pass http://minicrafter-rooms:8787;
@@ -33,4 +51,4 @@ location /rooms {
   proxy_read_timeout 300s;
 }
 ```
-`GET /health` returns `ok <rooms>`. It holds no data, so it needs no backups. To update it, copy `rooms.mjs` to the server and run `docker compose up -d --build` again.
+`GET /health` returns `ok <rooms>`. The relay holds no data, but **the accounts database does: back up `minicrafter-db`** (for example `pg_dump -U minicrafter -d minicrafter`). To update, copy the files to the server and run `docker compose up -d --build` again.

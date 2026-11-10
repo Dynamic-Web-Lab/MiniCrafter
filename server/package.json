@@ -1,0 +1,9 @@
+{
+  "name": "minicrafter-server",
+  "private": true,
+  "type": "module",
+  "description": "MiniCrafter online edition: Play Together relay and accounts",
+  "dependencies": {
+    "pg": "8.16.3"
+  }
+}

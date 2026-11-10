@@ -24,6 +24,9 @@ import { Projectiles } from './combat.js';
 import { Spark } from './spark.js';
 import { makeShareLink, readSharedFromHash, validateShared } from './share.js';
 import { Together, COLORS, ANIMALS, EMOJI, profileName, saveProfile, loadSiteConfig, SITE } from './together.js';
+import { Account, accountMessage } from './account.js';
+
+const account = new Account();
 import { IDEAS, ideaOfTheDay } from './ideas.js';
 import { xpNeeded, addXp, MINING_XP, showGate, initGate, gateUnlocked } from './adventure.js';
 
@@ -875,7 +878,9 @@ function renderTogether() {
   renderProfilePicker();
   const r = together.role;
   const hosting = r === 'host';
-  $('tg-start').classList.toggle('hidden', !!r && r !== 'connecting');
+  const needLogin = SITE.accounts && !account.user && !r; // Play Together needs an account on our site
+  $('tg-login').classList.toggle('hidden', !needLogin);
+  $('tg-start').classList.toggle('hidden', needLogin || (!!r && r !== 'connecting'));
   $('tg-room').classList.toggle('hidden', !hosting);
   $('tg-host').disabled = $('tg-join').disabled = r === 'connecting';
   $('tg-status').textContent = r === 'connecting' ? 'Connecting…'
@@ -943,15 +948,26 @@ function toggleEmojiBar(force) {
 $('btn-together').addEventListener('click', openTogether);
 // Play Together only shows on our hosted site (see loadSiteConfig); the free copy hides it.
 $('btn-together').classList.add('hidden');
-loadSiteConfig().then(() => $('btn-together').classList.toggle('hidden', !SITE.online));
+loadSiteConfig().then(() => {
+  $('btn-together').classList.toggle('hidden', !SITE.online);
+  account.enabled = SITE.accounts;
+  $('btn-account').classList.toggle('hidden', !SITE.accounts);
+  if (SITE.accounts) account.refresh();
+});
 $('tg-close').addEventListener('click', () => {
   if (together.role === 'waiting' || together.role === 'connecting') together.leave(true);
   else if (together.isGuest) together.leave();
   closeTogether();
   renderTogether();
 });
-$('tg-host').addEventListener('click', () => { together.error = ''; together.host(); });
-$('tg-join').addEventListener('click', () => { together.error = ''; together.join($('tg-code').value); });
+/** On our site, check the login is still good before starting or joining (the relay checks it too). */
+async function withLogin(fn) {
+  if (SITE.accounts && !(await account.refresh())) { renderTogether(); openAccount('login'); return; }
+  fn();
+}
+$('tg-host').addEventListener('click', () => withLogin(() => { together.error = ''; together.host(); }));
+$('tg-join').addEventListener('click', () => withLogin(() => { together.error = ''; together.join($('tg-code').value); }));
+$('tg-login-btn').addEventListener('click', () => openAccount('login'));
 $('tg-code').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
 $('tg-code').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') $('tg-join').click(); });
 $('tg-lock').addEventListener('click', () => together.setLocked(!together.locked));
@@ -961,10 +977,69 @@ $('knock-yes').addEventListener('click', () => answerKnock(true));
 $('knock-no').addEventListener('click', () => answerKnock(false));
 renderTogether();
 
+// ---------- account screen (online edition) ----------
+let accMode = 'login';
+function openAccount(mode = 'login') {
+  accMode = mode;
+  $('acc-msg').textContent = '';
+  $('acc-pass').value = ''; $('acc-pass2').value = ''; $('acc-del-pass').value = '';
+  renderAccount();
+  $('account').classList.remove('hidden');
+}
+function closeAccount() { $('account').classList.add('hidden'); }
+function renderAccount() {
+  const u = account.user;
+  $('acc-menu').textContent = u ? `${u} (your account)` : 'Log in or create an account';
+  $('acc-out').classList.toggle('hidden', !!u);
+  $('acc-in').classList.toggle('hidden', !u);
+  $('acc-name').textContent = u || '';
+  const creating = accMode === 'new';
+  $('acc-tab-login').classList.toggle('on', !creating);
+  $('acc-tab-new').classList.toggle('on', creating);
+  $('acc-pass2-row').classList.toggle('hidden', !creating);
+  $('acc-pass').autocomplete = creating ? 'new-password' : 'current-password';
+  $('acc-submit').textContent = creating ? 'Create my account' : 'Log in';
+}
+account.onChange = () => { renderAccount(); renderTogether(); };
+$('btn-account').addEventListener('click', () => openAccount(account.user ? 'login' : 'login'));
+$('acc-tab-login').addEventListener('click', () => { accMode = 'login'; $('acc-msg').textContent = ''; renderAccount(); });
+$('acc-tab-new').addEventListener('click', () => { accMode = 'new'; $('acc-msg').textContent = ''; renderAccount(); });
+$('acc-done').addEventListener('click', closeAccount);
+for (const id of ['acc-user', 'acc-pass', 'acc-pass2', 'acc-del-pass']) $(id).addEventListener('keydown', (e) => e.stopPropagation());
+$('acc-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const user = $('acc-user').value.trim(), pass = $('acc-pass').value;
+  if (accMode === 'new' && pass !== $('acc-pass2').value) { $('acc-msg').textContent = "The two passwords don't match."; return; }
+  $('acc-submit').disabled = true;
+  $('acc-msg').textContent = accMode === 'new' ? 'Creating your account…' : 'Logging in…';
+  const r = accMode === 'new' ? await account.register(user, pass) : await account.login(user, pass);
+  $('acc-submit').disabled = false;
+  $('acc-pass').value = ''; $('acc-pass2').value = '';
+  if (!r.ok) { $('acc-msg').textContent = accountMessage(r.error); return; }
+  $('acc-msg').textContent = '';
+  toast(accMode === 'new' ? `🎉 Welcome, ${r.username}! Your account is ready.` : `👋 Welcome back, ${r.username}!`);
+  closeAccount();
+  if (!$('together').classList.contains('hidden')) renderTogether();
+});
+$('acc-logout').addEventListener('click', async () => {
+  if (together.active) together.leave();
+  await account.logout();
+  toast('You logged out');
+  closeAccount();
+});
+$('acc-delete').addEventListener('click', async () => {
+  const r = await account.remove($('acc-del-pass').value);
+  $('acc-del-pass').value = '';
+  if (!r.ok) { $('acc-msg').textContent = accountMessage(r.error); return; }
+  if (together.active) together.leave();
+  toast('Your account was deleted');
+  closeAccount();
+});
+
 // Every pop-up panel gets a ✕ that is always on screen, and tapping the dimmed area
 // outside a panel closes it too. (Phones have no Escape key, and on a small screen the
 // Done button can be scrolled out of sight under a long list.)
-for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close']]) {
+for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done']]) {
   const ov = $(overlay);
   const x = document.createElement('button');
   x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
@@ -2158,7 +2233,7 @@ $('btn-install').addEventListener('click', () => {
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, adv, projectiles, spark, together, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, projectiles, spark, together, account, placeFacing, lightLevel, hurtPlayer, bow, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

@@ -1,6 +1,6 @@
 // Service worker: caches the whole game so it works offline once loaded.
 // Bump VERSION whenever files change so players get the update.
-const VERSION = 'minicrafter-v17';
+const VERSION = 'minicrafter-v19';
 const CORE = [
   './', './index.html', './style.css', './manifest.webmanifest', './site-config.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
@@ -11,6 +11,7 @@ const CORE = [
   './src/combat.js',
   './src/spark.js',
   './src/together.js',
+  './src/account.js',
   './src/craftui.js',
   './src/critters.js',
   './src/ideas.js',
@@ -52,7 +53,9 @@ self.addEventListener('activate', (e) => {
 // cache, refreshed in the background when online.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (url.pathname.includes('/api/') || url.pathname.endsWith('/rooms')) return; // accounts and Play Together are always live, never cached
   e.respondWith(caches.open(VERSION).then(async (cache) => {
     const cached = await cache.match(req, { ignoreSearch: req.mode === 'navigate' });
     const network = fetch(req).then((res) => {

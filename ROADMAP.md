@@ -104,8 +104,8 @@ Up to 4 players in the host's world through our own small relay (`server/rooms.m
 The game stays public on our own site, and the GitHub Pages copy is retired later. Server features (Play Together, accounts, and more) live only on our site, never on the public GitHub copy, so nobody else can use our server.
 - [x] Hosted site with a deploy script (`tools/deploy-site.sh`); online features switch on through `site-config.json` (off in Git, on for our site)
 - [x] The relay only accepts our own site
-- [ ] **Accounts** (register / log in) with our own database. Playing the game needs no account; Play Together and other server features do.
-- [ ] Play Together requires a login (the relay checks it)
+- [x] **Accounts** (register / log in / log out / delete) with our own Postgres database: a private username and a password only. Playing the game needs no account.
+- [x] Play Together requires a login (the relay checks it)
 - [ ] Cloud saves across devices; classroom mode and a teacher dashboard
 
 ## ⚔️ Adventure track (opt-in, for older players)

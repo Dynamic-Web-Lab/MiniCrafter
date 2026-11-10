@@ -35,7 +35,7 @@ export function saveProfile(p) { try { localStorage.setItem(PROFILE_KEY, JSON.st
 // Online features (Play Together, and accounts later) only run on our own hosted site.
 // ./site-config.json says whether they're on: the copy in Git (and so on GitHub Pages) says
 // off, and tools/deploy-site.sh uploads an "on" version to our own site.
-export const SITE = { online: false, rooms: '' };
+export const SITE = { online: false, rooms: '', accounts: false };
 const isDev = () => ['localhost', '127.0.0.1'].includes(location.hostname);
 
 export async function loadSiteConfig() {
@@ -43,7 +43,7 @@ export async function loadSiteConfig() {
     const r = await fetch('./site-config.json', { cache: 'no-cache' });
     if (r.ok) {
       const c = await r.json();
-      if (c && c.online === true && typeof c.rooms === 'string' && /^\/[\w/-]*$/.test(c.rooms)) { SITE.online = true; SITE.rooms = c.rooms; }
+      if (c && c.online === true && typeof c.rooms === 'string' && /^\/[\w/-]*$/.test(c.rooms)) { SITE.online = true; SITE.rooms = c.rooms; SITE.accounts = c.accounts === true; }
     }
   } catch { /* offline or no config: free edition */ }
   if (isDev() || new URLSearchParams(location.search).has('rooms')) SITE.online = true; // development and tests
@@ -54,7 +54,7 @@ export async function loadSiteConfig() {
 export function roomsURL() {
   const q = new URLSearchParams(location.search).get('rooms');
   if (q && /^wss?:\/\/[\w.:-]+(\/[\w-]*)?\/?$/.test(q)) return q;
-  if (isDev()) return `ws://${location.hostname}:8787`;
+  if (isDev() && !SITE.rooms) return `ws://${location.hostname}:8787`; // plain static dev server: separate relay
   return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${SITE.rooms || '/rooms'}`;
 }
 

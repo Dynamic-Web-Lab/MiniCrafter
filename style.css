@@ -364,3 +364,16 @@ body.touch #emoji-bar small { display: none; }
 .x-close { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 30; width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 20px; font-weight: 700; line-height: 1; background: rgba(20, 24, 34, .92); border: 2px solid #8a93a8; color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
 .x-close:hover { background: #364058; }
 @media (max-height: 520px) { .x-close { width: 40px; height: 40px; top: max(6px, env(safe-area-inset-top)); right: max(6px, env(safe-area-inset-right)); } }
+
+/* ---------- Accounts (online edition) ---------- */
+.acc-panel { width: min(440px, 100%); }
+.acc-tabs { margin: 10px 0 4px; }
+.acc-tabs button { flex: 1; }
+#acc-form { display: grid; gap: 10px; margin-top: 10px; }
+#acc-form label, #acc-in label { display: grid; gap: 4px; font-size: .9rem; color: #cfd6e4; }
+#acc-form input, #acc-in input { font: inherit; padding: 9px 10px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; user-select: text; -webkit-user-select: text; }
+.acc-privacy { line-height: 1.4; }
+#acc-msg:not(:empty) { color: #ffd479; }
+button.danger { background: #7a2323; border-color: #c54848; }
+.tg-login { margin-top: 12px; padding: 12px; border-radius: 8px; background: rgba(59, 130, 246, .12); border: 1px solid rgba(59, 130, 246, .5); }
+.tg-login p { margin: 0 0 10px; }
