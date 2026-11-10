@@ -56,7 +56,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      49 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      60 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">

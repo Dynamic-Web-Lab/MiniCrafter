@@ -3,7 +3,7 @@
 // Kid-safety by design:
 //  - Players never connect to each other directly (no IP addresses shared between kids).
 //  - Rooms are private: a short code, and the host must let each player in.
-//  - No accounts, no text chat (the game only sends picked names, emoji and game data).
+//  - No text chat (the game only sends picked names, emoji and game data). Logins are checked by the accounts service.
 //  - Nothing is stored or logged: rooms live in memory and vanish when the host leaves.
 //
 // Zero dependencies (Node 18+): a minimal WebSocket server (RFC 6455, text frames only).
