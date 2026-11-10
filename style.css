@@ -209,3 +209,9 @@ button.go:hover { background: #4a9132; }
 .trade .arrow { font-size: 1.4rem; color: #ffe27a; }
 #t-undo { top: 74px; left: max(14px, env(safe-area-inset-left)); width: 52px; height: 52px; font-size: 24px; }
 #touch.survival #t-undo { display: none; }
+
+/* Daily building idea */
+.idea-card { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: #2a2f1e; border: 2px solid #6b7b3a; }
+.idea-label { font-size: .78rem; color: #cbe08a; font-weight: 700; }
+#idea-text { margin: 4px 0 8px; font-weight: 700; color: #fff7d6; }
+#btn-idea { padding: 5px 10px; font-size: .82rem; }

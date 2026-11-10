@@ -156,6 +156,17 @@ try {
     const hit = m.critters.raycastFirefly(new THREE.Vector3(p.pos.x, p.pos.y + 2, p.pos.z), new THREE.Vector3(0, 0, -1), 5);
     out.critters = !!frog && dog.accessory === 'party' && hit?.fly === fly;
 
+    // Phase 4: share links round-trip and reject bad data; portals are found; daily idea shows.
+    const S = await import('./src/share.js');
+    const link = await S.makeShareLink({ name: 'CI', seed: 'ci', mode: 'creative' }, { edits: { '0,0': [[100, B.BRICK]] } }, 'http://x/');
+    const back = await S.readSharedFromHash(new URL(link.url).hash);
+    let rejected = false;
+    try { S.validateShared({ v: 1, name: 'x', seed: '1', mode: 'creative', edits: { '0,0': [[5, 999]] } }); } catch { rejected = true; }
+    const px = x - 6;
+    W.setBlock(px, y + 1, z, B.PORTAL_BLUE); W.setBlock(px - 3, y + 1, z, B.PORTAL_BLUE);
+    out.phase4 = back.edits['0,0'][0][1] === B.BRICK && rejected && m.findPortals(B.PORTAL_BLUE).length >= 2
+      && document.getElementById('idea-text').textContent.length > 5;
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -178,6 +189,7 @@ try {
   ok(features.tools, 'power tools: shapes, size cap and undo');
   ok(features.garden, 'wildflowers generate and watering grows wheat');
   ok(features.critters, 'frogs spawn, pets wear hats, fireflies can be targeted');
+  ok(features.phase4, 'share links round-trip and reject bad data; portals; daily idea');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });

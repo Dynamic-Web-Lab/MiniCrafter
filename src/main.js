@@ -20,6 +20,8 @@ import { WorldStore } from './worlds.js';
 import { TRADES, JOB_INFO } from './villages.js';
 import { SHAPES, MAX_CELLS, previewBounds, ToolPreview, History } from './tools.js';
 import { Critters } from './critters.js';
+import { makeShareLink, readSharedFromHash } from './share.js';
+import { IDEAS, ideaOfTheDay } from './ideas.js';
 
 const SETTINGS_KEY = 'minicrafter:settings:v1';
 const REACH = 6;
@@ -672,6 +674,10 @@ $('craft-done').addEventListener('click', () => closeOverlay(true));
 $('qb-done').addEventListener('click', () => closeOverlay(true));
 $('btn-quests').addEventListener('click', () => openQuestBook(true));
 $('qt-head').addEventListener('click', () => { if (state === 'playing') openQuestBook(false); });
+// ---------- today's building idea ----------
+$('idea-text').textContent = ideaOfTheDay();
+$('btn-idea').addEventListener('click', () => { $('idea-text').textContent = IDEAS[Math.floor(Math.random() * IDEAS.length)]; });
+
 // ---------- worlds screen ----------
 /** Switches to a saved world (saving the current one first). */
 function openWorld(id) {
@@ -713,6 +719,7 @@ function renderWorlds() {
       <div class="w-actions">
         ${w.id === currentWorldId ? '<button disabled>Playing</button>' : '<button data-a="play" class="go">▶ Play</button>'}
         <button data-a="rename" title="Rename">✏️</button>
+        <button data-a="share" title="Copy a share link">🔗</button>
         <button data-a="export" title="Download a copy">⬇</button>
         <button data-a="delete" title="Delete">🗑</button>
       </div>`;
@@ -730,6 +737,13 @@ function worldAction(action, w) {
   else if (action === 'rename') {
     const name = prompt('New name for this world:', w.name);
     if (name) { worlds.rename(w.id, name); if (w.id === currentWorldId) $('world-name').textContent = worlds.get(w.id).name; renderWorlds(); }
+  } else if (action === 'share') {
+    save();
+    makeShareLink(w, worlds.load(w.id), location.origin + location.pathname).then(async (res) => {
+      if (res.tooBig) { alert('This world has too many changes for a link. Use ⬇ Download instead and send the file.'); return; }
+      try { await navigator.clipboard.writeText(res.url); toast('Share link copied! Send it to a friend or grandparent.'); }
+      catch { prompt('Copy this link and send it:', res.url); }
+    }).catch(() => alert('Sorry, this browser cannot make share links. Use ⬇ Download instead.'));
   } else if (action === 'export') {
     save();
     const url = URL.createObjectURL(worlds.exportBlob(w.id));
@@ -1027,6 +1041,7 @@ function placeBlock(id) {
 let lastHitSound = 0;
 function act(now, dt) {
   if (fireflyTarget && (mouse.left || mouse.right) && now >= mouse.nextAction) return catchFirefly(now);
+  if (target?.id === B.STAR && (mouse.left || mouse.right) && now >= mouse.nextAction) return foundStar(now);
   if (robotTarget) return actRobot(now);
   if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
@@ -1035,6 +1050,22 @@ function act(now, dt) {
   history.begin();
   actCreative(now);
   history.commit();
+}
+
+/** Finding a Hidden Star: big celebration instead of breaking it. */
+function foundStar(now) {
+  mouse.nextAction = now + 0.8;
+  mouse.left = mouse.right = false;
+  survival.stopMining();
+  const { x, y, z } = target;
+  world.setBlock(x, y, z, B.AIR);
+  world.flushDirty();
+  for (const tile of [TILE.STAR, TILE.WOOL_RED, TILE.WOOL_BLUE, TILE.WOOL_YELLOW, TILE.WOOL_GREEN]) particles.burst(x, y, z, tile);
+  sfx.fanfare?.(); sfx.yay?.();
+  hint('⭐ You found the Hidden Star! ⭐', 3500);
+  if (isSurvival()) { inv.add(B.STAR, 1); renderHotbar(); }
+  quests.emit('star', {});
+  dirtySave = true;
 }
 
 /** Catch a firefly: it goes into a glowing lantern block (survival) with a sparkle. */
@@ -1317,8 +1348,55 @@ function attachFunHooks() {
   };
 }
 
+// ---------- portals ----------
+const portalState = { cooldown: 0, lastKey: '', hintAt: 0 };
+
+/** All placed portals of one colour (portals only ever come from player edits). */
+function findPortals(id) {
+  const out = [];
+  for (const [ck, m] of world.edits) {
+    const [cx, cz] = ck.split(',').map(Number);
+    for (const [i, bid] of m) {
+      if (bid !== id) continue;
+      const x = i % CS, z = Math.floor(i / CS) % CS, y = Math.floor(i / (CS * CS));
+      out.push([cx * CS + x, y, cz * CS + z]);
+    }
+  }
+  return out;
+}
+
+function checkPortals(dt) {
+  portalState.cooldown = Math.max(0, portalState.cooldown - dt);
+  const x = Math.floor(player.pos.x), z = Math.floor(player.pos.z);
+  let cell = null;
+  for (const dy of [0.1, 1.0]) {
+    const y = Math.floor(player.pos.y + dy);
+    if (BLOCKS[world.getBlock(x, y, z)]?.portal) { cell = [x, y, z]; break; }
+  }
+  const key = cell ? cell.join(',') : '';
+  if (!cell) { portalState.lastKey = ''; return; }
+  if (key === portalState.lastKey || portalState.cooldown > 0) return;
+  const id = world.getBlock(...cell);
+  const others = findPortals(id).filter((p) => p.join(',') !== key);
+  if (!others.length) {
+    if (simTime > portalState.hintAt) { hint(`Place a second ${BLOCKS[id].name} to link them!`, 2500); portalState.hintAt = simTime + 4; }
+    portalState.lastKey = key;
+    return;
+  }
+  const [tx, ty, tz] = others[others.length - 1]; // the newest other portal of this colour
+  player.pos.set(tx + 0.5, ty, tz + 0.5);
+  player.vel.set(0, 0, 0);
+  player.fallStart = null;
+  portalState.lastKey = `${tx},${ty},${tz}`;
+  portalState.cooldown = 1;
+  particles.burst(tx, ty, tz, BLOCKS[id].side);
+  sfx.tone(300, 0.35, 'sine', 0.2, 600);
+  quests.emit('portal', {});
+}
+
 /** Music stones, confetti pads and bounce-height tracking. */
 function funBlocks(dt) {
+  checkPortals(dt);
   // Bounce height for the "Boing Boing!" quest (measured from the trampoline top).
   if (fun.bounceY !== null) {
     fun.peak = Math.max(fun.peak, player.pos.y);
@@ -1474,6 +1552,22 @@ buildCreativePicker();
 const lastId = worlds.currentId && worlds.get(worlds.currentId) ? worlds.currentId : worlds.sorted()[0]?.id;
 if (lastId) openWorld(lastId);
 else createWorld('', '', 'creative');
+
+// Someone sent a share link? Offer to add it as a NEW world (never overwrites anything).
+if (location.hash.startsWith('#w=')) {
+  readSharedFromHash(location.hash).then((shared) => {
+    window.history.replaceState(null, '', location.pathname + location.search); // (not our undo 'history')
+    if (!shared) return;
+    if (!confirm(`Someone shared a world with you: "${shared.name}". Add it to My worlds?`)) return;
+    const w = worlds.add({ name: `${shared.name} (shared)`, seed: shared.seed, mode: shared.mode });
+    worlds.save(w.id, { seed: shared.seed, edits: shared.edits, mode: shared.mode });
+    openWorld(w.id);
+    toast(`Added "${w.name}" to My worlds`);
+  }).catch(() => {
+    window.history.replaceState(null, '', location.pathname + location.search); // (not our undo 'history')
+    alert('Sorry, that share link could not be opened. It may be broken or cut off.');
+  });
+}
 $('btn-play').disabled = true;
 requestAnimationFrame(frame);
 
@@ -1504,7 +1598,7 @@ window.addEventListener('appinstalled', () => $('btn-install').classList.add('hi
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, history, tool, undoRedo, crops, waterAt, critters, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

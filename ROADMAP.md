@@ -69,15 +69,15 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 
 **Watch out:** check habitats occasionally (for example when a chunk loads or every few seconds near the player), not every frame.
 
-## Phase 4 · Play, share and discover (M)
+## Phase 4 · Play, share and discover (M) ✅ done (delivery requests left)
 
-- [ ] **One-click share link:** compress the world's edits (`CompressionStream` + base64) into a URL hash.
+- [x] **One-click share link:** compress the world's edits (`CompressionStream` + base64) into a URL hash.
   - Small builds fit in a link; big ones fall back to the existing file download.
   - Opening a link offers "Add this world to My worlds", never overwriting anything.
-- [ ] **Hidden Star block:** one sibling hides it in a maze or castle; finding it plays a fanfare.
-- [ ] **Daily Mystery Blueprint:** a hint card with a building prompt ("Build a spaceship for a hamster!", "The tallest ice-cream cone you can!"). Prompts come from a built-in list; there's no network.
+- [x] **Hidden Star block:** one sibling hides it in a maze or castle; finding it plays a fanfare.
+- [x] **Daily Mystery Blueprint:** a hint card with a building prompt ("Build a spaceship for a hamster!", "The tallest ice-cream cone you can!"). Prompts come from a built-in list; there's no network.
 - [ ] **Delivery requests:** villagers (or a lost penguin) ask for a roof or 3 berry bushes and give a golden trophy block. This reuses the quest and villager systems.
-- [ ] **Portal doors:** paired coloured doors (blue to blue) for mazes and puzzle houses.
+- [x] **Portal doors:** paired coloured doors (blue to blue) for mazes and puzzle houses.
 
 **Watch out:** treat shared links as untrusted data. Validate block IDs, cap sizes, and never run anything from them.
 
@@ -104,4 +104,4 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 
 **Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5.**
 
-Phases 1, 2 and 3 are done. Phase 4 (share links, Hidden Star, daily blueprints, delivery requests, portal doors) is next. Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.
+Phases 1–4 are done (except villager delivery requests). Phase 5 (flowing water, marble runs, boombox, Web Worker meshing, torch-lit animals) is next. Phase 3 deepens the cozy, nurturing direction. Phase 4 lets kids share with family. Phase 5 is the heavier engineering.
