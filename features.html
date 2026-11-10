@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>MiniCrafter: free, kid-safe block-building game in your browser · All features</title>
+  <meta name="description" content="MiniCrafter is a free block-building game for kids, teens and families that runs in any browser: build worlds, make your own obstacle courses, learn to code with Bit the robot, play together safely with emoji only, and raise friendly animals. No ads, no install, works offline.">
+  <meta name="theme-color" content="#3f7d2a">
+  <!--SITE-META-->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MiniCrafter">
+  <meta property="og:title" content="MiniCrafter: build, code and play together, safely">
+  <meta property="og:description" content="A free, kid-safe block-building game in your browser. Make your own obstacle courses, code a robot, play with friends using emoji only. No ads, no install.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="legal.css">
+  <link rel="stylesheet" href="features.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "MiniCrafter",
+    "description": "A free, kid-safe block-building game that runs in the browser. Build worlds, make your own obstacle courses, learn to code with Bit the robot, play together with emoji only, raise animals and farm. No ads, no tracking, no install, works offline.",
+    "genre": ["Sandbox", "Building", "Educational", "Family"],
+    "gamePlatform": ["Web browser", "Chromebook", "iPad", "Android", "Windows", "macOS", "Linux"],
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Any (web browser)",
+    "playMode": ["SinglePlayer", "CoOp", "MultiPlayer"],
+    "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 4 },
+    "audience": { "@type": "PeopleAudience", "suggestedMinAge": 6 },
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "inLanguage": "en",
+    "license": "https://opensource.org/licenses/MIT",
+    "image": "docs/screenshots/hero.jpg",
+    "screenshot": ["docs/screenshots/course.jpg", "docs/screenshots/robot.jpg", "docs/screenshots/together.jpg", "docs/screenshots/critters.jpg"],
+    "author": { "@type": "Organization", "name": "Dynamic Web Lab FZE LLC", "url": "https://dynamicweblab.com", "email": "info@dynamicweblab.com" },
+    "publisher": { "@type": "Organization", "name": "Dynamic Web Lab FZE LLC", "url": "https://dynamicweblab.com" },
+    "sameAs": ["https://github.com/Dynamic-Web-Lab/MiniCrafter"]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "Is MiniCrafter free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. MiniCrafter is completely free: no ads, no in-game purchases and no subscriptions. It is open source under the MIT License." } },
+      { "@type": "Question", "name": "Is MiniCrafter safe for kids?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. There is no text chat, no ads and no tracking. In Play Together, players only see picked names like \"Blue Fox\" and talk with emoji, and the host lets each player in. Accounts need only a made-up username and password, and players under 13 need a grown-up to help." } },
+      { "@type": "Question", "name": "Do I need to download or install anything?", "acceptedAnswer": { "@type": "Answer", "text": "No. MiniCrafter runs in any modern web browser on computers, Chromebooks, tablets and phones. You can also add it to your home screen like an app, and it keeps working offline." } },
+      { "@type": "Question", "name": "Does MiniCrafter need an account?", "acceptedAnswer": { "@type": "Answer", "text": "No. You can play without an account. An optional account, with just a made-up username and a password and no email, unlocks Play Together." } },
+      { "@type": "Question", "name": "Can I play MiniCrafter with friends?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Play Together lets up to 4 players build in the host's world with a room code. Players need an account, talk with emoji only, and connect through a safe relay rather than directly to each other." } },
+      { "@type": "Question", "name": "Does MiniCrafter work on iPad, Chromebook and phones?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. It has touch controls with a joystick, works on iPad, Android tablets, phones and school Chromebooks, and adjusts its layout for small screens." } },
+      { "@type": "Question", "name": "How is MiniCrafter different from Minecraft?", "acceptedAnswer": { "@type": "Answer", "text": "MiniCrafter is free and runs in the browser with no install. It is designed for children first, with no chat with strangers, built-in learning quests, a codable robot called Bit, a Course Maker for building your own obstacle-course games, and a Photo Mode. It is an original game, not affiliated with Minecraft or Mojang." } },
+      { "@type": "Question", "name": "What age is MiniCrafter for?", "acceptedAnswer": { "@type": "Answer", "text": "Creative and gentle Survival modes suit children from about 6. Teens and grown-ups can switch on Adventure mode, behind a grown-up check, for monsters, combat, hunger and Hardcore." } },
+      { "@type": "Question", "name": "Can kids learn to code in MiniCrafter?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Kids program Bit the robot with drag-and-drop Blockly blocks (loops, conditions and sensors) to build, dig and flip circuit levers, and can view the matching JavaScript-style code." } },
+      { "@type": "Question", "name": "Can teachers use MiniCrafter in class?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. It needs no installs or student accounts, works offline on school Chromebooks, and its quests practise counting, times tables, colours, shapes and coding." } }
+    ]
+  }
+  </script>
+</head>
+<body>
+<main class="legal features">
+  <a class="back" href="./">← Play MiniCrafter</a>
+
+  <header class="f-hero">
+    <img src="icons/icon-192.png" alt="" width="96" height="96" class="f-logo">
+    <h1>MiniCrafter</h1>
+    <p class="f-tagline"><b>A free, kid-safe block-building game that runs right in your browser.</b> Build worlds, make your own games, learn to code with a robot and play together, with no ads, no install and no chat with strangers.</p>
+    <p class="f-cta"><a class="f-btn" href="./">▶ Play now, free</a> <a class="f-btn alt" href="#faq">Questions? Read the FAQ</a></p>
+    <img src="docs/screenshots/hero.jpg" alt="A MiniCrafter world with snowy mountains, forests and a sandy beach under a blocky sun" width="800" height="450" class="f-shot">
+  </header>
+
+  <section>
+    <h2>Why MiniCrafter is different</h2>
+    <ul class="f-why">
+      <li><b>Nothing to install, nothing to buy.</b> It runs in any browser, on computers, Chromebooks, tablets and phones, and keeps working offline.</li>
+      <li><b>Safe by design.</b> No ads, no tracking and no text chat. Friends play together with emoji only, and the host lets each player in.</li>
+      <li><b>Build games, not just worlds.</b> The Course Maker turns your builds into timed obstacle courses with coins and checkpoints.</li>
+      <li><b>Learning built in.</b> Program Bit the robot with blocks, and finish quests that practise counting, times tables, colours and shapes.</li>
+      <li><b>Grows with you.</b> Gentle modes for young children, and an optional Adventure mode with monsters and combat for teens and grown-ups.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>All features</h2>
+    <div class="f-grid">
+      <article><img src="docs/screenshots/course.jpg" alt="A floating obstacle course with a start pad, trampolines, neon blocks, speed strips and gold coins" loading="lazy" width="800" height="450">
+        <h3>🏁 Course Maker: build your own games</h3>
+        <p>Place a Start pad, Checkpoints and a Finish pad, scatter coins, then race the clock. Fall off and you return to your last checkpoint. Finishing celebrates with confetti and saves your best time. Mix in trampolines, speed strips, ice, fans and portals for wild obstacle courses.</p></article>
+      <article><img src="docs/screenshots/together.jpg" alt="Another player, Purple Turtle, waving with a hand emoji above their head in a shared world" loading="lazy" width="800" height="450">
+        <h3>👫 Play Together, safely</h3>
+        <p>Up to 4 players build in one world with a room code. Players pick names like "Blue Fox", send emoji instead of chatting, and the host lets each player in. Animals, day and night and circuits are shared. (Online edition, with a free account.)</p></article>
+      <article><img src="docs/screenshots/robot.jpg" alt="Bit the robot building a brick wall while its block-code program runs in the side panel" loading="lazy" width="800" height="450">
+        <h3>🤖 Learn to code with Bit</h3>
+        <p>Drag Blockly blocks to make Bit move, build, dig, wait and flip circuit levers, using loops, if/else and sensors. Starter programs to remix, and a "see the code" view.</p></article>
+      <article><img src="docs/screenshots/photo.jpg" alt="Photo Mode with a Polaroid frame, stickers and the caption Our sky obstacle course" loading="lazy" width="800" height="450">
+        <h3>📷 Photo Mode</h3>
+        <p>Snap your builds, then add a frame, a filter, stickers and a caption, and save or share the picture. Photos stay on your device.</p></article>
+      <article><img src="docs/screenshots/critters.jpg" alt="A cat called Luna wearing sunglasses and a dog called Toby in a party hat next to a firefly lantern and a frog" loading="lazy" width="800" height="450">
+        <h3>🐶 Friendly animals and pets</h3>
+        <p>Pat, feed and shear animals, watch babies grow, and tame a dog or cat as your pet. Pets get name tags and can wear party hats, crowns and sunglasses. Frogs, butterflies and fireflies appear around your builds.</p></article>
+      <article><img src="docs/screenshots/garden.jpg" alt="A flower garden next to rows of wheat growing from green to golden" loading="lazy" width="800" height="450">
+        <h3>🌾 Farming and gardens</h3>
+        <p>Plant flowers, water your garden, grow wheat and bake bread. A watering can makes things bloom.</p></article>
+      <article><img src="docs/screenshots/funblocks.jpg" alt="Rainbow music stones, trampolines, neon blocks, a confetti pad, a speed strip, ice and a fan vent" loading="lazy" width="800" height="450">
+        <h3>🎉 Fun blocks</h3>
+        <p>Trampolines, speed strips, slippery ice, fan vents, glowing neon, music stones you can play by walking, confetti pads, colourful portals and a Hidden Star to hide for someone to find.</p></article>
+      <article><img src="docs/screenshots/village.jpg" alt="A village with a stone well, plank houses and named villagers" loading="lazy" width="800" height="450">
+        <h3>🏘️ Villages and trading</h3>
+        <p>Visit villages with named farmers, builders and smiths, and trade with them.</p></article>
+      <article><img src="docs/screenshots/crafting.jpg" alt="The inventory and crafting screen with planks, sticks, a crafting table and pickaxes" loading="lazy" width="800" height="450">
+        <h3>⛏️ Creative and gentle Survival</h3>
+        <p>Build freely with unlimited blocks and power tools, or collect, craft tools and look after your hearts in a gentle Survival mode with no monsters.</p></article>
+      <article><img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7" loading="lazy" width="800" height="450">
+        <h3>⭐ Quests that teach</h3>
+        <p>64 quests with stars guide new players and practise counting, adding, times tables, colours and shapes, plus a coding track.</p></article>
+      <article><img src="docs/screenshots/tablet.jpg" alt="Tablet layout with a joystick, jump and backpack buttons and a tappable hotbar" loading="lazy" width="800" height="555">
+        <h3>📱 Tablets, phones and Chromebooks</h3>
+        <p>Touch controls with a joystick, compact layouts for phones, install it as an app, and play offline.</p></article>
+      <article class="f-text">
+        <h3>⚡ Spark circuits</h3>
+        <p>Redstone-style wires, levers, buttons, pressure plates, batteries, inverters, delays, lamps, doors and pistons. Build blinking lights, secret doors and piston elevators, and let Bit flip the levers.</p>
+        <h3>🪄 Power tools</h3>
+        <p>Bridge wand, box builder, house walls, dome maker, paint roller and rainbow brush, with undo and redo.</p>
+        <h3>⚔️ Adventure mode (teens and grown-ups)</h3>
+        <p>Behind a grown-up check: hunger, XP and levels, cartoon night creatures, swords, bows, shields, armour, a Lost Items Chest and an optional Hardcore mode.</p>
+        <h3>🌍 Endless worlds</h3>
+        <p>Procedural biomes, caves, lakes, day and night with torch lighting, several saved worlds, world files and share links.</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>Two ways to play</h2>
+    <table>
+      <tr><th>Edition</th><th>What you get</th></tr>
+      <tr><td><b>Online edition</b> (beta)</td><td>Everything, plus Play Together with friends and optional accounts.</td></tr>
+      <tr><td><b>Free edition</b></td><td>The whole game in your browser with no account, working offline. No server features.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Safety and privacy</h2>
+    <ul>
+      <li>No ads, no tracking, no in-game purchases, ever.</li>
+      <li>No text chat: friends talk with emoji only. Names are picked, like "Blue Fox", never typed.</li>
+      <li>Accounts are optional and need only a made-up username and a password. No email, no real name.</li>
+      <li>Players under 13 need a parent or guardian to set up an account. Accounts can be deleted at any time.</li>
+      <li>Worlds are saved on your own device. Read our <a href="privacy.html">Privacy Policy</a> and <a href="terms.html">Terms of Use</a>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>For parents and teachers</h2>
+    <ul>
+      <li>No installs, no student emails: open a link on any school Chromebook or tablet.</li>
+      <li>Quests practise maths, colours, shapes and early coding, and stars reward progress.</li>
+      <li>Creative and gentle Survival have no monsters; Adventure mode is behind a grown-up check.</li>
+      <li>Open source (MIT License). See the <a href="https://github.com/Dynamic-Web-Lab/MiniCrafter">code on GitHub</a>.</li>
+    </ul>
+  </section>
+
+  <section id="faq">
+    <h2>Frequently asked questions</h2>
+    <h3>Is MiniCrafter free?</h3>
+    <p>Yes. MiniCrafter is completely free: no ads, no in-game purchases and no subscriptions. It is open source under the MIT License.</p>
+    <h3>Is MiniCrafter safe for kids?</h3>
+    <p>Yes. There is no text chat, no ads and no tracking. In Play Together, players only see picked names like "Blue Fox" and talk with emoji, and the host lets each player in. Accounts need only a made-up username and password, and players under 13 need a grown-up to help.</p>
+    <h3>Do I need to download or install anything?</h3>
+    <p>No. MiniCrafter runs in any modern web browser on computers, Chromebooks, tablets and phones. You can also add it to your home screen like an app, and it keeps working offline.</p>
+    <h3>Does MiniCrafter need an account?</h3>
+    <p>No. You can play without an account. An optional account, with just a made-up username and a password and no email, unlocks Play Together.</p>
+    <h3>Can I play MiniCrafter with friends?</h3>
+    <p>Yes. Play Together lets up to 4 players build in the host's world with a room code. Players need an account, talk with emoji only, and connect through a safe relay rather than directly to each other.</p>
+    <h3>Does MiniCrafter work on iPad, Chromebook and phones?</h3>
+    <p>Yes. It has touch controls with a joystick, works on iPad, Android tablets, phones and school Chromebooks, and adjusts its layout for small screens.</p>
+    <h3>How is MiniCrafter different from Minecraft?</h3>
+    <p>MiniCrafter is free and runs in the browser with no install. It is designed for children first, with no chat with strangers, built-in learning quests, a codable robot called Bit, a Course Maker for building your own obstacle-course games, and a Photo Mode. It is an original game, not affiliated with Minecraft or Mojang.</p>
+    <h3>What age is MiniCrafter for?</h3>
+    <p>Creative and gentle Survival modes suit children from about 6. Teens and grown-ups can switch on Adventure mode, behind a grown-up check, for monsters, combat, hunger and Hardcore.</p>
+    <h3>Can kids learn to code in MiniCrafter?</h3>
+    <p>Yes. Kids program Bit the robot with drag-and-drop Blockly blocks (loops, conditions and sensors) to build, dig and flip circuit levers, and can view the matching JavaScript-style code.</p>
+    <h3>Can teachers use MiniCrafter in class?</h3>
+    <p>Yes. It needs no installs or student accounts, works offline on school Chromebooks, and its quests practise counting, times tables, colours, shapes and coding.</p>
+  </section>
+
+  <p class="f-cta"><a class="f-btn" href="./">▶ Play MiniCrafter now</a></p>
+
+  <p class="foot">Made by <a href="https://dynamicweblab.com">Dynamic Web Lab FZE LLC</a>, Sharjah, UAE · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Use</a> · <a href="https://github.com/Dynamic-Web-Lab/MiniCrafter">GitHub</a> · <a href="https://discord.gg/RPWMmJSJqd">Discord</a> (13+) · MiniCrafter is an original game and is not affiliated with Minecraft or Mojang.</p>
+</main>
+</body>
+</html>

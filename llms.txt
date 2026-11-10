@@ -1,0 +1,24 @@
+# MiniCrafter
+
+> MiniCrafter is a free, kid-safe block-building game that runs in any web browser (computers, Chromebooks, tablets and phones) with no install, no ads and no tracking. Players build worlds, make their own obstacle-course games, learn to code with a robot called Bit, raise animals and play together with friends using emoji only. It is an original open-source game (MIT License) by Dynamic Web Lab FZE LLC, not affiliated with Minecraft or Mojang.
+
+Key facts:
+- Price: free. No ads, no in-game purchases, no subscriptions.
+- Ages: Creative and gentle Survival suit children from about 6; an optional Adventure mode (monsters, combat, hunger, Hardcore) for teens and grown-ups sits behind a grown-up check.
+- Safety: no text chat; Play Together uses picked names (like "Blue Fox") and emoji; the host lets each player in; players connect through a relay, never directly.
+- Accounts: optional; only a made-up username and a password (no email); players under 13 need a parent or guardian; accounts can be deleted any time.
+- Platforms: any modern browser; installable as an app; works offline.
+- Multiplayer: Play Together, up to 4 players, in the online edition.
+- Learning: 64 quests (counting, times tables, colours, shapes, coding) and Blockly coding for Bit the robot.
+
+## Features
+- [All features, with screenshots and FAQ](features.html): Course Maker, Play Together, Bit coding, Photo Mode, animals and pets, farming, fun blocks, villages, quests, Spark circuits, power tools, Adventure mode, tablets and phones
+- [Play the game](./)
+
+## Policies
+- [Privacy Policy](privacy.html): what is kept (a private username, a password hash, 30-day sessions, a consent record), what is not, and how to delete an account
+- [Terms of Use](terms.html)
+
+## Project
+- [Source code on GitHub](https://github.com/Dynamic-Web-Lab/MiniCrafter)
+- Contact: info@dynamicweblab.com

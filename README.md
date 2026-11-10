@@ -18,7 +18,8 @@
 
 <p align="center">
   <b>🌐 <a href="https://portal.dynamicweblab.com/">Online edition (beta)</a></b>: Play Together with friends, optional accounts &nbsp;·&nbsp;
-  <b>▶ <a href="https://dynamic-web-lab.github.io/MiniCrafter/">Free edition</a></b>: the whole game, offline, no account
+  <b>▶ <a href="https://dynamic-web-lab.github.io/MiniCrafter/">Free edition</a></b>: the whole game, offline, no account &nbsp;·&nbsp;
+  <b>✨ <a href="https://portal.dynamicweblab.com/features.html">All features</a></b>
 </p>
 
 <p align="center">

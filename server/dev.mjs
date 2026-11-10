@@ -10,7 +10,7 @@ import { attachRelay } from './rooms.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
-const SERVE = ['index.html', 'style.css', 'privacy.html', 'terms.html', 'legal.css', 'sw.js', 'manifest.webmanifest', 'icons', 'src', 'vendor'];
+const SERVE = ['index.html', 'style.css', 'privacy.html', 'terms.html', 'legal.css', 'features.html', 'features.css', 'llms.txt', 'docs', 'sw.js', 'manifest.webmanifest', 'icons', 'src', 'vendor'];
 
 /** Starts the dev server. Returns { server, port, url }. */
 export async function startDevServer(port = 8770) {
