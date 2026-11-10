@@ -297,7 +297,7 @@
     <div id="rb-status" class="rb-status idle"></div>
     <p class="note" id="rb-editor-note"></p>
     <div id="rb-blockly"></div>
-    <div class="rb-row">
+    <div class="rb-row" id="rb-controls">
       <button id="rb-run" class="go" type="button">▶ Run</button>
       <button id="rb-stop" type="button">⏹ Stop</button>
     </div>
@@ -319,10 +319,19 @@
     <button id="rb-close" class="primary done">Done</button>
   </div>
 
+  <div id="rotate" class="overlay hidden" role="dialog" aria-labelledby="rotate-title">
+    <div class="panel center rotate-panel">
+      <div class="rotate-phone" aria-hidden="true">📱</div>
+      <h2 id="rotate-title">Turn your phone sideways</h2>
+      <p class="note">MiniCrafter needs the wide view. The game starts again as soon as you turn it.</p>
+      <button id="rotate-back" type="button">Back to the menu</button>
+    </div>
+  </div>
+
   <div id="gate" class="overlay hidden">
     <div class="panel center">
       <h2>⚔️ Adventure mode is for older players</h2>
-      <p class="note">It has hunger, tougher falls and losing your things when you faint (monsters are coming soon). Grown-ups, please answer:</p>
+      <p class="note">It has night creatures that fight back, hunger, tougher falls and losing your things when you faint. Grown-ups, please answer:</p>
       <p class="gate-q" id="gate-q"></p>
       <input id="gate-a" type="number" inputmode="numeric" placeholder="Answer">
       <p class="note" id="gate-err"></p>

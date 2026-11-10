@@ -256,6 +256,15 @@ try {
     return document.getElementById('touch').classList.contains('active');
   });
   ok(touch, 'touch controls appear in touch mode');
+  // Phones: turning the phone upright pauses and asks for sideways; turning it back carries on.
+  const shown = (id) => t.page.evaluate((i) => !document.getElementById(i).classList.contains('hidden'), id);
+  await t.page.setViewportSize({ width: 390, height: 844 });
+  await t.page.waitForTimeout(300);
+  const askedUpright = (await shown('rotate')) && !(await shown('hud'));
+  await t.page.setViewportSize({ width: 844, height: 390 });
+  await t.page.waitForTimeout(300);
+  const resumed = !(await shown('rotate')) && (await shown('hud'));
+  ok(askedUpright && resumed, 'phones: upright pauses and asks to turn sideways, sideways carries on');
   ok(t.errors.length === 0, 'no console errors (touch)', t.errors.slice(0, 3).join(' | '));
   await t.page.close();
 
