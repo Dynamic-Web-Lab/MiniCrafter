@@ -1010,23 +1010,56 @@ function renderAccount() {
   const creating = accMode === 'new';
   $('acc-tab-login').classList.toggle('on', !creating);
   $('acc-tab-new').classList.toggle('on', creating);
-  $('acc-pass2-row').classList.toggle('hidden', !creating);
+  $('acc-new-extra').classList.toggle('hidden', !creating);
   $('acc-pass').autocomplete = creating ? 'new-password' : 'current-password';
   $('acc-submit').textContent = creating ? 'Create my account' : 'Log in';
+  renderGrownup();
 }
+
+// Sign-up: a birth year (only used here, never sent or kept) decides whether a grown-up must help.
+const THIS_YEAR = new Date().getFullYear();
+{
+  const sel = $('acc-year');
+  for (let y = THIS_YEAR - 3; y >= THIS_YEAR - 100; y--) { const o = document.createElement('option'); o.value = String(y); o.textContent = String(y); sel.appendChild(o); }
+}
+let grownupQ = { a: 7, b: 8 };
+/** True when the player may be under 13 (by birth year alone we can't tell, so be careful). */
+const maybeUnder13 = () => { const y = Number($('acc-year').value); return y > 0 && THIS_YEAR - y <= 13; };
+function renderGrownup() {
+  const show = accMode === 'new' && maybeUnder13();
+  if (show && $('acc-grownup').classList.contains('hidden')) {
+    grownupQ = { a: 6 + Math.floor(Math.random() * 7), b: 6 + Math.floor(Math.random() * 7) };
+    $('acc-q').textContent = `${grownupQ.a} × ${grownupQ.b}`;
+    $('acc-a').value = ''; $('acc-parent').checked = false;
+  }
+  $('acc-grownup').classList.toggle('hidden', !show);
+}
+$('acc-year').addEventListener('change', renderGrownup);
 account.onChange = () => { renderAccount(); renderTogether(); };
 $('btn-account').addEventListener('click', () => openAccount(account.user ? 'login' : 'login'));
 $('acc-tab-login').addEventListener('click', () => { accMode = 'login'; $('acc-msg').textContent = ''; renderAccount(); });
 $('acc-tab-new').addEventListener('click', () => { accMode = 'new'; $('acc-msg').textContent = ''; renderAccount(); });
 $('acc-done').addEventListener('click', closeAccount);
-for (const id of ['acc-user', 'acc-pass', 'acc-pass2', 'acc-del-pass']) $(id).addEventListener('keydown', (e) => e.stopPropagation());
+for (const id of ['acc-user', 'acc-pass', 'acc-pass2', 'acc-del-pass', 'acc-a']) $(id).addEventListener('keydown', (e) => e.stopPropagation());
 $('acc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const user = $('acc-user').value.trim(), pass = $('acc-pass').value;
-  if (accMode === 'new' && pass !== $('acc-pass2').value) { $('acc-msg').textContent = "The two passwords don't match."; return; }
+  const say = (t) => { $('acc-msg').textContent = t; };
+  let consent = null;
+  if (accMode === 'new') {
+    if (pass !== $('acc-pass2').value) return say("The two passwords don't match.");
+    if (!$('acc-year').value) return say('Please choose the year you were born.');
+    const under13 = maybeUnder13();
+    if (under13) {
+      if (!$('acc-parent').checked) return say('A parent or guardian needs to tick the grown-up box.');
+      if (Number($('acc-a').value) !== grownupQ.a * grownupQ.b) return say("The grown-up check answer isn't right. Ask a grown-up!");
+    }
+    if (!$('acc-agree').checked) return say('Please tick the box to agree to the Terms of Use and Privacy Policy.');
+    consent = { under13, grownup: under13 };
+  }
   $('acc-submit').disabled = true;
-  $('acc-msg').textContent = accMode === 'new' ? 'Creating your account…' : 'Logging in…';
-  const r = accMode === 'new' ? await account.register(user, pass) : await account.login(user, pass);
+  say(accMode === 'new' ? 'Creating your account…' : 'Logging in…');
+  const r = accMode === 'new' ? await account.register(user, pass, consent) : await account.login(user, pass);
   $('acc-submit').disabled = false;
   $('acc-pass').value = ''; $('acc-pass2').value = '';
   if (!r.ok) { $('acc-msg').textContent = accountMessage(r.error); return; }

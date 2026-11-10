@@ -106,6 +106,8 @@ The game stays public on our own site, and the GitHub Pages copy is retired late
 - [x] The relay only accepts our own site
 - [x] **Accounts** (register / log in / log out / delete) with our own Postgres database: a private username and a password only. Playing the game needs no account.
 - [x] Play Together requires a login (the relay checks it)
+- [x] Privacy Policy and Terms of Use pages; sign-up records agreement, with a grown-up step for under-13s
+- [ ] Optional parent email for verifiable parental consent, if legal review asks for it
 - [ ] Cloud saves across devices; classroom mode and a teacher dashboard
 
 ## ⚔️ Adventure track (opt-in, for older players)

@@ -439,3 +439,14 @@ body.touch #quest-tracker .q-card ~ .q-card ~ .q-card { display: none; }
   #craft .slot-grid .slot .count { font-size: 11px; right: 2px; bottom: 0; }
 }
 #game-version { white-space: nowrap; }
+
+/* Sign-up: birth year, agreement and the grown-up step */
+#acc-new-extra { display: grid; gap: 10px; }
+#acc-new-extra select { font: inherit; padding: 8px 10px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; }
+label.check { display: flex !important; grid-template-columns: none; align-items: flex-start; gap: 8px; line-height: 1.35; }
+label.check input { width: 22px; height: 22px; flex: none; margin: 0; accent-color: #66b043; }
+.acc-grownup { display: grid; gap: 8px; padding: 10px 12px; border-radius: 8px; background: rgba(230, 195, 92, .12); border: 2px solid #e6c35c; }
+.acc-grownup p { margin: 0; font-size: .9rem; line-height: 1.4; }
+.legal-links a, .acc-privacy a { color: #9cc3ff; }
+#account a { color: #9cc3ff; }
+#account .hint { color: #9aa3b5; font-size: .85em; }

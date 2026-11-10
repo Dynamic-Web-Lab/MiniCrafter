@@ -6,6 +6,8 @@
 //    picked colour-and-animal name from Play Together.
 //  - Passwords are hashed with scrypt; sessions are random tokens stored only as SHA-256 hashes,
 //    sent as HttpOnly, Secure, SameSite=Lax cookies.
+//  - At sign-up the player agrees to the Terms / Privacy Policy (version recorded), and players
+//    under 13 need a grown-up to confirm. The birth year itself never reaches the server.
 //  - Deleting an account deletes everything about it straight away.
 //
 // Storage: Postgres when DATABASE_URL is set (production), otherwise in memory (development, tests).
@@ -20,6 +22,8 @@ const SESSION_DAYS = 30;
 const MAX_BODY = 4096;
 const USERNAME = /^[a-z0-9_]{3,20}$/;
 const COOKIE = 'mc_session';
+/** Must match TERMS_VERSION in src/account.js and the version on privacy.html / terms.html. */
+export const TERMS_VERSION = '2026-11-10';
 
 // ---------- passwords ----------
 const SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
@@ -40,9 +44,9 @@ const sha = (t) => crypto.createHash('sha256').update(t).digest('hex');
 export class MemoryStore {
   constructor() { this.users = new Map(); this.byName = new Map(); this.sessions = new Map(); this.next = 1; }
   async init() {}
-  async createUser(username, hash) {
+  async createUser(username, hash, consent = {}) {
     if (this.byName.has(username)) return null;
-    const u = { id: this.next++, username, pass_hash: hash, created_at: new Date() };
+    const u = { id: this.next++, username, pass_hash: hash, created_at: new Date(), terms_version: consent.terms || null, agreed_at: new Date(), grownup_confirmed: !!consent.grownup };
     this.users.set(u.id, u); this.byName.set(username, u);
     return u;
   }
@@ -81,11 +85,17 @@ export class PgStore {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         expires_at TIMESTAMPTZ NOT NULL
       );
-      CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);`);
+      CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
+      -- Consent record: which Terms / Privacy Policy version was agreed, when, and (under 13) that a grown-up confirmed.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_version TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS agreed_at TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS grownup_confirmed BOOLEAN NOT NULL DEFAULT false;`);
     setInterval(() => this.pool.query('DELETE FROM sessions WHERE expires_at < now()').catch(() => {}), 3600_000).unref();
   }
-  async createUser(username, hash) {
-    const r = await this.pool.query('INSERT INTO users (username, pass_hash) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING RETURNING id, username', [username, hash]);
+  async createUser(username, hash, consent = {}) {
+    const r = await this.pool.query(
+      'INSERT INTO users (username, pass_hash, terms_version, agreed_at, grownup_confirmed) VALUES ($1, $2, $3, now(), $4) ON CONFLICT (username) DO NOTHING RETURNING id, username',
+      [username, hash, consent.terms || null, !!consent.grownup]);
     return r.rows[0] || null;
   }
   async userByName(username) { return (await this.pool.query('SELECT id, username, pass_hash FROM users WHERE username = $1', [username])).rows[0] || null; }
@@ -171,8 +181,12 @@ export function createAccounts(o) {
       if (route === 'register') {
         if (!USERNAME.test(username)) return json(res, 400, { error: 'bad-username' }), true;
         if (password.length < 8 || password.length > 200) return json(res, 400, { error: 'bad-password' }), true;
+        // Agreeing to the current Terms / Privacy Policy is required; players under 13 need a grown-up.
+        if (body.agree !== true || body.terms !== TERMS_VERSION) return json(res, 400, { error: 'terms' }), true;
+        if (body.under13 === true && body.grownup !== true) return json(res, 400, { error: 'grownup' }), true;
         if (!regLimit.hit(ip)) return json(res, 429, { error: 'slow-down' }), true;
-        const user = await store.createUser(username, await hashPassword(password));
+        const consent = { terms: TERMS_VERSION, grownup: body.under13 === true && body.grownup === true };
+        const user = await store.createUser(username, await hashPassword(password), consent);
         if (!user) return json(res, 409, { error: 'taken' }), true;
         return startSession(res, user, 201), true;
       }

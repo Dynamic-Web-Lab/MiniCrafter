@@ -294,9 +294,18 @@ try {
       await host.page.fill('#acc-user', 'ci_host');
       await host.page.fill('#acc-pass', 'ci-password-1');
       await host.page.fill('#acc-pass2', 'ci-password-1');
+      await host.page.selectOption('#acc-year', String(new Date().getFullYear() - 30));
+      await host.page.check('#acc-agree');
       await host.page.click('#acc-submit');
       await host.page.waitForFunction(() => window.minicrafter.account.user === 'ci_host', null, { timeout: 10000 });
       const guestReg = await guest.page.evaluate(() => window.minicrafter.account.register('ci_guest', 'ci-password-2'));
+      // Sign-up rules on the server: the Terms must be agreed, and under-13s need a grown-up.
+      const signup = (body) => fetch(`${dev.url}api/register`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Minicrafter': '1', Origin: dev.url.slice(0, -1) }, body: JSON.stringify(body) })
+        .then(async (r) => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) }));
+      const noTerms = await signup({ username: 'ci_noterms', password: 'ci-password-3' });
+      const kidAlone = await signup({ username: 'ci_kid', password: 'ci-password-4', agree: true, terms: '2026-11-10', under13: true, grownup: false });
+      const kidWithGrownup = await signup({ username: 'ci_kid2', password: 'ci-password-5', agree: true, terms: '2026-11-10', under13: true, grownup: true });
+      const signupRules = noTerms.error === 'terms' && kidAlone.error === 'grownup' && kidWithGrownup.ok;
       await host.page.evaluate(() => { const m = window.minicrafter; m.setMode('creative'); m.forcePlay(); m.together.host(); });
       await host.page.waitForFunction(() => window.minicrafter.together.role === 'host', null, { timeout: 10000 });
       const code = await host.page.evaluate(() => window.minicrafter.together.code);
@@ -310,6 +319,12 @@ try {
       const back = await host.page.waitForFunction((c) => window.minicrafter.world.getBlock(c[0], c[1] + 1, c[2]) === 22, cell, { timeout: 10000 }).then(() => true).catch(() => false);
       const noSave = await guest.page.evaluate(() => window.minicrafter.currentWorldId === null);
       ok(refused && guestReg.ok, 'accounts: register (menu and API); the relay refuses players who are not logged in');
+      ok(signupRules, 'accounts: sign-up needs the Terms agreed, and a grown-up for under-13s');
+      const legal = await host.page.evaluate(async () => {
+        const [p, t] = await Promise.all(['privacy.html', 'terms.html'].map((f) => fetch(f).then((r) => (r.ok ? r.text() : ''))));
+        return [p, t].every((x) => x.includes('Dynamic Web Lab FZE LLC') && x.includes('info@dynamicweblab.com') && x.includes('2026-11-10'));
+      });
+      ok(legal, 'privacy policy and terms pages are served (company, contact, version)');
       ok(synced && back && noSave, 'play together: host lets a friend in, blocks sync both ways, guest never saves', code);
       ok(host.errors.length + guest.errors.length === 0, 'no console errors (online edition)', [...host.errors, ...guest.errors].slice(0, 3).join(' | '));
       await host.page.close(); await guest.page.close();

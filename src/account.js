@@ -2,6 +2,8 @@
 // Only a private username and a password: no email, no real name. Other players never see
 // the username; in Play Together everyone still has a picked colour-and-animal name.
 const HEADERS = { 'Content-Type': 'application/json', 'X-Minicrafter': '1' };
+/** Version of the Terms of Use and Privacy Policy (privacy.html / terms.html) a player agrees to. */
+export const TERMS_VERSION = '2026-11-10';
 
 const MESSAGES = {
   'bad-username': 'Usernames are 3–20 letters, numbers or _ (no spaces).',
@@ -10,6 +12,8 @@ const MESSAGES = {
   wrong: "That username and password don't match.",
   'slow-down': 'Too many tries. Wait a few minutes and try again.',
   'not-logged-in': 'Please log in first.',
+  terms: 'Please agree to the Terms of Use and Privacy Policy.',
+  grownup: 'Players under 13 need a parent or guardian to agree.',
   network: "Couldn't reach the server. Are you online?",
 };
 export const accountMessage = (code) => MESSAGES[code] || 'Something went wrong. Try again.';
@@ -41,7 +45,12 @@ export class Account {
     } catch { return { ok: false, error: 'network' }; }
   }
 
-  async register(username, password) { const r = await this.post('register', { username, password }); if (r.ok) this.set(r.username); return r; }
+  /** consent: { under13, grownup }. The birth year itself never leaves the device. */
+  async register(username, password, consent = {}) {
+    const r = await this.post('register', { username, password, agree: true, terms: TERMS_VERSION, under13: !!consent.under13, grownup: !!consent.grownup });
+    if (r.ok) this.set(r.username);
+    return r;
+  }
   async login(username, password) { const r = await this.post('login', { username, password }); if (r.ok) this.set(r.username); return r; }
   async logout() { const r = await this.post('logout'); this.set(null); return r; }
   async remove(password) { const r = await this.post('delete', { password }); if (r.ok) this.set(null); return r; }

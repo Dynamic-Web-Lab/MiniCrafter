@@ -151,6 +151,7 @@
         </details>
         <p class="note touch-only">Touch: left stick walks, drag to look, tap to place or flip, hold to mine or attack. Holding a bow or shield? Hold to draw or block.</p>
         <p class="note">Your world is saved automatically in this browser. <span id="offline-note"></span> <span id="game-version"></span></p>
+        <p class="note legal-links"><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a></p>
       </div>
     </div>
   </div>
@@ -200,10 +201,19 @@
         <form id="acc-form" autocomplete="on">
           <label>Username<input id="acc-user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required></label>
           <label>Password<input id="acc-pass" type="password" autocomplete="current-password" maxlength="200" required></label>
-          <label id="acc-pass2-row" class="hidden">Password again<input id="acc-pass2" type="password" autocomplete="new-password" maxlength="200"></label>
+          <div id="acc-new-extra" class="hidden">
+            <label>Password again<input id="acc-pass2" type="password" autocomplete="new-password" maxlength="200"></label>
+            <label><span>What year were you born? <span class="hint">(we don't keep it)</span></span><select id="acc-year"><option value="">Choose a year…</option></select></label>
+            <div id="acc-grownup" class="acc-grownup hidden">
+              <p><b>👨‍👩‍👧 Grown-up step.</b> Players under 13 need a parent or guardian to set up an account. Grown-up: please read the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a>.</p>
+              <label class="check"><input id="acc-parent" type="checkbox"> I'm this player's parent or guardian, and I agree for them.</label>
+              <label><span>Grown-up check: what is <b id="acc-q"></b>?</span><input id="acc-a" type="text" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+            </div>
+            <label class="check"><input id="acc-agree" type="checkbox"> I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</label>
+          </div>
           <button id="acc-submit" class="primary" type="submit">Log in</button>
         </form>
-        <p class="note acc-privacy">🛡️ <b>Make up a username, don't use your real name.</b> Your username is private: other players only see your colour-and-animal name. We don't ask for an email address or anything else about you. Kids: ask a grown-up to help you.</p>
+        <p class="note acc-privacy">🛡️ <b>Make up a username, don't use your real name.</b> Your username is private: other players only see your colour-and-animal name. We don't ask for an email address or anything else about you. Kids: ask a grown-up to help you. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a></p>
       </div>
       <div id="acc-in" class="hidden">
         <p>You're logged in as <b id="acc-name"></b>.</p>
