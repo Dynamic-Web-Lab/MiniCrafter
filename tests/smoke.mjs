@@ -47,8 +47,16 @@ const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 });
 
+// Privacy: the game must never contact a host outside the one serving it (no CDN, fonts, analytics).
+const outside = new Set();
+const trackOutside = (page) => page.on('request', (rq) => {
+  const u = new URL(rq.url());
+  if (/^(https?|wss?):$/.test(u.protocol) && !['localhost', '127.0.0.1'].includes(u.hostname)) outside.add(u.origin);
+});
+
 async function openGame(query = '', at = base) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  trackOutside(page);
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
@@ -324,6 +332,8 @@ try {
   await browser.close();
   server.close();
 }
+
+ok(outside.size === 0, 'privacy: the game never contacts an outside host', [...outside].join(', ') || 'same-origin only');
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smoke checks passed');
 process.exit(failures ? 1 : 0);
