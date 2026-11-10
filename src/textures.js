@@ -19,7 +19,7 @@ export const TILE = {
   NOTE_1: 47, NOTE_2: 48, NOTE_3: 49, NOTE_4: 50, NOTE_5: 51, NOTE_6: 52, NOTE_7: 53, NOTE_8: 54,
   CONFETTI: 55,
   FLOWER_RED: 56, FLOWER_YELLOW: 57, FLOWER_BLUE: 58, FLOWER_PINK: 59, TALL_GRASS: 60,
-  FARMLAND: 61, WHEAT_0: 62, WHEAT_1: 63, WHEAT_2: 64, WHEAT_3: 65,
+  FARMLAND: 61, WHEAT_0: 62, WHEAT_1: 63, WHEAT_2: 64, WHEAT_3: 65, LANTERN: 66,
 };
 
 /** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
@@ -266,6 +266,13 @@ export function createAtlas() {
     if ((x % 3 === 1) || (i === 3 && y < top + 3 && x % 3 === 2)) return vary(col, 0.15);
     return [0, 0, 0, 0];
   }));
+
+  // Firefly lantern: dark frame, warm glowing glass with little sparks.
+  paint(TILE.LANTERN, (x, y) => {
+    if (x <= 1 || x >= T - 2 || y <= 1 || y >= T - 2) return [60, 55, 50];
+    if ((x === 5 && y === 6) || (x === 10 && y === 9) || (x === 7 && y === 11)) return [255, 255, 200];
+    return vary([255, 205, 90], 0.08);
+  });
 
   // Ores: stone + clusters of mineral pixels.
   const ore = (tile, color, clusters) => {

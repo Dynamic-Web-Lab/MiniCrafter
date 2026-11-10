@@ -19,6 +19,7 @@ import { RobotUI } from './robotui.js';
 import { WorldStore } from './worlds.js';
 import { TRADES, JOB_INFO } from './villages.js';
 import { SHAPES, MAX_CELLS, previewBounds, ToolPreview, History } from './tools.js';
+import { Critters } from './critters.js';
 
 const SETTINGS_KEY = 'minicrafter:settings:v1';
 const REACH = 6;
@@ -61,6 +62,8 @@ const survival = new Survival(scene);
 const mobs = new Mobs(scene, sfx);
 const quests = new Quests();
 const history = new History();
+const critters = new Critters(scene);
+critters.onSpawnButterfly = (b) => { if (b.pos.distanceTo(player.pos) < 14) quests.emit('butterfly', {}); };
 const toolPreview = new ToolPreview(scene);
 const robot = new Robot({
   world: null, scene, sfx, particles,
@@ -168,6 +171,7 @@ function startWorld(seedStr, saved, newMode) {
   survival.reset();
   shownTips = new Set();
   mobs.reset(world);
+  critters.reset(world);
   robot.world = world;
   robot.remove();
   quests.load(null);
@@ -889,6 +893,7 @@ const touch = touchMode ? new TouchControls({
 let target = null;
 let mobTarget = null;
 let robotTarget = false;
+let fireflyTarget = null;
 const lookDir = new THREE.Vector3();
 
 function pickBlock() {
@@ -1021,6 +1026,7 @@ function placeBlock(id) {
 
 let lastHitSound = 0;
 function act(now, dt) {
+  if (fireflyTarget && (mouse.left || mouse.right) && now >= mouse.nextAction) return catchFirefly(now);
   if (robotTarget) return actRobot(now);
   if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
@@ -1029,6 +1035,21 @@ function act(now, dt) {
   history.begin();
   actCreative(now);
   history.commit();
+}
+
+/** Catch a firefly: it goes into a glowing lantern block (survival) with a sparkle. */
+function catchFirefly(now) {
+  mouse.nextAction = now + 0.4;
+  survival.stopMining();
+  critters.catchFirefly(fireflyTarget);
+  const p = fireflyTarget.pos;
+  particles.burst(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z), BLOCKS[B.LANTERN].side);
+  fireflyTarget = null;
+  sfx.sparkle();
+  if (isSurvival()) { inv.add(B.LANTERN, 1); renderHotbar(); toast('You caught a firefly! +1 Firefly Lantern'); }
+  else toast('You caught a firefly! ✨');
+  quests.emit('firefly', {});
+  dirtySave = true;
 }
 
 // ---------- power tools (creative) ----------
@@ -1165,6 +1186,16 @@ function actMob(now) {
     else mobs.pat(mob, player);
     quests.emit('pat', { type: mob.type });
     tip('animals', `${TYPES[mob.type].plural} love apples! Feed two of them and see what happens.`);
+    return;
+  }
+  const acc = ITEMS.get(held)?.accessory;
+  if (mob.tamed && acc) {
+    if (mobs.wear(mob, acc)) {
+      if (isSurvival()) { inv.takeFromSlot(selected, 1); renderHotbar(); }
+      toast(`${mob.petName} looks amazing!`);
+      quests.emit('accessory', { kind: acc });
+      dirtySave = true;
+    }
     return;
   }
   if (mob.tamed && held !== I.APPLE) {
@@ -1392,7 +1423,9 @@ function frame(now, manual = false) {
     const rd = robot.placed ? rayBox(camera.position, lookDir, reach, robot.x + 0.15, robot.y, robot.z + 0.15, robot.x + 0.85, robot.y + 1.1, robot.z + 0.85) : null;
     robotTarget = rd !== null && (!target || rd < target.dist) && (!hit || rd < hit.dist);
     if (robotTarget) { target = null; mobTarget = null; }
-  }
+    const fh = critters.fireflies.length ? critters.raycastFirefly(camera.position, lookDir, reach) : null;
+    fireflyTarget = fh && (!target || fh.dist < target.dist) ? fh.fly : null;
+  } else fireflyTarget = null;
   // Power-tool preview: anchor corner plus the shape's bounding box.
   const toolDef = state === 'playing' && !isSurvival() ? ITEMS.get(creativeBar[selected]) : null;
   if (tool.anchor && toolDef?.shape) {
@@ -1419,6 +1452,7 @@ function frame(now, manual = false) {
   $('water-overlay').classList.toggle('hidden', !(player.headInWater && state === 'playing'));
 
   mobs.update(dt, player, light, state === 'playing' || (state === 'menu' && !hasPlayed));
+  critters.update(dt, player, light, timeOfDay > 0.55 && timeOfDay < 0.95, state === 'playing' || (state === 'menu' && !hasPlayed));
   robot.update(dt, light);
   particles.update(dt, light);
   renderer.render(scene, camera);
@@ -1470,7 +1504,7 @@ window.addEventListener('appinstalled', () => $('btn-install').classList.add('hi
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, history, tool, undoRedo, crops, waterAt, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, history, tool, undoRedo, crops, waterAt, critters, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

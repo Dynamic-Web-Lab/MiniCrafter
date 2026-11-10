@@ -147,6 +147,15 @@ try {
     for (let i = 0; i < 3; i++) m.waterAt({ x: gx, y, z, id: W.getBlock(gx, y, z) });
     out.garden = plants > 20 && W.getBlock(gx, y, z) === B.WHEAT_3;
 
+    // Phase 3b critters: a frog spawns and hops, a pet can wear a hat, fireflies can be caught.
+    const frog = m.mobs.spawn('frog', p.pos.x + 3, p.pos.y, p.pos.z);
+    m.mobs.wear(dog, 'party');
+    const THREE = await import('three');
+    const fly = { home: [p.pos.x, p.pos.y + 1, p.pos.z - 2], pos: new THREE.Vector3(p.pos.x, p.pos.y + 2, p.pos.z - 2), phase: 0, life: 99 };
+    m.critters.fireflies.push(fly);
+    const hit = m.critters.raycastFirefly(new THREE.Vector3(p.pos.x, p.pos.y + 2, p.pos.z), new THREE.Vector3(0, 0, -1), 5);
+    out.critters = !!frog && dog.accessory === 'party' && hit?.fly === fly;
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -168,6 +177,7 @@ try {
   ok(features.musicSet, 'music stones recipe gives all 8 notes');
   ok(features.tools, 'power tools: shapes, size cap and undo');
   ok(features.garden, 'wildflowers generate and watering grows wheat');
+  ok(features.critters, 'frogs spawn, pets wear hats, fireflies can be targeted');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });

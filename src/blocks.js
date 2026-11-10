@@ -14,6 +14,7 @@ export const B = {
   CONFETTI: 49,
   FLOWER_RED: 50, FLOWER_YELLOW: 51, FLOWER_BLUE: 52, FLOWER_PINK: 53, TALL_GRASS: 54,
   FARMLAND: 55, WHEAT_0: 56, WHEAT_1: 57, WHEAT_2: 58, WHEAT_3: 59,
+  LANTERN: 60,
 };
 
 export const BLOCKS = [];
@@ -87,6 +88,7 @@ def(B.TALL_GRASS, 'Tall Grass', TILE.TALL_GRASS, plant);
 def(B.FARMLAND, 'Farmland', { top: TILE.FARMLAND, bottom: TILE.DIRT, side: TILE.DIRT });
 [0, 1, 2, 3].forEach((i) => def(B.WHEAT_0 + i, `Wheat (stage ${i + 1})`, TILE.WHEAT_0 + i, { ...plant, crop: i, placeable: false }));
 export const FLOWERS = [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PINK];
+def(B.LANTERN, 'Firefly Lantern', TILE.LANTERN, { emissive: true, light: 13 });
 
 // Fast lookup tables used in hot loops (meshing, physics).
 export const SOLID = new Uint8Array(256);

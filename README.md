@@ -56,7 +56,7 @@
     <td width="50%" valign="top">
       <img src="docs/screenshots/quests.jpg" alt="A Quest complete banner showing two stars and 3 + 4 = 7, with the quest tracker on the right">
       <h3>⭐ Quests that teach</h3>
-      43 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
+      47 quests cover counting, colours, shapes, simple maths (<i>"Break 3 + 4 dirt… 3 + 4 = 7!"</i>), animal names, a survival journey from first log to diamond, and a whole <b>coding track</b>. Every quest earns 1–3 stars.
     </td>
     <td width="50%" valign="top">
       <img src="docs/screenshots/crafting.jpg" alt="The inventory and recipe-book crafting screen with planks, sticks, a crafting table and pickaxes">
@@ -105,6 +105,13 @@
       Wildflowers and tall grass grow across the meadows. Use a <b>Hoe</b> to make farmland, plant <b>seeds</b> (found in tall grass) and watch wheat grow from green shoots to golden ears. A <b>Watering Can</b> speeds it up and makes flowers bloom all around you. Bake <b>bread</b> from 3 wheat.
     </td>
   </tr>
+  <tr>
+    <td colspan="2" valign="top">
+      <img src="docs/screenshots/critters.jpg" alt="A cat called Luna wearing sunglasses and a dog called Toby in a party hat next to a glowing firefly lantern, a frog and wildflowers">
+      <h3>🦋 Friendly critters</h3>
+      <b>Butterflies</b> flutter around flowers by day. At night, <b>fireflies</b> blink over the grass: click or tap one to catch it in a glowing <b>Firefly Lantern</b>. <b>Frogs</b> hop around ponds and lakes (even ones you dig). And your pets can wear a <b>Party Hat</b>, a <b>Tiny Crown</b> or <b>Sunglasses</b>!
+    </td>
+  </tr>
 </table>
 
 ### And there's more
@@ -113,7 +120,7 @@
 - 🌍 **Endless procedural worlds:** plains, forests, deserts, snowy mountains, beaches, oceans, caves and ores. Share a world with friends by typing the same **seed**.
 - 🌅 **Day and night:** sunsets, a sun and moon, stars and drifting clouds.
 - 🔦 **Real light and dark caves:** sunlight spreads into caves and under roofs, and **torches** (stick + coal) and lamps light up warm, cozy circles. Caves get dark, but never pitch black.
-- 🧱 **58 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
+- 🧱 **59 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
 - 🏊 **Swimming** with an underwater view, sprinting, jumping and flying (creative).
 - 📶 **Works offline and installs like an app:** after the first visit the whole game, including Bit's code editor, is cached, so it keeps working without internet (great for car trips and school Chromebooks). Use **📲 Install MiniCrafter** in the menu, or *Add to Home Screen* on iPad.
 - 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
@@ -203,7 +210,7 @@ Switch at any time from the pause menu (`Esc`).
 
 - **Quest tracker** (top right): shows the next 3 quests plus the next 🤖 coding quest. Press `Q` for the quest book.
 - **Quest list:**
-  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Boing Boing!, Little Composer, Rainbow Garden, Little Farmer, Best Friend, Animal Family, Light the Way, Village Visit, Splash!, Mountain Top, Star Gazer.
+  - **Explorer:** First Steps, Hop Hop Hop, Say Hello, Count to 10, Math Miner, Woolly Jumper, Tower Power, Rainbow Builder, Glass Times, Shape Maker, Boing Boing!, Little Composer, Rainbow Garden, Little Farmer, Flutter By, Ribbit!, Best Friend, Animal Family, Firefly Catcher, Party Time, Light the Way, Village Visit, Splash!, Mountain Top, Star Gazer.
   - **Survival:** Tree Puncher → Crafting Time → My First Tool → Stone Age → Snack Time → Baker → Hot Stuff → Window Maker → Fair Trader → Iron Hunter → Diamond Dreams.
   - **Coding:** Meet Bit → First Program → Loop the Loop → Bit the Builder → Up, Up, Up → Tunnel Digger → My Own Program → Loop Inside a Loop → Smart Robot.
 
@@ -256,6 +263,7 @@ src/robotui.js      Bit's panel: code editor, run/stop, speed, starters
 src/robotblocks.js  Blockly blocks, workspace <-> program conversion, code view
 src/worlds.js       Saved worlds list, export / import
 src/tools.js        Power-tool shapes, live preview, undo / redo history
+src/critters.js     Butterflies and fireflies (instanced, near the player)
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds
@@ -272,7 +280,7 @@ src/noise.js        Seeded Perlin noise and hashes
 
 ## 🧭 Roadmap
 
-Next up are friendly critters (butterflies, frogs and fireflies), pet hats, one-click share links and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
+Next up are one-click share links, a Hidden Star treasure hunt, daily building ideas, portal doors and more. See the phased plan in **[ROADMAP.md](ROADMAP.md)**.
 
 Have an idea? [Open an issue](https://github.com/Dynamic-Web-Lab/MiniCrafter/issues).
 
