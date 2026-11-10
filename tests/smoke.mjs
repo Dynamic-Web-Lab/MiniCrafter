@@ -23,6 +23,10 @@ const srcFiles = (await readdir(join(ROOT, 'src'))).filter((f) => f.endsWith('.j
 const sw = await readFile(join(ROOT, 'sw.js'), 'utf8');
 const missing = srcFiles.filter((f) => !sw.includes(`'./src/${f}'`));
 ok(missing.length === 0, 'sw.js precaches every src/*.js file', missing.length ? `missing: ${missing.join(', ')}` : `${srcFiles.length} files`);
+// iPhones have no Pointer Lock API: a bare document.exitPointerLock() throws there (it froze Bit's panel).
+const bareLock = [];
+for (const f of srcFiles) for (const [i, line] of (await readFile(join(ROOT, 'src', f), 'utf8')).split('\n').entries()) if (/exitPointerLock\(\)/.test(line)) bareLock.push(`${f}:${i + 1}`);
+ok(bareLock.length === 0, 'no bare exitPointerLock() calls (iOS has no Pointer Lock)', bareLock.join(', ') || 'use exitLock()');
 
 // ---------- tiny static server ----------
 const server = http.createServer(async (req, res) => {

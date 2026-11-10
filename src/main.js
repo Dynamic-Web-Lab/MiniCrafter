@@ -54,6 +54,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 $('game').appendChild(renderer.domElement);
 const canvas = renderer.domElement;
+/** Leaves pointer lock. iPhones and iPads have no Pointer Lock API, so calling it bare there throws. */
+function exitLock() { if (document.pointerLockElement) document.exitPointerLock?.(); }
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x87ceeb, 50, 100);
@@ -137,7 +139,7 @@ async function openPhoto() {
   state = 'photo';
   clearInput();
   touch?.setEnabled(false);
-  if (document.pointerLockElement) document.exitPointerLock();
+  exitLock();
   sfx.tone(1400, 0.05, 'square', 0.12); setTimeout(() => sfx.tone(900, 0.08, 'square', 0.1), 60); // click!
   $('photo').classList.remove('hidden');
   renderPhoto();
@@ -818,7 +820,7 @@ function openOverlay() {
     $('inv-slot').textContent = selected + 1;
     $('inventory').classList.remove('hidden');
   }
-  document.exitPointerLock();
+  exitLock();
 }
 
 let bookFromMenu = false;
@@ -830,7 +832,7 @@ function openQuestBook(fromMenu) {
   state = 'questbook';
   renderQuestBook();
   $('questbook').classList.remove('hidden');
-  if (!fromMenu) document.exitPointerLock();
+  if (!fromMenu) exitLock();
 }
 
 /** What Bit is currently running (for the coding quests). */
@@ -871,7 +873,7 @@ function openTrade(mob) {
   quests.emit('meetVillager', { job: mob.job });
   renderTrade();
   $('trade').classList.remove('hidden');
-  document.exitPointerLock();
+  exitLock();
 }
 
 function renderTrade() {
@@ -915,7 +917,7 @@ function openRobotPanel() {
   touch?.setEnabled(false);
   state = 'robot';
   robotUI.open();
-  document.exitPointerLock();
+  exitLock();
   tip('robot', 'Pick a starter program and watch Bit work. Hold a block so Bit can build with it!');
 }
 
@@ -1412,7 +1414,7 @@ survival.onDeath = (reason) => {
   $('death').classList.remove('hidden');
   $('hud').classList.add('hidden');
   touch?.setEnabled(false);
-  document.exitPointerLock();
+  exitLock();
 };
 $('btn-respawn').addEventListener('click', () => {
   survival.reset();
@@ -2264,6 +2266,8 @@ function trackMovement(dt, input, wasOnGround, dist) {
 }
 
 function frame(now, manual = false) {
+  // Ask for the next frame first, so one error can never stop the whole game.
+  if (!manual) requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   simTime += dt;
@@ -2367,7 +2371,6 @@ function frame(now, manual = false) {
   insights.beat(now);
   frames++;
   if (now - fpsTime > 500) { fps = Math.round(frames * 1000 / (now - fpsTime)); frames = 0; fpsTime = now; updateDebug(pending); }
-  if (!manual) requestAnimationFrame(frame);
 }
 
 window.addEventListener('resize', () => {
