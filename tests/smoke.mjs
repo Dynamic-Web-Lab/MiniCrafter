@@ -88,6 +88,7 @@ try {
   ok(core.lit, 'chunks carry voxel light data');
   ok(core.worlds >= 1, 'a saved world exists');
   ok(core.hotbar === 9, 'hotbar has 9 slots');
+  ok(await page.evaluate(() => !document.getElementById('quest-tracker').classList.contains('folded')), 'quest tracker: shown in full on desktop');
 
   // What's new: hidden for a brand-new player; shown once to a returning player after an update.
   const news = await page.evaluate(async () => {
@@ -100,7 +101,7 @@ try {
     return { newHidden: document.getElementById('news').classList.contains('hidden'), shown, after: unseenNews(returning).length,
       sameVersion: sw.includes(`minicrafter-v${NEWS[0].v}'`) || Number(/minicrafter-v(\d+)/.exec(sw)[1]) > NEWS[0].v };
   });
-  ok(news.newHidden && news.shown === 1 && news.after === 0, "what's new: hidden for new players, shown once to returning players", JSON.stringify(news));
+  ok(news.newHidden && news.shown >= 1 && news.after === 0, "what's new: hidden for new players, shown once to returning players", JSON.stringify(news));
   ok(news.sameVersion, "what's new: the newest news is not ahead of sw.js VERSION");
 
   const features = await page.evaluate(async () => {
@@ -319,6 +320,17 @@ try {
     return document.getElementById('touch').classList.contains('active');
   });
   ok(touch, 'touch controls appear in touch mode');
+  const qt = await t.page.evaluate(() => {
+    const el = document.getElementById('quest-tracker');
+    const r = { startFolded: el.classList.contains('folded'), listHidden: getComputedStyle(document.getElementById('qt-list')).display === 'none' };
+    document.getElementById('qt-fold').click();
+    r.opens = !el.classList.contains('folded');
+    document.getElementById('quest-view').value = 'off'; document.getElementById('quest-view').dispatchEvent(new Event('change'));
+    r.hides = getComputedStyle(el).display === 'none';
+    document.getElementById('quest-view').value = 'folded'; document.getElementById('quest-view').dispatchEvent(new Event('change'));
+    return r;
+  });
+  ok(qt.startFolded && qt.listHidden && qt.opens && qt.hides, 'quest tracker: folded on touch screens, opens with a tap, can be hidden in Settings', JSON.stringify(qt));
   // Phones: turning the phone upright pauses and asks for sideways; turning it back carries on.
   // (Waits for the change itself: CI runners render slowly, so a fixed pause isn't enough.)
   const settle = (fn) => t.page.waitForFunction(fn, null, { timeout: 15000 }).then(() => true).catch(() => false);

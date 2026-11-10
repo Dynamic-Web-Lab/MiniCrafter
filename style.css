@@ -138,6 +138,14 @@ button.done { margin-top: 14px; }
 .wide-btn { display: block; width: 100%; margin-top: 8px; }
 #quest-tracker { position: absolute; top: 10px; right: max(10px, env(safe-area-inset-right)); width: 250px; max-width: 46vw; }
 #qt-head { pointer-events: auto; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; background: rgba(0,0,0,.5); border: 2px solid rgba(255,215,90,.6); font-weight: 700; color: #ffe27a; }
+.qt-row { display: flex; gap: 4px; }
+#qt-fold { pointer-events: auto; flex: none; min-width: 36px; padding: 0 8px; background: rgba(0,0,0,.5); border: 2px solid rgba(255,215,90,.6); color: #ffe27a; font: inherit; font-weight: 700; cursor: pointer; }
+#qt-mini { display: none; margin-left: 8px; font-weight: 400; color: #fff; white-space: nowrap; }
+/* Folded: just a small "⭐ 3 · 🔨 4/20" pill. It opens by itself for a few seconds when a quest finishes or a new one starts. */
+#quest-tracker.folded:not(.peek) { width: auto; }
+#quest-tracker.folded:not(.peek) #qt-list, #quest-tracker.folded:not(.peek) .qt-key { display: none; }
+#quest-tracker.folded:not(.peek) #qt-mini { display: inline; }
+#quest-tracker.off { display: none; }
 .qt-key { font-size: .72rem; color: #cfd6e4; font-weight: 400; }
 body.touch .qt-key { display: none; }
 .q-card { margin-top: 5px; padding: 6px 9px; background: rgba(0,0,0,.45); border-radius: 6px; font-size: .8rem; }

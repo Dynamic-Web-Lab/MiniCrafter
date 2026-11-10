@@ -54,7 +54,10 @@
     <div id="mode-badge" class="hidden">FLYING</div>
     <div id="hint" role="status"></div>
     <div id="quest-tracker">
-      <button id="qt-head" type="button"><span id="qt-stars">⭐ 0</span><span class="qt-key">Quests (Q)</span></button>
+      <div class="qt-row">
+        <button id="qt-head" type="button"><span id="qt-stars">⭐ 0</span><span id="qt-mini"></span><span class="qt-key">Quests (Q)</span></button>
+        <button id="qt-fold" type="button" aria-label="Hide quests" aria-expanded="true">▴</button>
+      </div>
       <div id="qt-list"></div>
     </div>
     <div id="celebrate" role="status"><div class="c-title">Quest complete!</div><div class="c-name"></div><div class="c-stars"></div><div class="c-reveal"></div></div>
@@ -123,6 +126,9 @@
             </label>
             <label>Field of view <span id="fov-val"></span>
               <input id="fov" type="range" min="55" max="100" step="1">
+            </label>
+            <label>Quests on screen
+              <select id="quest-view"><option value="open">Shown</option><option value="folded">Folded (tap ⭐ to open)</option><option value="off">Hidden</option></select>
             </label>
             <label>Night creatures (⚔️ Adventure only)
               <select id="monsters"><option value="easy">Easy: fewer, gentler</option><option value="normal">Normal</option></select>

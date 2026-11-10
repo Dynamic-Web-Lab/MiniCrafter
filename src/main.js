@@ -592,11 +592,36 @@ quests.ctx = {
 
 const starStr = (n) => '⭐'.repeat(n);
 
+// Quest tracker: shown, folded to a small pill, or hidden (Settings). Phones start folded so it
+// doesn't cover the view; desktops start shown. A folded tracker peeks open for a few seconds
+// when a quest finishes or a new one starts, so nobody misses it.
+const questView = () => settings.quests || (touchMode ? 'folded' : 'open');
+function applyQuestView() {
+  const v = questView(), folded = v === 'folded';
+  $('quest-tracker').classList.toggle('folded', folded);
+  $('quest-tracker').classList.toggle('off', v === 'off');
+  $('qt-fold').textContent = folded ? '▾' : '▴';
+  $('qt-fold').setAttribute('aria-label', folded ? 'Show quests' : 'Hide quests');
+  $('qt-fold').setAttribute('aria-expanded', String(!folded));
+  $('quest-view').value = v;
+}
+function setQuestView(v) { settings.quests = v; store.set(SETTINGS_KEY, settings); $('quest-tracker').classList.remove('peek'); applyQuestView(); }
+let shownQuests = null, peekTimer;
+
 function renderQuests() {
   $('qt-stars').textContent = `⭐ ${quests.stars}`;
   $('menu-stars').textContent = `(${quests.stars} / ${quests.maxStars})`;
   const list = $('qt-list');
   const act = quests.active();
+  const top = act[0];
+  $('qt-mini').textContent = top ? `· ${top.icon} ${quests.progress(top)}/${top.count}` : '· 🏆';
+  const ids = act.map((q) => q.id).join();
+  if (shownQuests !== null && ids !== shownQuests && questView() === 'folded') {
+    $('quest-tracker').classList.add('peek');
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(() => $('quest-tracker').classList.remove('peek'), 5000);
+  }
+  shownQuests = ids;
   list.innerHTML = act.length ? '' : '<div class="q-card">All quests done! You are a MiniCrafter star! 🏆</div>';
   for (const q of act) {
     const p = quests.progress(q);
@@ -1047,7 +1072,13 @@ $('craft-done').addEventListener('click', () => closeOverlay(true));
 $('pet-done').addEventListener('click', () => closeOverlay(true));
 $('qb-done').addEventListener('click', () => closeOverlay(true));
 $('btn-quests').addEventListener('click', () => openQuestBook(true));
-$('qt-head').addEventListener('click', () => { if (state === 'playing') openQuestBook(false); });
+$('qt-head').addEventListener('click', () => {
+  if (questView() === 'folded') setQuestView('open');
+  else if (state === 'playing') openQuestBook(false);
+});
+$('qt-fold').addEventListener('click', () => setQuestView(questView() === 'folded' ? 'open' : 'folded'));
+$('quest-view').addEventListener('change', (e) => setQuestView(e.target.value));
+applyQuestView();
 // ---------- Play Together screens ----------
 let knockId = null;
 let emojiOpen = false;
