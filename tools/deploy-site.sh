@@ -6,6 +6,7 @@
 #   SITE_URL=https://example.com/          (the site's public address, with a trailing slash)
 # It builds the site in a temporary folder (your checkout is never changed), then:
 #  - uploads an "on" site-config.json (the copy in Git keeps the online features off),
+#  - includes stats.html, the insights page (it asks for STATS_TOKEN from the server's .env),
 #  - adds the site's address to features.html (canonical and social-sharing tags),
 #  - writes sitemap.xml and robots.txt for search engines.
 set -euo pipefail
@@ -21,7 +22,7 @@ trap 'rm -rf "$BUILD"' EXIT
 rsync -a \
   --include='index.html' --include='style.css' --include='sw.js' --include='manifest.webmanifest' \
   --include='privacy.html' --include='terms.html' --include='legal.css' \
-  --include='features.html' --include='features.css' --include='llms.txt' \
+  --include='features.html' --include='features.css' --include='llms.txt' --include='stats.html' \
   --include='icons/***' --include='src/***' --include='vendor/***' \
   --include='docs/' --include='docs/screenshots/***' --exclude='*' \
   ./ "$BUILD/"
@@ -48,7 +49,7 @@ cat > "$BUILD/sitemap.xml" <<EOF
   <url><loc>${SITE_URL}terms.html</loc><lastmod>${TODAY}</lastmod><priority>0.3</priority></url>
 </urlset>
 EOF
-printf 'User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /rooms\nSitemap: %ssitemap.xml\n' "$SITE_URL" > "$BUILD/robots.txt"
+printf 'User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /rooms\nDisallow: /stats.html\nSitemap: %ssitemap.xml\n' "$SITE_URL" > "$BUILD/robots.txt"
 
 rsync -az --delete "$BUILD/" "$DEPLOY_SSH:$DEPLOY_DIR/"
 ssh "$DEPLOY_SSH" "chmod -R a+rX $DEPLOY_DIR"

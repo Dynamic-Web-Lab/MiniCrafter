@@ -6,6 +6,7 @@ Two small services for the hosted online edition, plus a database. Single-player
 |---|---|---|
 | Relay | `rooms.mjs` | Play Together rooms for up to 4 logged-in players (zero dependencies, nothing stored) |
 | Accounts | `accounts.mjs` | Register, log in, log out and delete an account (Postgres; only dependency: `pg`) |
+| Insights | `stats.mjs` | Anonymous daily usage counts and problem reports, mounted in the accounts service |
 | Database | Postgres 16 | Usernames, password hashes and sessions. **Back it up.** |
 | Dev server | `dev.mjs` | All of the above on one local address, with accounts in memory |
 
@@ -16,6 +17,13 @@ Two small services for the hosted online edition, plus a database. Single-player
 - Cross-site protection: requests need an allowed Origin, a JSON body and an `X-Minicrafter` header.
 - Rate limits: new accounts per address per hour, and wrong passwords per address and per username.
 - Deleting an account deletes its sessions too, straight away.
+
+## Insights: anonymous counts and problem reports
+- `POST /api/events` adds 1 to daily counters ("a visit from a phone using Safari", "Bit ran"). No cookies, no IDs, nothing per person.
+- `POST /api/errors` keeps crashes, freezes (the game stopped for over 5 s) and "Report a problem" picks (a fixed list, no typing), with the message, place, game version, browser/device family, screen size and the last 12 game steps. Grouped per day and deleted after 90 days.
+- Both are same-origin only and rate-limited; internet addresses are held in memory for one minute and never stored.
+- `GET /api/stats` needs `Authorization: Bearer $STATS_TOKEN`. Open `stats.html` on the site and enter the key. Without `STATS_TOKEN` in `.env` it is closed.
+- Only the hosted site sends any of this (`"insights": true` in its `site-config.json`). The free edition sends nothing.
 
 # The Play Together relay
 
@@ -36,7 +44,7 @@ For the whole online edition locally, run `node server/dev.mjs` and open http://
 ## Deploy (Docker, behind a reverse proxy)
 ```bash
 cd server
-printf "ALLOWED_ORIGINS=https://your-site.example\nPOSTGRES_PASSWORD=%s\n" "$(openssl rand -hex 24)" > .env
+printf "ALLOWED_ORIGINS=https://your-site.example\nPOSTGRES_PASSWORD=%s\nSTATS_TOKEN=%s\n" "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" > .env
 chmod 600 .env
 docker compose up -d --build
 ```

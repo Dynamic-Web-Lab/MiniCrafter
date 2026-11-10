@@ -46,7 +46,7 @@
       <section><h2>🔢 Game versions</h2><div class="bars" id="version"></div></section>
     </div>
     <section><h2>📈 Visits per day</h2><div class="bars" id="perday"></div></section>
-    <section><h2>🐞 Errors</h2><table id="errors"></table></section>
+    <section><h2>🐞 Problems</h2><p class="meta">Crashes, freezes and "Report a problem" picks, grouped per day. Steps are the last things the player did before it happened.</p><table id="errors"></table></section>
   </div>
 </main>
 <script>
@@ -68,13 +68,14 @@ async function load() {
   const sum = {}; const perDay = {};
   for (const { day, key, n } of counts) { sum[key] = (sum[key] || 0) + n; if (key === 'visit') perDay[day] = (perDay[day] || 0) + n; }
   const group = (prefix) => Object.entries(sum).filter(([k]) => k.startsWith(prefix + ':')).map(([k, n]) => [k.slice(prefix.length + 1), n]).sort((a, b) => b[1] - a[1]);
-  $('totals').innerHTML = [['visit', 'Visits'], ['play', 'Started playing'], ['together_host', 'Play Together games'], ['account_register', 'New accounts'], ['error', 'Errors']]
+  $('totals').innerHTML = [['visit', 'Visits'], ['play', 'Started playing'], ['together_host', 'Play Together games'], ['account_register', 'New accounts'], ['error', 'Errors'], ['freeze', 'Freezes'], ['report', 'Player reports']]
     .map(([k, label]) => `<div class="card"><b>${sum[k] || 0}</b><span>${label}</span></div>`).join('');
   bars($('device'), group('device')); bars($('os'), group('os')); bars($('browser'), group('browser')); bars($('mode'), group('mode')); bars($('version'), group('version'));
   bars($('features'), Object.entries(FEATURES).map(([k, label]) => [label, sum[k] || 0]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]));
   bars($('perday'), Object.entries(perDay).sort());
-  $('errors').innerHTML = errors.length ? '<tr><th>Error</th><th>Where</th><th>Device</th><th>Version</th><th>Times</th><th>Day</th></tr>' + errors.map((e) =>
-    `<tr><td><code>${esc(e.message)}</code></td><td><code>${esc(e.place)}</code></td><td>${esc(e.device)} · ${esc(e.os)} · ${esc(e.browser)}</td><td>${esc(e.version)}</td><td>${e.count}</td><td>${esc(e.day)}</td></tr>`).join('') : '<tr><td>No errors 🎉</td></tr>';
+  const KIND = { error: '💥 Error', freeze: '🧊 Freeze', report: '🙋 Report' };
+  $('errors').innerHTML = errors.length ? '<tr><th>Kind</th><th>Problem</th><th>Where</th><th>Device</th><th>Version</th><th>Times</th><th>Day</th></tr>' + errors.map((e) =>
+    `<tr><td>${KIND[e.kind] || esc(e.kind)}</td><td><code>${esc(e.message)}</code>${e.steps ? `<details><summary>Steps</summary><code>${esc(e.steps)}</code></details>` : ''}</td><td><code>${esc(e.place)}</code></td><td>${esc(e.device)} · ${esc(e.os)} · ${esc(e.browser)}${e.screen ? `<br><small>${esc(e.screen)}</small>` : ''}</td><td>${esc(e.version)}</td><td>${e.count}</td><td>${esc(e.day)}</td></tr>`).join('') : '<tr><td>No problems 🎉</td></tr>';
 }
 $('login').addEventListener('submit', (e) => { e.preventDefault(); token = $('token').value.trim(); try { sessionStorage.setItem('mc-stats', token); } catch {} load(); });
 $('days').addEventListener('change', load);

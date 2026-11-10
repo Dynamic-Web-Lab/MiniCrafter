@@ -3,6 +3,7 @@
 # Settings come from a .env file next to this one (never commit it):
 #   ALLOWED_ORIGINS=https://your-site.example
 #   POSTGRES_PASSWORD=<long random password>
+#   STATS_TOKEN=<long random key for /api/stats and stats.html>
 services:
   minicrafter-rooms:
     build: .
@@ -25,6 +26,7 @@ services:
     environment:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS in .env}
       DATABASE_URL: postgres://minicrafter:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@minicrafter-db:5432/minicrafter
+      STATS_TOKEN: ${STATS_TOKEN:-}   # empty = /api/stats is closed
     networks: [minicrafter_net]
     read_only: true
     mem_limit: 256m

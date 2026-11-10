@@ -47,7 +47,11 @@ export class Insights {
     });
     setInterval(() => this.flush(), 15000);
     addEventListener('pagehide', () => this.flush(true));
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') this.flush(true); });
+    document.addEventListener('visibilitychange', () => {
+      this.lastBeat = 0; // frames pause while hidden: that gap is not a freeze
+      if (document.visibilityState === 'hidden') this.flush(true);
+    });
+    addEventListener('pageshow', () => { this.lastBeat = 0; });
   }
 
   /** Counts a thing that happened, at most once per browser session. */
@@ -89,7 +93,7 @@ export class Insights {
   problem(kind, message, place, always = false) {
     if (!this.enabled || (!always && this.errors >= MAX_ERRORS)) return false;
     this.errors++;
-    this.step(`⚠ ${kind}`);
+    this.step(`problem: ${kind}`);
     this.post('./api/errors', { kind, message: String(message).slice(0, 300), place: String(place).slice(0, 120), steps: this.steps, screen: this.screen(), ctx: this.ctx }, false);
     return true;
   }
