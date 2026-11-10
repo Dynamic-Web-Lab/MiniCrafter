@@ -170,6 +170,36 @@ try {
     const hit = m.critters.raycastFirefly(new THREE.Vector3(p.pos.x, p.pos.y + 2, p.pos.z), new THREE.Vector3(0, 0, -1), 5);
     out.critters = !!frog && dog.accessory === 'party' && hit?.fly === fly;
 
+    // Pet upgrades: armor cuts damage, backpack contents survive save/load and teleports, beds send pets to rest.
+    const IT = await import('./src/items.js');
+    const cat = m.mobs.spawn('cat', p.pos.x + 2, p.pos.y, p.pos.z + 2, { kept: true, tamed: true });
+    const bare = (() => { const h = cat.petHp; m.mobs.hurtPet(cat, 4); const d = h - cat.petHp; cat.petHp = h; return d; })();
+    m.mobs.wearArmor(cat, IT.I.IRON_PET_ARMOR);
+    const armored = (() => { const h = cat.petHp; m.mobs.hurtPet(cat, 4); const d = h - cat.petHp; cat.petHp = h; return d; })();
+    m.mobs.setBackpack(cat, true);
+    cat.bag[3] = { id: IT.I.DIAMOND, count: 5 };
+    m.mobs.teleportToPlayer(cat, p);
+    const saved = JSON.parse(JSON.stringify(m.mobs.serialize()));
+    const sCat = saved.find((d) => d.t === 'cat' && d.arm === IT.I.IRON_PET_ARMOR);
+    const old = saved.filter((d) => !d.arm).map((d) => ({ ...d, bag: undefined })); // older saves have none of the new fields
+    m.mobs.reset(m.world); m.mobs.load([...old, sCat].filter(Boolean));
+    const cat2 = m.mobs.list.find((q) => q.type === 'cat' && q.armor);
+    const bx = Math.floor(p.pos.x) + 3, bz = Math.floor(p.pos.z), by = Math.floor(p.pos.y);
+    for (let ix = bx - 6; ix <= bx + 1; ix++) for (let iz = bz - 3; iz <= bz + 3; iz++) { m.world.setBlock(ix, by - 1, iz, B.STONE); for (let iy = by; iy < by + 3; iy++) m.world.setBlock(ix, iy, iz, B.AIR); } // a floor to walk on
+    m.world.setBlock(bx, by, bz, B.PET_BED);
+    cat2.pos.set(p.pos.x, p.pos.y, p.pos.z + 1); cat2.sitting = false;
+    const how = m.mobs.toggleSit(cat2);
+    for (let i = 0; i < 400 && cat2.toBed; i++) m.mobs.update(0.05, p, 1, false);
+    const rec = (out) => IT.RECIPES.some((r) => r.out === out);
+    cat2.petHp = 2; cat2.restCheck = 0;
+    for (let i = 0; i < 400; i++) m.mobs.update(0.05, p, 1, false); // 20 seconds resting
+    const hpBefore = cat2.petHp;
+    m.mobs.faint(cat2);
+    out.pets = bare > armored * 1.9 && cat2?.bag?.[3]?.count === 5 && cat2.bag[3].id === IT.I.DIAMOND && how === 'bed'
+      && cat2.sitting && !cat2.toBed && hpBefore > 6 && cat2.petHp === 3
+      && [IT.I.COZY_PET_COAT, IT.I.IRON_PET_ARMOR, IT.I.STAR_PET_ARMOR, IT.I.PET_BACKPACK, B.PET_BED, B.KENNEL].every(rec);
+    out.petsDetail = JSON.stringify({ bare, armored, how, sit: cat2.sitting, toBed: !!cat2.toBed, hpBefore, hp: cat2.petHp, bag: cat2.bag?.[3], pos: cat2.pos.toArray().map((v) => +v.toFixed(2)), bed: [bx, by, bz], found: m.mobs.findBed(cat2.pos, 2.5), resting: cat2.resting, blk: m.world.getBlock(bx, by, bz) });
+
     // Phase 4: share links round-trip and reject bad data; portals are found; daily idea shows.
     const S = await import('./src/share.js');
     const link = await S.makeShareLink({ name: 'CI', seed: 'ci', mode: 'creative' }, { edits: { '0,0': [[100, B.BRICK]] } }, 'http://x/');
@@ -256,6 +286,7 @@ try {
   ok(features.tools, 'power tools: shapes, size cap and undo');
   ok(features.garden, 'wildflowers generate and watering grows wheat');
   ok(features.critters, 'frogs spawn, pets wear hats, fireflies can be targeted');
+  ok(features.pets, 'pet armor cuts damage, backpack survives save/teleport, pets rest in beds, old saves load', features.petsDetail);
   ok(features.phase4, 'share links round-trip and reject bad data; portals; daily idea');
   ok(features.adventure, 'adventure: XP levels, hunger, tougher falls (gentle modes unchanged)');
   ok(features.a2, 'adventure A2: no monsters in gentle modes; arrows and swords defeat them');

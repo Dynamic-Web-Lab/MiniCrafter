@@ -487,3 +487,16 @@ body.touch #quest-tracker { right: calc(max(10px, env(safe-area-inset-right)) + 
 .report-panel { width: min(420px, 100%); }
 .report-choices { display: grid; gap: 6px; margin: 10px 0; }
 .report-choices .wide-btn { margin-top: 0; text-align: left; }
+
+/* Pet panel (armor + backpack) */
+.pet-panel { width: min(520px, 100%); }
+.pet-panel h3 { margin: 14px 0 6px; font-size: 1rem; }
+.pet-hearts { margin: 4px 0 10px; font-size: 1.1rem; }
+.pet-armor { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pet-armor .slot { width: 44px; height: 44px; flex: none; }
+.pet-armor .slot img { width: 34px; height: 34px; }
+.pet-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.pet-panel { max-height: 100%; overflow-y: auto; }
+.pet-panel .slot-grid { grid-template-columns: repeat(9, minmax(0, 50px)); }
+.pet-panel .slot-grid .slot { width: auto; height: auto; aspect-ratio: 1; }
+.pet-panel .slot-grid .slot img { width: 68%; height: auto; }

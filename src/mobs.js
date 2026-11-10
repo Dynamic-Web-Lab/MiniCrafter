@@ -2,7 +2,8 @@
 // patted, fed apples (two in love make a baby), and sheep can be sheared.
 // Nothing here can hurt the player and animals can't be hurt either.
 import * as THREE from 'three';
-import { B, SOLID } from './blocks.js';
+import { B, BLOCKS, SOLID } from './blocks.js';
+import { ITEMS, I, PET_BAG_SLOTS } from './items.js';
 import { CS } from './world.js';
 import { villagesNear, JOB_INFO } from './villages.js';
 
@@ -35,6 +36,10 @@ export const TYPES = {
   sporeling: { name: 'Sporeling', plural: 'Sporelings', hw: 0.3, h: 1.2, speed: 1.5, hostile: true, ranged: true, hp: 8, dmg: 2 },
 };
 const MAX_HOSTILE = 8;
+export const PET_MAX_HP = 12;     // pets never get lost: at 0 they faint and wake up at their bed (or by you)
+const PET_REGEN = 0.04;           // hit points per second just walking about
+const PET_REST_REGEN = 0.6;       // ...and while resting next to a bed or doghouse
+const BED_SEARCH = 8;             // "sit" sends a pet to a bed this close
 
 // ---------- model building ----------
 const SHADE = [0.8, 0.8, 1.0, 0.55, 0.68, 0.68]; // +x -x +y -y +z -z (BoxGeometry face order)
@@ -258,6 +263,9 @@ export class Mobs {
     this.maxHostile = MAX_HOSTILE;
     this.canSpawnMonster = null; // (x, y, z) -> bool  (is it dark enough?)
     this.onAttack = null;        // (mob, damage)
+    this.onPetHurt = null;       // (pet)
+    this.onPetFaint = null;      // (pet, atBed)
+    this.lastPlayer = null;
     this.onShoot = null;         // (mob)
     this.onPoof = null;          // (mob, cause)
     this.monsterTimer = 0;
@@ -297,11 +305,16 @@ export class Mobs {
       kept: !!opts.kept, // bred, fed or spawned by the player: never despawns
       soundTimer: 4 + Math.random() * 10, hop: 0,
       tamed: false, sitting: !!opts.sitting, petName: null, tag: null, wag: 0,
+      petHp: opts.petHp ?? PET_MAX_HP, armor: 0, bag: null, bed: opts.bed || null, toBed: null, restCheck: 0, resting: false,
       job: opts.job || null, home: opts.home || null, villagerName: opts.villagerName || null,
       hostile, hp: TYPES[type].hp || 0, mat, flash: 0, attackCd: 1, shootCd: 2 + Math.random() * 2,
     };
     mob.targetYaw = mob.yaw;
-    if (opts.tamed) this.tame(mob, opts.petName);
+    if (opts.tamed) {
+      this.tame(mob, opts.petName);
+      if (ITEMS.get(opts.armor)?.petArmor) this.wearArmor(mob, opts.armor, true);
+      if (Array.isArray(opts.bag)) { this.setBackpack(mob, true, true); this.loadBag(mob, opts.bag); }
+    }
     if (type === 'villager') {
       mob.tag = nameTag(`${mob.villagerName} the ${JOB_INFO[mob.job]?.title || 'Villager'}`);
       mob.tag.position.set(0, TYPES.villager.h + 0.3, 0);
@@ -362,6 +375,7 @@ export class Mobs {
     if (!this.world) return;
     this.mat.color.setScalar(light);
     if (this.puppet) { this.updatePuppets(dt); return; }
+    this.lastPlayer = player;
     const W = this.world;
 
     // Night creatures: only in Adventure, only in the dark, and they poof in sunlight.
@@ -396,7 +410,8 @@ export class Mobs {
 
     for (const mob of this.list) {
       const d = Math.hypot(mob.pos.x - player.pos.x, mob.pos.z - player.pos.z);
-      if (mob.tamed && !mob.sitting && d > 20) this.teleportToPlayer(mob, player);
+      if (mob.tamed) this.petTick(mob, dt, player);
+      if (mob.tamed && !mob.sitting && !mob.toBed && d > 20) this.teleportToPlayer(mob, player);
       if (d > ACTIVE_DIST || !this.isLoaded(mob.pos.x, mob.pos.z)) continue;
       this.think(mob, dt, player);
 
@@ -430,7 +445,10 @@ export class Mobs {
         this.move(mob, 'x', px / pd * (minD - pd) * 0.5);
         this.move(mob, 'z', pz / pd * (minD - pd) * 0.5);
       }
-      if (mob.pos.y < -10) { this.remove(mob); continue; }
+      if (mob.pos.y < -10) {
+        if (mob.tamed) { if (!this.teleportToPlayer(mob, player)) mob.pos.set(player.pos.x, player.pos.y + 1, player.pos.z); mob.vel.set(0, 0, 0); } // a pet (and its backpack) is never lost
+        else { this.remove(mob); continue; }
+      }
 
       // Animation
       let dy = mob.targetYaw - mob.yaw;
@@ -510,6 +528,7 @@ export class Mobs {
 
     // Pets: sit when asked, otherwise follow their owner.
     if (mob.tamed) {
+      if (mob.toBed) { this.walkToBed(mob, dt); return; }
       if (mob.sitting) { mob.walking = false; return; }
       const d = Math.hypot(player.pos.x - mob.pos.x, player.pos.z - mob.pos.z);
       if (d > 3.2) {
@@ -623,9 +642,12 @@ export class Mobs {
     } else {
       mob.walking = d > 0.9;
       if (mob.walking && mob.onGround && Math.random() < dt * 3) mob.vel.y = 5.5; // hop hop
-      if (d < this.size(mob).hw + 0.9 && Math.abs(dy) < 1.6 && mob.attackCd <= 0) {
-        mob.attackCd = 1.1;
-        this.onAttack?.(mob, t.dmg);
+      const reach = this.size(mob).hw + 0.9;
+      if (mob.attackCd <= 0) {
+        const pet = this.list.find((p) => p.tamed && Math.hypot(p.pos.x - mob.pos.x, p.pos.z - mob.pos.z) < reach && Math.abs(p.pos.y - mob.pos.y) < 1.6);
+        const meHit = d < reach && Math.abs(dy) < 1.6;
+        if (meHit && (!pet || Math.random() < 0.6)) { mob.attackCd = 1.1; this.onAttack?.(mob, t.dmg); }
+        else if (pet) { mob.attackCd = 1.1; this.hurtPet(pet, t.dmg); }
       }
     }
     mob.soundTimer -= dt;
@@ -798,13 +820,150 @@ export class Mobs {
     return true;
   }
 
+  /** Sit / follow. Returns false (now following), true (sitting) or 'bed' (walking to its bed). */
   toggleSit(mob) {
     if (!mob.tamed) return false;
-    mob.sitting = !mob.sitting;
     mob.walking = false;
     mob.wag = 1;
     this.voice(mob);
-    return mob.sitting;
+    if (mob.sitting || mob.toBed) { mob.sitting = false; mob.toBed = null; return false; }
+    const bed = this.findBed(mob.pos, BED_SEARCH);
+    if (bed) { mob.bed = [bed.x, bed.y, bed.z]; mob.toBed = { ...bed, t: 0 }; for (let i = 0; i < 2; i++) this.effect(mob, this.heartMat); return 'bed'; }
+    mob.sitting = true;
+    return true;
+  }
+
+  // ---------- pet upgrades: beds, health, armor, backpack ----------
+  /** Nearest pet bed or doghouse within r blocks of pos, or null. */
+  findBed(pos, r) {
+    const W = this.world;
+    const cx = Math.floor(pos.x), cy = Math.floor(pos.y), cz = Math.floor(pos.z);
+    if (!this.isLoaded(pos.x, pos.z)) return null;
+    const n = Math.ceil(r);
+    let best = null, bd = Infinity;
+    for (let y = cy - 1; y <= cy + 1; y++) for (let z = cz - n; z <= cz + n; z++) for (let x = cx - n; x <= cx + n; x++) {
+      if (!BLOCKS[W.getBlock(x, y, z)]?.pet) continue;
+      const d = Math.hypot(x + 0.5 - pos.x, z + 0.5 - pos.z);
+      if (d <= r && d < bd) { bd = d; best = { x, y, z }; }
+    }
+    return best;
+  }
+
+  /** Where a pet stands to use the bed at b (on a flat bed, or on top of a doghouse). */
+  bedSpot(b) {
+    const blk = BLOCKS[this.world.getBlock(b.x, b.y, b.z)];
+    if (!blk?.pet) return null;
+    return new THREE.Vector3(b.x + 0.5, b.y + (blk.solid ? 1 : 0.1), b.z + 0.5);
+  }
+
+  walkToBed(mob, dt) {
+    const b = mob.toBed, spot = this.bedSpot(b);
+    if (!spot) { mob.toBed = null; mob.sitting = true; mob.walking = false; return; } // bed was picked up
+    b.t += dt;
+    const d = Math.hypot(spot.x - mob.pos.x, spot.z - mob.pos.z);
+    const solid = spot.y - b.y > 0.5;
+    if (d <= (solid ? 1.5 : 0.35) || b.t > 10) {
+      if (d > (solid ? 1.5 : 0.35) && !this.collides(mob, spot)) { mob.pos.copy(spot); mob.vel.set(0, 0, 0); } // took too long: hop in
+      mob.toBed = null; mob.sitting = true; mob.walking = false; mob.wag = 1.5;
+      this.effect(mob, this.happyMat);
+      return;
+    }
+    mob.targetYaw = Math.atan2(spot.x - mob.pos.x, spot.z - mob.pos.z);
+    mob.walking = true; mob.timer = 0.5;
+  }
+
+  /** Slow healing, faster while resting by a bed. */
+  petTick(mob, dt, player) {
+    if (mob.petHp >= PET_MAX_HP) { mob.resting = false; return; }
+    mob.restCheck -= dt;
+    if (mob.restCheck <= 0) { mob.restCheck = 1; mob.resting = mob.sitting && !!this.findBed(mob.pos, 2.5); }
+    mob.petHp = Math.min(PET_MAX_HP, mob.petHp + (mob.resting ? PET_REST_REGEN : PET_REGEN) * dt);
+    if (mob.resting && Math.random() < dt * 0.7) this.effect(mob, this.heartMat);
+  }
+
+  /** A night creature bumped a pet. Armor soaks up part of it. Pets never die: at 0 they faint. */
+  hurtPet(mob, dmg) {
+    if (!mob.tamed || this.puppet) return;
+    const cut = ITEMS.get(mob.armor)?.petArmor || 0;
+    mob.petHp -= Math.max(0.5, dmg * (1 - cut));
+    this.voice(mob);
+    this.onPetHurt?.(mob);
+    if (mob.petHp <= 0) this.faint(mob);
+  }
+
+  /** Too bumped to carry on: wakes up resting at its bed (or beside you) with a few hit points. */
+  faint(mob) {
+    mob.petHp = 3; mob.toBed = null; mob.sitting = true; mob.walking = false;
+    const spot = mob.bed ? this.bedSpot({ x: mob.bed[0], y: mob.bed[1], z: mob.bed[2] }) : null;
+    const atBed = !!spot && !this.collides(mob, spot);
+    if (atBed) { mob.pos.copy(spot); mob.vel.set(0, 0, 0); }
+    else if (this.lastPlayer) this.teleportToPlayer(mob, this.lastPlayer);
+    this.onPetFaint?.(mob, atBed);
+  }
+
+  /** Puts pet armor on (returns the item id of the armor it was wearing before, or 0). */
+  wearArmor(mob, id, quiet = false) {
+    const def = ITEMS.get(id);
+    if (!mob.tamed || !def?.petArmor) return null;
+    const prev = mob.armor || 0;
+    this.dropGear(mob, 'armorMesh');
+    mob.armor = id;
+    mob.armorMesh = this.gearMesh(mob, 'armor', def.color);
+    mob.group.add(mob.armorMesh);
+    if (!quiet) { this.effect(mob, this.happyMat); mob.wag = 2; this.voice(mob); }
+    return prev;
+  }
+
+  /** Takes pet armor off; returns its item id (or 0). */
+  removeArmor(mob) {
+    const id = mob.armor || 0;
+    this.dropGear(mob, 'armorMesh'); mob.armor = 0;
+    return id;
+  }
+
+  /** Adds or removes the backpack (and its 9 slots). */
+  setBackpack(mob, on, quiet = false) {
+    if (!mob.tamed) return false;
+    this.dropGear(mob, 'bagMesh');
+    if (on) {
+      mob.bag = mob.bag || new Array(PET_BAG_SLOTS).fill(null);
+      mob.bagMesh = this.gearMesh(mob, 'bag', ITEMS.get(I.PET_BACKPACK).color);
+      mob.group.add(mob.bagMesh);
+      if (!quiet) { this.effect(mob, this.happyMat); mob.wag = 2; this.voice(mob); }
+    } else mob.bag = null;
+    return true;
+  }
+
+  loadBag(mob, arr) {
+    if (!mob.bag) return;
+    arr.slice(0, PET_BAG_SLOTS).forEach((s, i) => {
+      if (Array.isArray(s) && ITEMS.has(s[0]) && s[1] > 0) mob.bag[i] = { id: s[0], count: Math.min(Math.floor(s[1]), ITEMS.get(s[0]).stack ?? 64) };
+    });
+  }
+
+  dropGear(mob, key) {
+    if (!mob[key]) return;
+    mob.group.remove(mob[key]);
+    mob[key].traverse((o) => o.geometry?.dispose());
+    mob[key] = null;
+  }
+
+  /** Little blocky armor plate or backpack that sits on the pet's back (sizes depend on dog or cat). */
+  gearMesh(mob, kind, rgb) {
+    const dog = mob.type === 'dog';
+    const trim = kind === 'armor' && mob.armor === I.STAR_PET_ARMOR ? [255, 245, 190] : rgb.map((v) => Math.min(255, v + 40));
+    const dark = rgb.map((v) => v * 0.6);
+    let geo;
+    if (kind === 'armor') {
+      geo = dog
+        ? merge([box(0.46, 0.24, 0.5, rgb, 0, 0.6, -0.04), box(0.47, 0.05, 0.1, trim, 0, 0.6, 0.15), box(0.3, 0.2, 0.05, rgb, 0, 0.5, 0.43), box(0.1, 0.06, 0.1, trim, 0, 0.74, -0.04)])
+        : merge([box(0.36, 0.19, 0.4, rgb, 0, 0.46, -0.04), box(0.37, 0.04, 0.08, trim, 0, 0.46, 0.1), box(0.22, 0.15, 0.05, rgb, 0, 0.38, 0.33), box(0.08, 0.05, 0.08, trim, 0, 0.57, -0.04)]);
+    } else {
+      geo = dog
+        ? merge([box(0.3, 0.26, 0.22, rgb, 0, 0.88, -0.14), box(0.32, 0.06, 0.24, dark, 0, 1.0, -0.14), box(0.08, 0.08, 0.02, [255, 205, 70], 0, 0.9, -0.26)])
+        : merge([box(0.24, 0.22, 0.2, rgb, 0, 0.68, -0.12), box(0.26, 0.05, 0.22, dark, 0, 0.78, -0.12), box(0.07, 0.07, 0.02, [255, 205, 70], 0, 0.7, -0.23)]);
+    }
+    return new THREE.Mesh(geo, this.mat);
   }
 
   teleportToPlayer(mob, player) {
@@ -841,7 +1000,7 @@ export class Mobs {
     for (const m of this.list) {
       if (m.hostile || !centers.some((c) => Math.abs(m.pos.x - c.x) < radius && Math.abs(m.pos.z - c.z) < radius)) continue;
       const flags = (m.baby ? 1 : 0) | (m.sheared ? 2 : 0) | (m.tamed ? 4 : 0) | (m.sitting ? 8 : 0) | (m.walking ? 16 : 0);
-      out.push([m.id, m.type, +m.pos.x.toFixed(2), +m.pos.y.toFixed(2), +m.pos.z.toFixed(2), +m.yaw.toFixed(2), flags, m.woolColor ?? 0, m.accessory || 0, m.petName || 0, m.job || 0, m.villagerName || 0]);
+      out.push([m.id, m.type, +m.pos.x.toFixed(2), +m.pos.y.toFixed(2), +m.pos.z.toFixed(2), +m.yaw.toFixed(2), flags, m.woolColor ?? 0, m.accessory || 0, m.petName || 0, m.job || 0, m.villagerName || 0, m.armor || 0, m.bag ? 1 : 0]);
     }
     return out;
   }
@@ -870,6 +1029,11 @@ export class Mobs {
       if (m.baby !== baby) { m.baby = baby; this.applyScale(m); }
       if (tamed && !m.tamed) this.tame(m, petName);
       if (a[8] && a[8] !== m.accessory && ['party', 'crown', 'glasses'].includes(a[8])) this.wear(m, a[8]);
+      if (m.tamed) { // armor and backpack are just looks on a guest's screen; the contents stay with the host
+        const arm = ITEMS.get(a[12])?.petArmor ? a[12] : 0;
+        if (arm !== m.armor) { if (arm) this.wearArmor(m, arm, true); else this.removeArmor(m); }
+        if (!!a[13] !== !!m.bag) this.setBackpack(m, !!a[13], true);
+      }
     }
     for (const m of [...this.list]) if (!seen.has(m.id)) this.remove(m);
   }
@@ -908,6 +1072,8 @@ export class Mobs {
       t: m.type, x: +m.pos.x.toFixed(2), y: +m.pos.y.toFixed(2), z: +m.pos.z.toFixed(2), yaw: +m.yaw.toFixed(2),
       baby: m.baby, age: Math.round(m.age), sheared: m.sheared, regrow: Math.round(m.regrow), wool: m.woolColor,
       tamed: m.tamed || undefined, sit: m.sitting || undefined, name: m.petName || undefined, acc: m.accessory || undefined,
+      arm: m.armor || undefined, bag: m.bag ? m.bag.map((s) => (s ? [s.id, s.count] : 0)) : undefined,
+      bed: m.bed || undefined, hp: m.tamed && m.petHp < PET_MAX_HP ? +m.petHp.toFixed(1) : undefined,
     }));
   }
 
@@ -915,7 +1081,9 @@ export class Mobs {
     if (!Array.isArray(arr)) return;
     for (const d of arr.slice(0, 64)) {
       if (!TYPES[d.t] || !Number.isFinite(d.x)) continue;
-      const mob = this.spawn(d.t, d.x, d.y, d.z, { yaw: d.yaw, baby: d.baby, age: d.age, sheared: d.sheared, regrow: d.regrow, woolColor: d.wool ?? undefined, kept: true, tamed: d.tamed, sitting: d.sit, petName: d.name });
+      const mob = this.spawn(d.t, d.x, d.y, d.z, { yaw: d.yaw, baby: d.baby, age: d.age, sheared: d.sheared, regrow: d.regrow, woolColor: d.wool ?? undefined, kept: true, tamed: d.tamed, sitting: d.sit, petName: d.name,
+        armor: d.arm, bag: Array.isArray(d.bag) ? d.bag : undefined, petHp: Number.isFinite(d.hp) ? Math.min(PET_MAX_HP, Math.max(1, d.hp)) : undefined,
+        bed: Array.isArray(d.bed) && d.bed.length === 3 && d.bed.every(Number.isFinite) ? d.bed : undefined });
       if (mob && d.acc) this.wear(mob, d.acc);
     }
   }

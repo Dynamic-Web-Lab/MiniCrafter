@@ -18,6 +18,7 @@ export const IDEAS = [
   'Build a garden with every colour of flower 🌷',
   'Make a waterfall into a pool 💧',
   'Build a tiny village for your pets 🐶',
+  'Build a cosy doghouse with a pet bed inside a fence 🏠',
   'Make a racetrack with speed strips 🏁',
   'Build a snowman on top of a mountain ⛄',
   'Make a neon city that glows at night 🌃',

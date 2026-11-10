@@ -41,6 +41,8 @@ export const QUESTS = [
   { id: 'baby', track: 'all', icon: '🍼', title: 'Animal Family', text: 'Feed apples to two animals of the same kind and watch what happens.', event: 'baby', count: 1, stars: 3 },
   { id: 'firefly', track: 'all', icon: '✨', title: 'Firefly Catcher', text: 'At night, fireflies blink over the grass. Click or tap 3 of them to catch them in glowing lanterns.', event: 'firefly', count: 3, stars: 2 },
   { id: 'hat', track: 'all', icon: '🎩', title: 'Party Time', text: 'Give your pet a Party Hat, Tiny Crown or Sunglasses (right-click your pet while holding it).', event: 'accessory', count: 1, stars: 2 },
+  { id: 'petgear', track: 'all', icon: '🎒', title: 'Pet Gear', text: 'Craft pet armor or a Pet Backpack, then right-click your pet while holding it. A pet with a backpack can carry things for you!', event: 'petgear', count: 1, stars: 2 },
+  { id: 'petbed', track: 'all', icon: '🛏️', title: 'Cosy Corner', text: 'Place a Pet Bed or a Doghouse, then right-click your pet near it. It will walk over and rest there.', event: 'place', test: (d) => d.id === B.PET_BED || d.id === B.KENNEL, count: 1, stars: 2 },
   { id: 'star', track: 'all', icon: '⭐', title: 'Treasure Hunter', text: 'Someone hides a Hidden Star block somewhere (in a maze or a castle). Find it and click it!', event: 'star', count: 1, stars: 2 },
   { id: 'portal', track: 'all', icon: '🌀', title: 'Portal Jumper', text: 'Place two portals of the same colour, then walk into one. Where do you pop out?', event: 'portal', count: 1, stars: 2 },
   { id: 'torch', track: 'all', icon: '🔦', title: 'Light the Way', text: 'Place 5 torches to light up a dark cave. Make torches from a stick and coal.', event: 'place', test: (d) => d.id === B.TORCH, count: 5, stars: 2 },
