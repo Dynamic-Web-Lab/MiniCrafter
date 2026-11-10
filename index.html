@@ -24,7 +24,7 @@
   </script>
 </head>
 <body>
-  <div id="game"></div>
+  <div id="game" role="img" aria-label="MiniCrafter game view (the 3D world)"></div>
 
   <div id="water-overlay" class="hidden"></div>
   <div id="damage-flash"></div>
@@ -50,14 +50,14 @@
     <div id="knock" class="hidden"><span id="knock-text"></span><button id="knock-yes" type="button">Let in <kbd>L</kbd></button><button id="knock-no" type="button">Not now <kbd>N</kbd></button></div>
     <div id="emoji-bar" class="hidden"></div>
     <div id="debug" class="hidden"></div>
-    <div id="toast"></div>
+    <div id="toast" role="status"></div>
     <div id="mode-badge" class="hidden">FLYING</div>
-    <div id="hint"></div>
+    <div id="hint" role="status"></div>
     <div id="quest-tracker">
       <button id="qt-head" type="button"><span id="qt-stars">⭐ 0</span><span class="qt-key">Quests (Q)</span></button>
       <div id="qt-list"></div>
     </div>
-    <div id="celebrate"><div class="c-title">Quest complete!</div><div class="c-name"></div><div class="c-stars"></div><div class="c-reveal"></div></div>
+    <div id="celebrate" role="status"><div class="c-title">Quest complete!</div><div class="c-name"></div><div class="c-stars"></div><div class="c-reveal"></div></div>
     <div id="status" class="hidden">
       <div id="hearts"></div>
       <div class="status-right"><div id="bubbles"></div><div id="hunger"></div></div>
@@ -68,7 +68,7 @@
     <div id="hotbar"></div>
   </div>
 
-  <div id="menu" class="overlay">
+  <div id="menu" class="overlay" role="main">
     <div class="panel menu-panel">
       <div class="menu-main">
         <div class="brand">
@@ -169,8 +169,8 @@
       <p class="note">Build with family and friends, up to 4 players. There's no chat, just emoji, and the host lets each player in.</p>
       <div class="tg-me">
         <div>You are <b id="tg-name"></b></div>
-        <div id="tg-colors" class="chips" aria-label="Pick a colour"></div>
-        <div id="tg-animals" class="chips" aria-label="Pick an animal"></div>
+        <div id="tg-colors" class="chips" role="group" aria-label="Pick a colour"></div>
+        <div id="tg-animals" class="chips" role="group" aria-label="Pick an animal"></div>
       </div>
       <div id="tg-login" class="tg-login hidden">
         <p>🔒 <b>Log in to play together.</b> It keeps Play Together safe: only people with an account can make or join a game.</p>
@@ -332,8 +332,8 @@
       <div id="world-list"></div>
       <h3 class="w-h3">✨ Make a new world</h3>
       <div class="new-world">
-        <input id="nw-name" type="text" maxlength="30" placeholder="World name">
-        <input id="nw-seed" type="text" maxlength="40" placeholder="Seed (optional: same seed = same world)">
+        <input id="nw-name" type="text" maxlength="30" placeholder="World name" aria-label="World name">
+        <input id="nw-seed" type="text" maxlength="40" placeholder="Seed (optional: same seed = same world)" aria-label="Seed (optional)">
         <div class="seg"><button id="nw-creative" type="button" class="on">Creative</button><button id="nw-survival" type="button">Survival</button><button id="nw-adventure" type="button">⚔️ Adventure</button></div>
         <label id="nw-hardcore-row" class="hc hidden"><input id="nw-hardcore" type="checkbox"> ☠️ Hardcore: one life only</label>
         <button id="nw-create" class="go" type="button">Create</button>
@@ -408,7 +408,7 @@
       <h2>⚔️ Adventure mode is for older players</h2>
       <p class="note">It has night creatures that fight back, hunger, tougher falls and losing your things when you faint. Grown-ups, please answer:</p>
       <p class="gate-q" id="gate-q"></p>
-      <input id="gate-a" type="number" inputmode="numeric" placeholder="Answer">
+      <input id="gate-a" type="number" inputmode="numeric" placeholder="Answer" aria-label="Your answer">
       <p class="note" id="gate-err"></p>
       <div class="rb-row"><button id="gate-cancel" type="button">Back</button><button id="gate-ok" class="go" type="button">Continue</button></div>
     </div>
