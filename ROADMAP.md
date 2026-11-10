@@ -102,10 +102,11 @@ A separate **Adventure** game mode for teens and grown-ups who want excitement. 
 - [x] ☠️ **Hardcore** option: one life. Game Over turns the world look-only (fly around, no breaking).
 - [x] Quests: Hungry Hero, Back For It, Level Up
 
-### A2 · Night creatures and combat (L)
-- [ ] Original cartoon monsters that spawn in the dark (light level < 7), so torches matter
-- [ ] Sword, bow and arrows, shield; armour (leather → iron → diamond)
-- [ ] Knock-back, hit flash, "poof" defeat with drops; difficulty setting
+### A2 · Night creatures and combat ✅ done
+- [x] Original cartoon monsters that spawn in the dark (light level < 7), so torches matter: Gloomlings (melee hoppers) and Sporelings (spore shooters). Sunlight poofs them.
+- [x] Sword (wood → diamond), bow and arrows, shield; armour (wool → iron → diamond)
+- [x] Knock-back, hit flash, "poof" defeat with drops and XP; Easy / Normal difficulty
+- [x] Quests: Night Watch, Suit Up, Archer, Monster Hunter
 
 ### A3 · Spark circuits (redstone-style) (L)
 - [ ] Spark dust wires, levers, buttons, pressure plates

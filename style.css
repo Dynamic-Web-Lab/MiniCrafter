@@ -230,3 +230,7 @@ body #status { bottom: 92px; }
 .gate-q { font-size: 2rem; font-weight: 800; text-align: center; margin: 10px 0; }
 #gate-a { width: 100%; font: inherit; font-size: 1.3rem; padding: 8px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; text-align: center; }
 .seg button#mode-adventure.on, .seg button#nw-adventure.on { background: #8a2c2c; }
+#charge { position: absolute; top: calc(50% + 22px); left: 50%; transform: translateX(-50%); width: 60px; height: 5px; background: rgba(0,0,0,.6); border-radius: 3px; }
+#charge-fill { height: 100%; width: 0; background: #ffe27a; border-radius: 3px; }
+#armor-ind { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: .75rem; font-weight: 700; color: #cfe3ff; text-shadow: 1px 1px 0 #000; white-space: nowrap; }
+select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; }

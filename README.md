@@ -138,13 +138,15 @@ Want more excitement? **Adventure** is an opt-in third mode for teens and grown-
 - 🪂 **Tougher falls**, and ⬆️ **XP and levels** from ores, harvests, crafting and quests.
 - 🧳 **Lose your things when you faint:** they wait in a Lost Items Chest where you fell. Go back and get them!
 - ☠️ **Hardcore:** one life. When it's over, it's over (you can still fly around and admire your world).
-- **Coming next:** night creatures and combat, **Spark circuits** (redstone-style wires, levers and pistons), dungeons with loot, and parkour challenges. See the [roadmap](ROADMAP.md).
+- 👾 **Night creatures:** cartoon **Gloomlings** (hopping purple blobs) and **Sporelings** (mushrooms that puff spores) come out in the dark (light level under 7), so light your base with torches. Sunlight makes them vanish in a puff. Pick *Easy* or *Normal* in settings.
+- 🗡️ **Gear up:** wood → diamond swords, a bow (hold right-click to charge) and arrows, a shield (hold right-click to block), and wool, iron or diamond armour. Defeated creatures poof (no blood) and drop arrows, coal or apples.
+- **Coming next:** **Spark circuits** (redstone-style wires, levers and pistons), dungeons with loot, and parkour challenges. See the [roadmap](ROADMAP.md).
 
 ## 🧸 Made for kids
 
 | | |
 |---|---|
-| 🚫 **No monsters, no fighting** | Animals are friends: you can pat, feed and shear them, but never hurt them. |
+| 🚫 **No monsters, no fighting** | Animals are friends: you can pat, feed and shear them, but never hurt them. (Night creatures exist only in grown-up ⚔️ Adventure worlds.) |
 | 🔒 **No accounts, no chat, no ads** | Nothing to sign up for, no strangers to talk to, and nothing to buy. |
 | 💾 **Private** | Saves stay in the browser on your device. There's no server and no tracking. |
 | 🙂 **Forgiving** | Fainting keeps your items, hearts come back on their own, and tips guide new players. |
@@ -281,6 +283,7 @@ src/critters.js     Butterflies and fireflies (instanced, near the player)
 src/share.js        Share links: gzip + base64url in the URL hash, strict validation
 src/ideas.js        Daily building ideas
 src/adventure.js    Adventure mode: XP / levels and the grown-up gate
+src/combat.js       Adventure combat: arrows and spore projectiles
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds
