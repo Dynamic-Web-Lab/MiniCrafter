@@ -282,6 +282,7 @@ It needs a modern browser with WebGL. Everything, including three.js and Blockly
 index.html          Page shell, menus, HUD, import map
 sw.js               Service worker for offline play
 manifest.webmanifest, icons/  Installable app metadata and icons
+tools/make-icons.mjs  Renders the app icons (Bit on a grass block) from the game's own textures
 vendor/             three.js and Blockly (see vendor/README.md for licenses)
 style.css           UI styles
 src/main.js         Boot, game loop, input, pointer lock, UI, saving
