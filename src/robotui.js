@@ -57,6 +57,7 @@ export class RobotUI {
         renderer: 'zelos', // rounded, chunky blocks that are easy for small hands
         theme: Blockly.Themes.Zelos || undefined,
         sounds: false,
+        media: './vendor/media/', // bundled icons: Blockly would otherwise fetch them from Google's servers
       });
       if (this.savedState) {
         try { Blockly.serialization.workspaces.load(this.savedState, this.ws); } catch { this.setProgram([]); }
