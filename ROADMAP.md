@@ -89,6 +89,36 @@ Nurturing instead of fighting. This fits the kid-safe direction perfectly.
 - [ ] **Smoother tablets:** generate and mesh chunks in a Web Worker so long view distances don't stutter.
 - [ ] **Animals, Bit and particles lit by torches** in dark caves.
 
+## ⚔️ Adventure track (opt-in, for older players)
+
+A separate **Adventure** game mode for teens and grown-ups who want excitement. Kids' worlds stay gentle by default: Adventure is chosen per world, sits behind a grown-up gate (a speed bump, not security), and none of its content appears in Creative or gentle Survival worlds. Monsters are original and cartoonish, and disappear in a puff with no blood.
+
+### A1 · Adventure mode ✅ done
+- [x] Third game mode in the menu and the new-world form, behind a grown-up gate (a times-table question, once per browser session)
+- [x] Hunger (🍗 bar): drains over time and faster with sprinting, jumping and mining. Healing needs food. Starving never goes below half a heart.
+- [x] Tougher falls (over 3 blocks instead of 4)
+- [x] XP and levels: from ores, harvesting, crafting and quests, with an XP bar and level-up fanfare
+- [x] Fainting drops your things into a **Lost Items Chest** where you fell. Go back and click it to get them.
+- [x] ☠️ **Hardcore** option: one life. Game Over turns the world look-only (fly around, no breaking).
+- [x] Quests: Hungry Hero, Back For It, Level Up
+
+### A2 · Night creatures and combat (L)
+- [ ] Original cartoon monsters that spawn in the dark (light level < 7), so torches matter
+- [ ] Sword, bow and arrows, shield; armour (leather → iron → diamond)
+- [ ] Knock-back, hit flash, "poof" defeat with drops; difficulty setting
+
+### A3 · Spark circuits (redstone-style) (L)
+- [ ] Spark dust wires, levers, buttons, pressure plates
+- [ ] Inverter, delay (repeater), lamps, doors, pistons
+- [ ] Bit can read sensors and flip levers (coding with circuits)
+
+### A4 · Dungeons and loot (L)
+- [ ] Generated dungeons and ruins with chests and monster spawners
+- [ ] Treasure maps; one boss deep underground
+
+### A5 · Challenges (M)
+- [ ] Parkour courses with a timer, a speedrun clock, and local best-time boards
+
 ## Parked or needs a decision
 
 | Idea | Why it's parked |

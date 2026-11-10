@@ -55,7 +55,7 @@ export function validateShared(p) {
   const name = typeof p.name === 'string' ? p.name.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 30) : '';
   const seed = typeof p.seed === 'string' || typeof p.seed === 'number' ? String(p.seed).slice(0, 40) : null;
   if (seed === null || seed === '') throw new Error('missing seed');
-  const mode = p.mode === 'survival' ? 'survival' : 'creative';
+  const mode = ['survival', 'adventure'].includes(p.mode) ? p.mode : 'creative'; // hardcore is never shared
   const edits = {};
   let count = 0;
   if (p.edits && typeof p.edits === 'object') {

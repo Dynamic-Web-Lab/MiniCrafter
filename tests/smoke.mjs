@@ -167,6 +167,17 @@ try {
     out.phase4 = back.edits['0,0'][0][1] === B.BRICK && rejected && m.findPortals(B.PORTAL_BLUE).length >= 2
       && document.getElementById('idea-text').textContent.length > 5;
 
+    // Adventure A1: hunger + eating, XP levels, tougher falls, lost-items chest; gentle modes unchanged.
+    const A = await import('./src/adventure.js');
+    const st = { xp: 0, level: 0 };
+    const levels = A.addXp(st, 40);
+    m.survival.adventure = true; m.survival.hunger = 4;
+    const ate = m.survival.eat(5) && m.survival.hunger === 9;
+    m.survival.health = 20; m.survival.landed(6); const advFall = 20 - m.survival.health;
+    m.survival.adventure = false; m.survival.health = 20; m.survival.landed(6); const gentleFall = 20 - m.survival.health;
+    m.survival.health = 20;
+    out.adventure = levels === 2 && ate && advFall === 3 && gentleFall === 2 && !!document.getElementById('gate') && B.LOST_CHEST > 0;
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -190,6 +201,7 @@ try {
   ok(features.garden, 'wildflowers generate and watering grows wheat');
   ok(features.critters, 'frogs spawn, pets wear hats, fireflies can be targeted');
   ok(features.phase4, 'share links round-trip and reject bad data; portals; daily idea');
+  ok(features.adventure, 'adventure: XP levels, hunger, tougher falls (gentle modes unchanged)');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });

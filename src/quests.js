@@ -49,6 +49,9 @@ export const QUESTS = [
   { id: 'climb', track: 'all', icon: '⛰️', title: 'Mountain Top', text: 'Climb up high until you reach height 60. Press F3 to see your height.', event: 'height', value: (d) => Math.floor(d), count: 60, stars: 2 },
   { id: 'night', track: 'all', icon: '⭐', title: 'Star Gazer', text: 'Stay up until night and look at the stars.', event: 'night', count: 1, stars: 1 },
   { id: 'trade3', track: 'survival', icon: '🤝', title: 'Fair Trader', text: 'Make 3 trades with villagers. Count what you give and what you get!', event: 'trade', count: 3, stars: 2 },
+  { id: 'feast', track: 'adventure', icon: '🍗', title: 'Hungry Hero', text: 'In Adventure you get hungry. When your 🍗 bar is low, eat an apple or bread to fill it up.', event: 'feast', count: 1, stars: 1 },
+  { id: 'recover', track: 'adventure', icon: '🧳', title: 'Back For It', text: 'If you faint, your things wait in a Lost Items Chest. Find it and click it to get them back.', event: 'recover', count: 1, stars: 2 },
+  { id: 'level5', track: 'adventure', icon: '⬆️', title: 'Level Up', text: 'Earn XP by mining ores, harvesting, crafting and finishing quests. Reach level 5!', event: 'level', value: (d) => d, count: 5, stars: 2 },
   { id: 'iron', track: 'survival', icon: '🔩', title: 'Iron Hunter', text: 'Find Iron Ore in the stone (it has orange spots) and mine it with a Stone Pickaxe.', event: 'collect', test: (d) => d.id === I.IRON_INGOT, count: 1, stars: 2 },
   { id: 'diamond', track: 'survival', icon: '💎', title: 'Diamond Dreams', text: 'Dig deep, deep down and find a Diamond. You need an Iron Pickaxe!', event: 'collect', test: (d) => d.id === I.DIAMOND, count: 1, stars: 3, reward: [I.APPLE, 5] },
 
@@ -90,7 +93,10 @@ export class Quests {
     this.onProgress = null; // ()
   }
 
-  applies(q) { return q.track === 'all' || q.track === 'coding' || q.track === this.mode; }
+  applies(q) {
+    if (q.track === 'all' || q.track === 'coding' || q.track === this.mode) return true;
+    return this.mode === 'adventure' && q.track === 'survival'; // Adventure includes the survival journey
+  }
 
   get stars() { return QUESTS.reduce((n, q) => n + (this.done.has(q.id) ? q.stars : 0), 0); }
   get maxStars() { return QUESTS.filter((q) => this.applies(q)).reduce((n, q) => n + q.stars, 0); }
