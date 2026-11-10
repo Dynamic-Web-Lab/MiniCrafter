@@ -140,7 +140,8 @@ Want more excitement? **Adventure** is an opt-in third mode for teens and grown-
 - ☠️ **Hardcore:** one life. When it's over, it's over (you can still fly around and admire your world).
 - 👾 **Night creatures:** cartoon **Gloomlings** (hopping purple blobs) and **Sporelings** (mushrooms that puff spores) come out in the dark (light level under 7), so light your base with torches. Sunlight makes them vanish in a puff. Pick *Easy* or *Normal* in settings.
 - 🗡️ **Gear up:** wood → diamond swords, a bow (hold right-click to charge) and arrows, a shield (hold right-click to block), and wool, iron or diamond armour. Defeated creatures poof (no blood) and drop arrows, coal or apples.
-- **Coming next:** **Spark circuits** (redstone-style wires, levers and pistons), dungeons with loot, and parkour challenges. See the [roadmap](ROADMAP.md).
+- ⚡ **Spark circuits** (redstone-style), see below. They're building, not fighting, so they work in every mode.
+- **Coming next:** dungeons with loot, and parkour challenges. See the [roadmap](ROADMAP.md).
 
 ## 🧸 Made for kids
 
@@ -204,11 +205,31 @@ Switch at any time from the pause menu (`Esc`).
   - **Crafting:** blocks drop items into a 36-slot inventory. Some recipes need a Crafting Table or Furnace within 4 blocks.
   - **Hearts:** 10 hearts. Only falls of more than 4 blocks and running out of air hurt you. Hearts regenerate, and apples (sometimes dropped by leaves) heal.
 
+### ⚡ Spark circuits
+
+Build machines with glowing Spark Wire. Circuits work in every game mode.
+
+| Part | What it does |
+|---|---|
+| **Spark Lever** | Right-click to flip it on or off |
+| **Spark Button** | Right-click: on for 1 second |
+| **Pressure Plate** | On while someone (you or an animal) stands on it |
+| **Spark Battery** | Always on |
+| **Spark Wire** | Carries power to everything it touches, and climbs one block up or down |
+| **Spark Inverter** | Its arrow side is ON when the back is OFF (a NOT gate). Loop its output back for a blinking clock |
+| **Spark Delay** | Copies its back to its arrow side 0.4 s later |
+| **Spark Lamp** | Lights up when powered |
+| **Spark Door** | Opens when power turns on, closes when it turns off; you can also right-click it |
+| **Spark Piston** | Pushes up to 12 blocks, and carries you along: piston elevators! |
+
+Inverters, delays and pistons point away from you when you place them (look down to make a piston push up). In survival, craft Spark Wire from gold and coal at a table; the other parts need wire too.
+
 ### Bit the code robot
 
 - **Getting Bit:** in creative, pick **Robot Bit**. In survival, craft it at a Crafting Table from 3 Iron Ingots + 1 Glass + 1 Coal.
 - **Placing and programming:** right-click a block to place Bit; it faces the way you look. Right-click Bit to open the code editor (powered by [Blockly](https://developers.google.com/blockly)).
 - **Blocks:** move, turn, dig, place (any block or the one you hold), say, repeat, repeat while, if/else, and the checks *there is a block*, *the block is…* and *not*.
+- **⚡ Spark blocks:** *use the block* (flip a lever, press a button, open a door), *wait*, and the check *the block has spark power*, so Bit can run your circuits.
 - **Running:** ▶ Run at 1×/2×/4× speed, ⏹ Stop any time.
 - **Starter programs** (tower, wall, stairs, tunnel, square, explore) load into the editor so kids can remix them.
 - **Survival:** Bit uses your blocks and hands you what it digs.
@@ -284,6 +305,7 @@ src/share.js        Share links: gzip + base64url in the URL hash, strict valida
 src/ideas.js        Daily building ideas
 src/adventure.js    Adventure mode: XP / levels and the grown-up gate
 src/combat.js       Adventure combat: arrows and spore projectiles
+src/spark.js        Spark circuits: wire power, gates, lamps, doors, pistons
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds

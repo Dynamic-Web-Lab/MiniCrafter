@@ -4,7 +4,7 @@ import { mulberry32 } from './noise.js';
 
 export const T = 16;          // tile size in px
 export const COLS = 8;
-export const ROWS = 10;
+export const ROWS = 13;
 export const ATLAS_W = COLS * T;
 export const ATLAS_H = ROWS * T;
 
@@ -22,6 +22,10 @@ export const TILE = {
   FARMLAND: 61, WHEAT_0: 62, WHEAT_1: 63, WHEAT_2: 64, WHEAT_3: 65, LANTERN: 66,
   STAR: 67, PORTAL_BLUE: 68, PORTAL_ORANGE: 69, PORTAL_GREEN: 70, PORTAL_PURPLE: 71,
   LOST_CHEST: 72, LOST_CHEST_TOP: 73,
+  WIRE: 74, WIRE_ON: 75, SPARK_BASE: 76, LEVER: 77, LEVER_ON: 78, BUTTON: 79, BUTTON_ON: 80, PLATE: 81, PLATE_ON: 82,
+  BATTERY: 83, GATE_SIDE: 84, INVERTER: 85, INVERTER_ON: 86, DELAY: 87, DELAY_ON: 88,
+  SPARK_LAMP: 89, SPARK_LAMP_ON: 90, SPARK_DOOR: 91, SPARK_DOOR_OPEN: 92,
+  PISTON_FRONT: 93, PISTON_SIDE: 94, PISTON_BACK: 95, PISTON_INNER: 96,
 };
 
 /** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
@@ -302,6 +306,72 @@ export function createAtlas() {
     return vary(y < 6 ? [150, 95, 50] : [130, 82, 42], 0.1);
   });
   paint(TILE.LOST_CHEST_TOP, (x, y) => (x === 0 || x === T - 1 || y === 0 || y === T - 1 ? [70, 45, 25] : vary([150, 95, 50], 0.1)));
+
+  // ---- Spark circuits (A3): dark slate bases with glowing yellow "spark" parts ----
+  const OFF = [120, 70, 40], ON = [255, 225, 60];
+  const slate = () => vary([62, 66, 78], 0.1);
+  const edge = (x, y) => x === 0 || y === 0 || x === T - 1 || y === T - 1;
+  // Wire: a plus-shaped dust trail on a see-through tile (drawn flat on the floor).
+  const wire = (tile, c) => paint(tile, (x, y) => ((x >= 6 && x <= 9) || (y >= 6 && y <= 9) ? vary(c, 0.12) : [0, 0, 0, 0]));
+  wire(TILE.WIRE, OFF); wire(TILE.WIRE_ON, ON);
+  paint(TILE.SPARK_BASE, (x, y) => (edge(x, y) ? [40, 42, 50] : slate()));
+  const lever = (tile, up) => paint(tile, (x, y) => {
+    if (edge(x, y)) return [40, 42, 50];
+    const stickY = up ? y >= 3 && y <= 9 : y >= 7 && y <= 13;
+    if (x >= 7 && x <= 8 && stickY) return [150, 115, 65];
+    if (x >= 6 && x <= 9 && (up ? y >= 2 && y <= 4 : y >= 12 && y <= 14)) return up ? ON : OFF;
+    if (y >= 9 && y <= 10 && x >= 4 && x <= 11) return [90, 92, 100];
+    return slate();
+  });
+  lever(TILE.LEVER, false); lever(TILE.LEVER_ON, true);
+  const button = (tile, c) => paint(tile, (x, y) => {
+    if (edge(x, y)) return [40, 42, 50];
+    const d = Math.hypot(x - 7.5, y - 7.5);
+    return d < 4.5 ? (d > 3.5 ? [30, 30, 36] : vary(c, 0.06)) : slate();
+  });
+  button(TILE.BUTTON, [200, 60, 60]); button(TILE.BUTTON_ON, [255, 150, 150]);
+  const plate = (tile, c) => paint(tile, (x, y) => (x < 1 || y < 1 || x > 14 || y > 14 ? [0, 0, 0, 0] : edge(x - 1, y - 1) || x === 14 || y === 14 ? [70, 70, 78] : vary(c, 0.06)));
+  plate(TILE.PLATE, [150, 150, 160]); plate(TILE.PLATE_ON, [255, 230, 120]);
+  paint(TILE.BATTERY, (x, y) => {
+    if (edge(x, y)) return [60, 50, 20];
+    const bolt = (y < 8 && x >= 9 - Math.floor(y / 2) && x <= 10 - Math.floor(y / 2) + 1) || (y >= 7 && x >= 9 - Math.floor(y / 2) + 1 && x <= 10 - Math.floor(y / 2) + 2);
+    return bolt ? [255, 255, 255] : vary(ON, 0.08);
+  });
+  paint(TILE.GATE_SIDE, (x, y) => (edge(x, y) ? [40, 42, 50] : y === 4 ? [90, 92, 100] : slate()));
+  // Gate tops: an arrow pointing up the tile (the mesher turns it to face the right way).
+  const arrow = (x, y) => (y >= 3 && y <= 6 && Math.abs(x - 7.5) <= y - 2.5) || (y > 6 && y <= 12 && x >= 6 && x <= 9);
+  const gate = (tile, c, mark) => paint(tile, (x, y) => {
+    if (edge(x, y)) return [40, 42, 50];
+    if (arrow(x, y)) return c;
+    if (mark(x, y)) return [235, 235, 240];
+    return slate();
+  });
+  gate(TILE.INVERTER, OFF, (x, y) => (x === 2 || x === 3) && y >= 9 && y <= 13); // a little "!" bar for NOT
+  gate(TILE.INVERTER_ON, ON, (x, y) => (x === 2 || x === 3) && y >= 9 && y <= 13);
+  gate(TILE.DELAY, OFF, (x, y) => (y === 9 || y === 12) && x >= 2 && x <= 4); // clock ticks
+  gate(TILE.DELAY_ON, ON, (x, y) => (y === 9 || y === 12) && x >= 2 && x <= 4);
+  const lampTile = (tile, on) => paint(tile, (x, y) => {
+    if (edge(x, y)) return [70, 55, 30];
+    if (x % 5 === 2 || y % 5 === 2) return on ? [255, 200, 90] : [80, 70, 55];
+    return on ? vary([255, 240, 170], 0.05) : vary([110, 95, 70], 0.1);
+  });
+  lampTile(TILE.SPARK_LAMP, false); lampTile(TILE.SPARK_LAMP_ON, true);
+  paint(TILE.SPARK_DOOR, (x, y) => {
+    if (edge(x, y)) return [70, 72, 85];
+    if ((x === 7 || x === 8) && y >= 3 && y <= 12) return [40, 42, 50];
+    if (x === 11 && y >= 7 && y <= 8) return ON;
+    return vary([160, 165, 180], 0.06);
+  });
+  paint(TILE.SPARK_DOOR_OPEN, (x, y) => (edge(x, y) ? [70, 72, 85] : x === 1 && y === 1 ? [255, 225, 60] : [0, 0, 0, 0]));
+  paint(TILE.PISTON_FRONT, (x, y) => (edge(x, y) ? [110, 86, 50] : vary([180, 145, 90], 0.08)));
+  paint(TILE.PISTON_SIDE, (x, y) => {
+    if (y < 4) return y === 0 || y === 3 ? [110, 86, 50] : vary([168, 135, 82], 0.08);
+    if (edge(x, y)) return [50, 52, 60];
+    if (x >= 6 && x <= 9 && y <= 9) return [140, 140, 150];
+    return vary([110, 112, 120], 0.12);
+  });
+  paint(TILE.PISTON_BACK, (x, y) => (edge(x, y) ? [50, 52, 60] : Math.hypot(x - 7.5, y - 7.5) < 3 ? [70, 72, 82] : vary([110, 112, 120], 0.12)));
+  paint(TILE.PISTON_INNER, (x, y) => (edge(x, y) ? [50, 52, 60] : x >= 6 && x <= 9 && y >= 6 && y <= 9 ? [140, 140, 150] : vary([60, 62, 70], 0.1)));
 
   // Ores: stone + clusters of mineral pixels.
   const ore = (tile, color, clusters) => {

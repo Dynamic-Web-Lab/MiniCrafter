@@ -49,6 +49,9 @@ export const QUESTS = [
   { id: 'climb', track: 'all', icon: '⛰️', title: 'Mountain Top', text: 'Climb up high until you reach height 60. Press F3 to see your height.', event: 'height', value: (d) => Math.floor(d), count: 60, stars: 2 },
   { id: 'night', track: 'all', icon: '⭐', title: 'Star Gazer', text: 'Stay up until night and look at the stars.', event: 'night', count: 1, stars: 1 },
   { id: 'trade3', track: 'survival', icon: '🤝', title: 'Fair Trader', text: 'Make 3 trades with villagers. Count what you give and what you get!', event: 'trade', count: 3, stars: 2 },
+  { id: 'lamp', track: 'all', icon: '💡', title: 'Light It Up', text: 'Put Spark Wire from a Spark Lever to a Spark Lamp, then right-click the lever to switch it on.', event: 'spark', test: (d) => d.kind === 'lamp', count: 1, stars: 2 },
+  { id: 'sparkdoor', track: 'all', icon: '🚪', title: 'Secret Door', text: 'Wire a Pressure Plate or Button to a Spark Door so it opens all by itself.', event: 'spark', test: (d) => d.kind === 'door', count: 1, stars: 2 },
+  { id: 'piston', track: 'all', icon: '📦', title: 'Push It!', text: 'Power a Spark Piston so it pushes a block. Pistons can even lift you up!', event: 'spark', test: (d) => d.kind === 'piston', count: 1, stars: 2 },
   { id: 'feast', track: 'adventure', icon: '🍗', title: 'Hungry Hero', text: 'In Adventure you get hungry. When your 🍗 bar is low, eat an apple or bread to fill it up.', event: 'feast', count: 1, stars: 1 },
   { id: 'recover', track: 'adventure', icon: '🧳', title: 'Back For It', text: 'If you faint, your things wait in a Lost Items Chest. Find it and click it to get them back.', event: 'recover', count: 1, stars: 2 },
   { id: 'nightwatch', track: 'adventure', icon: '🌙', title: 'Night Watch', text: 'Night creatures come out in the dark. Craft a sword at a table and defeat one!', event: 'defeat', count: 1, stars: 2 },
@@ -68,6 +71,7 @@ export const QUESTS = [
   { id: 'bit6', track: 'coding', icon: '⛏️', title: 'Tunnel Digger', text: 'Have Bit dig 15 blocks.', event: 'robot', test: (d) => d.kind === 'dig', count: 15, stars: 2 },
   { id: 'bit7', track: 'coding', icon: '🎨', title: 'My Own Program', text: 'Build a program that is different from all the starter programs and run it to the end.', event: 'robotDone', test: (d) => d.custom, count: 1, stars: 2 },
   { id: 'bit8', track: 'coding', icon: '🪆', title: 'Loop Inside a Loop', text: 'Finish a program with a repeat block inside another repeat block.', event: 'robotDone', test: (d) => nestedRepeat(d.program), count: 1, stars: 3 },
+  { id: 'bitspark', track: 'coding', icon: '🔌', title: 'Robot Electrician', text: 'Have Bit flip a Spark Lever with the 🖐 use block. Bit can check for spark power too!', event: 'robot', test: (d) => d.kind === 'use', count: 1, stars: 2 },
   { id: 'bit9', track: 'coding', icon: '🧠', title: 'Smart Robot', text: 'Finish a program that uses ❓ if or 🔁 repeat while, so Bit decides what to do by itself.', event: 'robotDone', test: (d) => usesOp(d.program, 'if') || usesOp(d.program, 'while'), count: 1, stars: 3 },
 ];
 

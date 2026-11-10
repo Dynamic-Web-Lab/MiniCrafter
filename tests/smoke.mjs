@@ -191,6 +191,22 @@ try {
     m.mobs.onPoof = prevPoof;
     out.a2 = gentleSpawn && arrowHit && poofed === 'arrow' && !m.mobs.list.includes(gl) && !!document.getElementById('monsters');
 
+    // Adventure A3: Spark circuits. A lever lights a lamp through wire, an inverter flips it, a piston pushes.
+    {
+      const SP = m.spark, sx = Math.floor(p.pos.x), sy = Math.min(90, Math.floor(p.pos.y) + 8), sz = Math.floor(p.pos.z);
+      for (let i = -1; i <= 6; i++) for (let j = 0; j <= 2; j++) W.setBlock(sx + i, sy, sz + j, 0);
+      W.setBlock(sx, sy, sz, B.LEVER); W.setBlock(sx + 1, sy, sz, B.WIRE); W.setBlock(sx + 2, sy, sz, B.SPARK_LAMP);
+      SP.interact(sx, sy, sz); SP.tick();
+      const lit = W.getBlock(sx + 2, sy, sz) === B.SPARK_LAMP_ON;
+      W.setBlock(sx, sy, sz + 1, B.BATTERY); W.setBlock(sx + 1, sy, sz + 1, B.INVERTER + 1); W.setBlock(sx + 2, sy, sz + 1, B.SPARK_LAMP);
+      SP.tick(); SP.tick();
+      const inverted = W.getBlock(sx + 2, sy, sz + 1) === B.SPARK_LAMP;
+      W.setBlock(sx, sy, sz + 2, B.LEVER); W.setBlock(sx + 1, sy, sz + 2, B.PISTON + 1); W.setBlock(sx + 2, sy, sz + 2, B.BRICK);
+      SP.interact(sx, sy, sz + 2);
+      const pushed = W.getBlock(sx + 3, sy, sz + 2) === B.BRICK && W.getBlock(sx + 2, sy, sz + 2) === B.PISTON_HEAD;
+      out.a3 = lit && inverted && pushed;
+    }
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -216,6 +232,7 @@ try {
   ok(features.phase4, 'share links round-trip and reject bad data; portals; daily idea');
   ok(features.adventure, 'adventure: XP levels, hunger, tougher falls (gentle modes unchanged)');
   ok(features.a2, 'adventure A2: no monsters in gentle modes; arrows and swords defeat them');
+  ok(features.a3, 'adventure A3: spark wire, inverter and piston work');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });

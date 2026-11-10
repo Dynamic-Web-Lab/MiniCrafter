@@ -16,6 +16,11 @@ export const B = {
   FARMLAND: 55, WHEAT_0: 56, WHEAT_1: 57, WHEAT_2: 58, WHEAT_3: 59,
   LANTERN: 60, STAR: 61, PORTAL_BLUE: 62, PORTAL_ORANGE: 63, PORTAL_GREEN: 64, PORTAL_PURPLE: 65,
   LOST_CHEST: 66,
+  // Spark circuits (A3). Every on/off state and facing is its own ID (chunks store 1 byte per block).
+  WIRE: 67, WIRE_ON: 68, LEVER: 69, LEVER_ON: 70, BUTTON: 71, BUTTON_ON: 72, PLATE: 73, PLATE_ON: 74,
+  BATTERY: 75, INVERTER: 76, INVERTER_ON: 80, DELAY: 84, DELAY_ON: 88,
+  SPARK_LAMP: 92, SPARK_LAMP_ON: 93, SPARK_DOOR: 94, SPARK_DOOR_OPEN: 95,
+  PISTON: 96, PISTON_OUT: 101, PISTON_HEAD: 106,
 };
 
 export const BLOCKS = [];
@@ -101,6 +106,51 @@ def(B.PORTAL_GREEN, 'Green Portal', TILE.PORTAL_GREEN, portal('green'));
 def(B.PORTAL_PURPLE, 'Purple Portal', TILE.PORTAL_PURPLE, portal('purple'));
 // Adventure: when you faint, your things wait for you in this chest (click it to get them back).
 def(B.LOST_CHEST, 'Lost Items Chest', { top: TILE.LOST_CHEST_TOP, bottom: TILE.LOST_CHEST_TOP, side: TILE.LOST_CHEST }, { placeable: false, lostChest: true });
+
+// ---- A3 Spark circuits ----
+// spark: what the block does in a circuit; base: the item you get back when you break it.
+// Facings: 0 north (-z), 1 east (+x), 2 south (+z), 3 west (-x), 4 up (pistons only).
+export const SPARK_DIRS = [[0, 0, -1], [1, 0, 0], [0, 0, 1], [-1, 0, 0], [0, 1, 0]];
+const flat = { solid: false, transparent: true, shape: 'flat' };
+def(B.WIRE, 'Spark Wire', TILE.WIRE, { ...flat, spark: 'wire', base: B.WIRE });
+def(B.WIRE_ON, 'Spark Wire (on)', TILE.WIRE_ON, { ...flat, emissive: true, spark: 'wire', on: true, base: B.WIRE, placeable: false });
+def(B.LEVER, 'Spark Lever', { top: TILE.SPARK_BASE, side: TILE.LEVER }, { spark: 'lever', base: B.LEVER });
+def(B.LEVER_ON, 'Spark Lever (on)', { top: TILE.SPARK_BASE, side: TILE.LEVER_ON }, { spark: 'lever', on: true, base: B.LEVER, placeable: false });
+def(B.BUTTON, 'Spark Button', { top: TILE.BUTTON, side: TILE.SPARK_BASE }, { spark: 'button', base: B.BUTTON });
+def(B.BUTTON_ON, 'Spark Button (on)', { top: TILE.BUTTON_ON, side: TILE.SPARK_BASE }, { spark: 'button', on: true, base: B.BUTTON, placeable: false });
+def(B.PLATE, 'Pressure Plate', TILE.PLATE, { ...flat, spark: 'plate', base: B.PLATE });
+def(B.PLATE_ON, 'Pressure Plate (on)', TILE.PLATE_ON, { ...flat, spark: 'plate', on: true, base: B.PLATE, placeable: false });
+def(B.BATTERY, 'Spark Battery', TILE.BATTERY, { emissive: true, spark: 'battery', on: true, base: B.BATTERY });
+for (let d = 0; d < 4; d++) {
+  const extra = d === 0 ? {} : { placeable: false };
+  def(B.INVERTER + d, 'Spark Inverter', { top: TILE.INVERTER, bottom: TILE.SPARK_BASE, side: TILE.GATE_SIDE }, { spark: 'inverter', dir: d, rot: d, base: B.INVERTER, ...extra });
+  def(B.INVERTER_ON + d, 'Spark Inverter (on)', { top: TILE.INVERTER_ON, bottom: TILE.SPARK_BASE, side: TILE.GATE_SIDE }, { spark: 'inverter', dir: d, rot: d, on: true, base: B.INVERTER, placeable: false });
+  def(B.DELAY + d, 'Spark Delay', { top: TILE.DELAY, bottom: TILE.SPARK_BASE, side: TILE.GATE_SIDE }, { spark: 'delay', dir: d, rot: d, base: B.DELAY, ...extra });
+  def(B.DELAY_ON + d, 'Spark Delay (on)', { top: TILE.DELAY_ON, bottom: TILE.SPARK_BASE, side: TILE.GATE_SIDE }, { spark: 'delay', dir: d, rot: d, on: true, base: B.DELAY, placeable: false });
+}
+def(B.SPARK_LAMP, 'Spark Lamp', TILE.SPARK_LAMP, { spark: 'lamp', base: B.SPARK_LAMP });
+def(B.SPARK_LAMP_ON, 'Spark Lamp (on)', TILE.SPARK_LAMP_ON, { emissive: true, light: 15, spark: 'lamp', on: true, base: B.SPARK_LAMP, placeable: false });
+def(B.SPARK_DOOR, 'Spark Door', TILE.SPARK_DOOR, { spark: 'door', base: B.SPARK_DOOR });
+def(B.SPARK_DOOR_OPEN, 'Spark Door (open)', TILE.SPARK_DOOR_OPEN, { solid: false, transparent: true, spark: 'door', on: true, base: B.SPARK_DOOR, placeable: false });
+for (let d = 0; d < 5; d++) {
+  // faces: the pusher on the facing side, a back plate opposite, arrows round the sides.
+  const faces = (front) => [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]].map((v) => {
+    const [x, y, z] = SPARK_DIRS[d];
+    if (v[0] === x && v[1] === y && v[2] === z) return front;
+    if (v[0] === -x && v[1] === -y && v[2] === -z) return TILE.PISTON_BACK;
+    return TILE.PISTON_SIDE;
+  });
+  def(B.PISTON + d, 'Spark Piston', TILE.PISTON_SIDE, { spark: 'piston', dir: d, faces: faces(TILE.PISTON_FRONT), base: B.PISTON, ...(d ? { placeable: false } : {}) });
+  def(B.PISTON_OUT + d, 'Spark Piston (pushed out)', TILE.PISTON_SIDE, { spark: 'piston', dir: d, on: true, faces: faces(TILE.PISTON_INNER), base: B.PISTON, placeable: false });
+}
+def(B.PISTON_HEAD, 'Piston Pusher', TILE.PISTON_FRONT, { spark: 'head', placeable: false });
+/** Facing-aware block: turns a placed directional item into the variant facing `dir`. */
+export function sparkFacing(id, dir) {
+  const b = BLOCKS[id];
+  if (!b || b.dir === undefined) return id;
+  if (dir === 4 && b.spark !== 'piston') dir = 0;
+  return b.base + dir;
+}
 
 // Fast lookup tables used in hot loops (meshing, physics).
 export const SOLID = new Uint8Array(256);
