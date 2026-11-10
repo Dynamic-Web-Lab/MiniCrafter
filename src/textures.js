@@ -4,7 +4,7 @@ import { mulberry32 } from './noise.js';
 
 export const T = 16;          // tile size in px
 export const COLS = 8;
-export const ROWS = 8;
+export const ROWS = 10;
 export const ATLAS_W = COLS * T;
 export const ATLAS_H = ROWS * T;
 
@@ -18,6 +18,8 @@ export const TILE = {
   NEON_PINK: 43, NEON_CYAN: 44, NEON_LIME: 45, NEON_PURPLE: 46,
   NOTE_1: 47, NOTE_2: 48, NOTE_3: 49, NOTE_4: 50, NOTE_5: 51, NOTE_6: 52, NOTE_7: 53, NOTE_8: 54,
   CONFETTI: 55,
+  FLOWER_RED: 56, FLOWER_YELLOW: 57, FLOWER_BLUE: 58, FLOWER_PINK: 59, TALL_GRASS: 60,
+  FARMLAND: 61, WHEAT_0: 62, WHEAT_1: 63, WHEAT_2: 64, WHEAT_3: 65,
 };
 
 /** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
@@ -239,6 +241,31 @@ export function createAtlas() {
     const dots = [[255, 70, 70], [255, 200, 40], [70, 200, 90], [70, 140, 255], [220, 90, 220]];
     paint(TILE.CONFETTI, () => (rng() < 0.22 ? dots[Math.floor(rng() * dots.length)] : vary([245, 245, 250], 0.04)));
   }
+
+  // ---- Phase 3 garden: cross-shaped plants (transparent background) ----
+  const stem = (x, y, top) => x === 7 && y >= top;
+  const flower = (tile, petal, centre) => paint(tile, (x, y) => {
+    const d = Math.hypot(x - 7.5, y - 5);
+    if (d < 1.2) return centre;
+    if (d < 3.3 && y <= 8) return vary(petal, 0.1);
+    if (stem(x, y, 8) || (y === 11 && (x === 6 || x === 8)) || (y === 12 && (x === 5 || x === 9))) return [60, 140, 45];
+    return [0, 0, 0, 0];
+  });
+  flower(TILE.FLOWER_RED, [220, 40, 40], [40, 30, 20]);
+  flower(TILE.FLOWER_YELLOW, [250, 215, 40], [230, 150, 30]);
+  flower(TILE.FLOWER_BLUE, [80, 120, 230], [250, 240, 200]);
+  flower(TILE.FLOWER_PINK, [245, 140, 200], [255, 240, 120]);
+  {
+    const blades = Array.from({ length: 7 }, () => [1 + Math.floor(rng() * 14), 3 + Math.floor(rng() * 7)]);
+    paint(TILE.TALL_GRASS, (x, y) => (blades.some(([bx, top]) => (x === bx || x === bx + (y < 8 ? 1 : 0)) && y >= top) ? vary([90, 160, 55], 0.25) : [0, 0, 0, 0]));
+  }
+  paint(TILE.FARMLAND, (x, y) => (y % 4 === 0 ? vary([80, 55, 35], 0.15) : vary([110, 78, 50], 0.15)));
+  // Wheat: taller and more golden at each stage.
+  [[11, [70, 160, 50]], [8, [110, 170, 50]], [5, [170, 175, 60]], [2, [220, 190, 70]]].forEach(([top, col], i) => paint(TILE.WHEAT_0 + i, (x, y) => {
+    if (y < top) return [0, 0, 0, 0];
+    if ((x % 3 === 1) || (i === 3 && y < top + 3 && x % 3 === 2)) return vary(col, 0.15);
+    return [0, 0, 0, 0];
+  }));
 
   // Ores: stone + clusters of mineral pixels.
   const ore = (tile, color, clusters) => {

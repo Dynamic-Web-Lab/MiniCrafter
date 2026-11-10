@@ -12,6 +12,8 @@ export const B = {
   NEON_PINK: 37, NEON_CYAN: 38, NEON_LIME: 39, NEON_PURPLE: 40,
   NOTE_1: 41, NOTE_2: 42, NOTE_3: 43, NOTE_4: 44, NOTE_5: 45, NOTE_6: 46, NOTE_7: 47, NOTE_8: 48,
   CONFETTI: 49,
+  FLOWER_RED: 50, FLOWER_YELLOW: 51, FLOWER_BLUE: 52, FLOWER_PINK: 53, TALL_GRASS: 54,
+  FARMLAND: 55, WHEAT_0: 56, WHEAT_1: 57, WHEAT_2: 58, WHEAT_3: 59,
 };
 
 export const BLOCKS = [];
@@ -73,6 +75,18 @@ export const NOTE_NAMES = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Ti', 'High Do']
 export const NOTE_FREQS = [523.25, 587.33, 659.25, 698.46, 783.99, 880.0, 987.77, 1046.5];
 NOTE_NAMES.forEach((n, i) => def(B.NOTE_1 + i, `Music Stone (${n})`, TILE.NOTE_1 + i, { note: i }));
 def(B.CONFETTI, 'Confetti Pad', TILE.CONFETTI, { confetti: true });
+
+// ---- Phase 3 garden ----
+// 'plant' blocks are drawn as two crossed quads, are walk-through, and need soil below.
+const plant = { solid: false, transparent: true, shape: 'plant', plant: true };
+def(B.FLOWER_RED, 'Red Flower', TILE.FLOWER_RED, plant);
+def(B.FLOWER_YELLOW, 'Yellow Flower', TILE.FLOWER_YELLOW, plant);
+def(B.FLOWER_BLUE, 'Blue Flower', TILE.FLOWER_BLUE, plant);
+def(B.FLOWER_PINK, 'Pink Flower', TILE.FLOWER_PINK, plant);
+def(B.TALL_GRASS, 'Tall Grass', TILE.TALL_GRASS, plant);
+def(B.FARMLAND, 'Farmland', { top: TILE.FARMLAND, bottom: TILE.DIRT, side: TILE.DIRT });
+[0, 1, 2, 3].forEach((i) => def(B.WHEAT_0 + i, `Wheat (stage ${i + 1})`, TILE.WHEAT_0 + i, { ...plant, crop: i, placeable: false }));
+export const FLOWERS = [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE, B.FLOWER_PINK];
 
 // Fast lookup tables used in hot loops (meshing, physics).
 export const SOLID = new Uint8Array(256);

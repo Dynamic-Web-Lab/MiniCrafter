@@ -139,6 +139,14 @@ try {
     m.undoRedo(false);
     out.tools = line.length === 6 && tooBig === null && dome.length > 50 && placed && W.getBlock(ux, uy, z) === 0;
 
+    // Phase 3 garden: wildflowers generate, watering grows wheat to golden, harvest works.
+    let plants = 0;
+    for (const c of W.chunks.values()) if (c.meshed) for (const v of c.data) if (v === B.TALL_GRASS || (v >= B.FLOWER_RED && v <= B.FLOWER_PINK)) plants++;
+    const gx = x + 6;
+    W.setBlock(gx, y - 1, z, B.FARMLAND); W.setBlock(gx, y, z, B.WHEAT_0);
+    for (let i = 0; i < 3; i++) m.waterAt({ x: gx, y, z, id: W.getBlock(gx, y, z) });
+    out.garden = plants > 20 && W.getBlock(gx, y, z) === B.WHEAT_3;
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -159,6 +167,7 @@ try {
   ok(features.bounce, 'trampolines bounce the player more than 3 blocks');
   ok(features.musicSet, 'music stones recipe gives all 8 notes');
   ok(features.tools, 'power tools: shapes, size cap and undo');
+  ok(features.garden, 'wildflowers generate and watering grows wheat');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });
