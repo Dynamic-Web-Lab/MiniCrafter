@@ -19,7 +19,7 @@ These were on the idea list but MiniCrafter already has them:
 | Fast on Chromebooks and low-end laptops | Chunk meshing (1 draw call per chunk layer, not 1 mesh per block), lower default view distance on tablets. *More in Phase 5.* |
 | Share a world as a file | ⬇ Download / ⬆ Import in **My worlds** (`.minicrafter.json`). *One-click link sharing is in Phase 4.* |
 | Feed pets so they follow you | Dogs and cats tamed with apples (`src/mobs.js`) |
-| Low-stakes quests | 36 quests with stars, including the coding track |
+| Low-stakes quests | 60 quests with stars, including the coding track |
 
 ---
 
