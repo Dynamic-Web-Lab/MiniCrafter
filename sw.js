@@ -1,6 +1,6 @@
 // Service worker: caches the whole game so it works offline once loaded.
 // Bump VERSION whenever files change so players get the update.
-const VERSION = 'minicrafter-v29';
+const VERSION = 'minicrafter-v30';
 const CORE = [
   './', './index.html', './style.css', './privacy.html', './terms.html', './legal.css', './features.html', './features.css', './manifest.webmanifest', './site-config.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
@@ -41,7 +41,8 @@ const CORE = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's own HTTP cache, so a new version never picks up old files.
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -61,7 +62,9 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.includes('/api/') || url.pathname.endsWith('/rooms')) return; // accounts and Play Together are always live, never cached
   e.respondWith(caches.open(VERSION).then(async (cache) => {
     const cached = await cache.match(req, { ignoreSearch: req.mode === 'navigate' });
-    const network = fetch(req).then((res) => {
+    // no-cache: always check with the server (a cheap "not changed" answer when nothing changed).
+    const fresh = req.mode === 'navigate' ? new Request(req.url, { cache: 'no-cache' }) : new Request(req, { cache: 'no-cache' });
+    const network = fetch(fresh).then((res) => {
       if (res.ok) cache.put(req, res.clone());
       return res;
     }).catch(() => null);

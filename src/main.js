@@ -2412,6 +2412,16 @@ if ('serviceWorker' in navigator && (!isLocal || new URLSearchParams(location.se
   navigator.serviceWorker.register('./sw.js').then(() => {
     $('offline-note').textContent = 'It also works offline once it has loaded.';
   }).catch(() => { /* offline support is optional */ });
+  // The saved copy starts first, so right after an update this page is still the old version.
+  // When the new version takes over, switch to it if nothing would be lost (still on the start
+  // menu with no panel open); otherwise it loads next time.
+  const hadVersion = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadVersion) return; // first visit: this page is already the newest version
+    const busy = hasPlayed || state !== 'menu' || document.querySelector('.overlay:not(.hidden):not(#menu)') || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+    if (busy) toast('✨ A new version of MiniCrafter is ready. It loads next time you open the game.');
+    else location.reload();
+  });
 }
 // Roomy screens show the settings straight away; phones keep them folded.
 if (matchMedia('(min-width: 720px) and (min-height: 640px)').matches) $('settings-fold').open = true;
