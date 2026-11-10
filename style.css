@@ -377,3 +377,41 @@ body.touch #emoji-bar small { display: none; }
 button.danger { background: #7a2323; border-color: #c54848; }
 .tg-login { margin-top: 12px; padding: 12px; border-radius: 8px; background: rgba(59, 130, 246, .12); border: 1px solid rgba(59, 130, 246, .5); }
 .tg-login p { margin: 0 0 10px; }
+
+/* ---------- Phones (design audit fixes) ---------- */
+/* "Turn your phone sideways" card, shown when a phone is held upright at Play. */
+#rotate { z-index: 40; }
+.rotate-panel { width: min(320px, 100%); }
+.rotate-phone { font-size: 64px; line-height: 1.2; margin-bottom: 8px; animation: rotate-hint 2.4s ease-in-out infinite; }
+@keyframes rotate-hint { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+@media (prefers-reduced-motion: reduce) { .rotate-phone { animation: none; transform: rotate(-90deg); } }
+#rotate-back { margin-top: 8px; }
+
+/* Bit's panel: the ✕ stays at the screen's top right while the panel scrolls. */
+#robot-panel > .x-close { position: fixed; }
+#robot-panel .rb-head { padding-right: 48px; }
+
+/* Touch tablets: at most two quests in the tracker, so it covers less of the world. */
+body.touch #quest-tracker .q-card ~ .q-card ~ .q-card { display: none; }
+
+/* Phones held sideways: keep the main button in reach and use one scroll per panel. */
+@media (max-height: 520px) {
+  /* Done stays pinned to the bottom of the panel instead of starting below the fold. */
+  .panel > button.done { position: sticky; bottom: -1px; z-index: 2; margin-top: 10px; box-shadow: 0 -10px 14px 6px rgba(20, 24, 34, .95); }
+  .panel { padding: 16px 18px 12px; }
+  .panel > h2 { padding-right: 44px; }
+  /* Quest book: the whole panel scrolls (no list scrolling inside a scrolling panel). */
+  #qb-list { max-height: none; overflow: visible; }
+  /* Block picker: tabs in one sideways-scrolling row, no subtitle, more room for blocks. */
+  #inventory .panel > .note { display: none; }
+  #inv-tabs { flex: none; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  #inv-tabs button { flex: none; }
+  #inv-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; margin-top: 8px; }
+  /* Bit: compact header, editor sized to the screen, Run / Stop pinned to the bottom. */
+  #robot-panel { padding: 10px 14px; }
+  #robot-panel .rb-head .note, #rb-editor-note { display: none; }
+  #robot-panel .rb-face { font-size: 1.6rem; }
+  #rb-status { margin-top: 6px; padding: 6px 10px; }
+  #rb-blockly { height: calc(100vh - 150px); min-height: 180px; }
+  #rb-controls { position: sticky; bottom: -10px; z-index: 2; margin-top: 0; padding: 8px 0 10px; background: rgba(20, 24, 34, .98); }
+}

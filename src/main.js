@@ -835,11 +835,25 @@ function startPlaying() {
 function enterPlay() {
   // Adventure worlds sit behind the grown-up gate (once per browser session).
   if (isAdventure() && !gateUnlocked()) { showGate(() => enterPlay(), () => showMenu()); return; }
+  if (touchMode && upright.matches) { askSideways(); return; }
   if (touchMode) startPlaying();
   else { state = 'locking'; lock(); }
 }
 
 $('btn-play').addEventListener('click', enterPlay);
+
+// Phones held upright: the game view doesn't fit, so pause and ask for the phone to be
+// turned sideways, then carry on by itself. (The menus still work upright.)
+const upright = matchMedia('(orientation: portrait) and (max-width: 600px)');
+let resumeWhenSideways = false;
+function askSideways() { resumeWhenSideways = true; $('rotate').classList.remove('hidden'); }
+function cancelSideways() { resumeWhenSideways = false; $('rotate').classList.add('hidden'); }
+upright.addEventListener('change', () => {
+  if (!touchMode) return;
+  if (upright.matches && state === 'playing') { showMenu(); askSideways(); }
+  else if (!upright.matches && resumeWhenSideways) { cancelSideways(); enterPlay(); }
+});
+$('rotate-back').addEventListener('click', cancelSideways);
 $('inv-done').addEventListener('click', () => closeOverlay(true));
 $('craft-done').addEventListener('click', () => closeOverlay(true));
 $('qb-done').addEventListener('click', () => closeOverlay(true));
@@ -1039,13 +1053,21 @@ $('acc-delete').addEventListener('click', async () => {
 // Every pop-up panel gets a ✕ that is always on screen, and tapping the dimmed area
 // outside a panel closes it too. (Phones have no Escape key, and on a small screen the
 // Done button can be scrolled out of sight under a long list.)
-for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done']]) {
+for (const [overlay, done] of [['inventory', 'inv-done'], ['craft', 'craft-done'], ['worlds', 'w-done'], ['trade', 'tr-done'], ['questbook', 'qb-done'], ['together', 'tg-close'], ['account', 'acc-done'], ['gate', 'gate-cancel']]) {
   const ov = $(overlay);
   const x = document.createElement('button');
   x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
   x.addEventListener('click', () => $(done).click());
   ov.appendChild(x);
   ov.addEventListener('click', (e) => { if (e.target === ov) $(done).click(); });
+}
+
+// Bit's side panel is not a pop-up (taps inside it must not close it), so it only gets the ✕.
+{
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'x-close'; x.textContent = '✕'; x.setAttribute('aria-label', 'Close');
+  x.addEventListener('click', () => $('rb-close').click());
+  $('robot-panel').appendChild(x);
 }
 
 // ---------- today's building idea ----------
