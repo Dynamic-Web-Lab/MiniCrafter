@@ -2,3 +2,4 @@ node_modules/
 smoke-*.png
 .claude/
 .DS_Store
+tools/.deploy.env

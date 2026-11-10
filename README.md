@@ -130,6 +130,28 @@
 - 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
 - 💾 **Auto-save:** each world's buildings, inventory, animals, pets, robot program and stars are kept in the browser.
 
+## 👫 Play Together (online edition)
+
+Build with family and friends, **up to 4 players** in the host's world. Play Together is part of our hosted online edition (it needs our server), so it doesn't appear in the free GitHub Pages copy.
+
+1. The host opens **👫 Play Together** in the menu and taps **Start a game**. A 4-letter room code appears.
+2. Friends pick a name (a colour and an animal, like *Blue Fox*), type the code and tap **Join**.
+3. The host sees "*Blue Fox* wants to join" and taps **Let in** (or presses **L**).
+
+Everyone builds in the same world and sees each other walking around. Animals, day and night and Spark circuits are shared. Send emoji with **T** then **1–8** (or the 😊 button): 👋 ❤️ 😂 👍 🎉 😮 ❓ 🙏
+
+**Kid-safe by design:**
+- **No chat, only emoji.**
+- **No typed names:** players pick a colour and an animal.
+- **The host lets each player in,** and can remove players or lock the room.
+- **Players never connect to each other directly:** a tiny relay passes the game along, so no addresses are shared.
+- **Nothing is stored:** rooms vanish when the host leaves.
+- **Your own worlds are safe:** visitors never save the host's world over theirs.
+
+Play Together works in Creative and Survival worlds and needs an internet connection; the rest of the game still works offline.
+
+**The relay:** players connect through a single-file relay ([`server/rooms.mjs`](server/rooms.mjs)) that only accepts connections from the site that hosts the game. To run your own copy (for a school network, say), see [`server/README.md`](server/README.md).
+
 ## ⚔️ Adventure mode (for older players)
 
 Want more excitement? **Adventure** is an opt-in third mode for teens and grown-ups. It sits behind a quick grown-up check and never changes the kids' Creative and gentle Survival worlds.
@@ -149,7 +171,7 @@ Want more excitement? **Adventure** is an opt-in third mode for teens and grown-
 |---|---|
 | 🚫 **No monsters, no fighting** | Animals are friends: you can pat, feed and shear them, but never hurt them. (Night creatures exist only in grown-up ⚔️ Adventure worlds.) |
 | 🔒 **No accounts, no chat, no ads** | Nothing to sign up for, no strangers to talk to, and nothing to buy. |
-| 💾 **Private** | Saves stay in the browser on your device. There's no server and no tracking. |
+| 💾 **Private** | Saves stay in the browser on your device, with no tracking. The only server is the small Play Together relay, which stores nothing. |
 | 🙂 **Forgiving** | Fainting keeps your items, hearts come back on their own, and tips guide new players. |
 | 🤖 **Friendly errors** | If Bit's program hits a problem, Bit shakes its head, says why in plain words, and keeps going. |
 
@@ -307,6 +329,8 @@ src/ideas.js        Daily building ideas
 src/adventure.js    Adventure mode: XP / levels and the grown-up gate
 src/combat.js       Adventure combat: arrows and spore projectiles
 src/spark.js        Spark circuits: wire power, gates, lamps, doors, pistons
+src/together.js     Play Together: rooms, world snapshot, block / animal sync, avatars, emoji
+server/rooms.mjs    Play Together relay (zero dependencies, nothing stored)
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds
@@ -320,6 +344,15 @@ src/noise.js        Seeded Perlin noise and hashes
 - **Debugging:** `window.minicrafter` in the browser console exposes `world`, `player`, `inv`, `robot`, `quests`, `save()`, `setMode()` and `step(n)`. `step(n)` advances frames by hand, which is handy in a background tab.
 
 </details>
+
+## 🌐 Where it runs
+
+| Edition | What | How it's updated |
+|---|---|---|
+| **Free** ([GitHub Pages](https://dynamic-web-lab.github.io/MiniCrafter/)) | The whole game, offline-ready, no server features. It will be retired once the online edition launches. | Automatically from `main` |
+| **Online** (our own server) | The same game plus server features: Play Together now, then accounts (register / log in). Those features need a login. | `tools/deploy-site.sh` |
+
+The online features switch on through `site-config.json`: the copy in Git keeps them off, and the deploy script uploads an "on" version to our site. The relay ([`server/`](server/README.md)) only accepts the site that hosts the game.
 
 ## 🧭 Roadmap
 

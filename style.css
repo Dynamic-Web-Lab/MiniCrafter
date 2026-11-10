@@ -317,3 +317,50 @@ select { width: 100%; }
 .tabs button.on { background: #3f7d2a; border-color: #66b043; }
 #inventory .panel { display: flex; flex-direction: column; }
 #inv-grid { overflow: auto; min-height: 0; flex: 1 1 auto; }
+
+/* ---------- Play Together ---------- */
+.together-btn { background: #24324f; border-color: #3b82f6; font-weight: 600; }
+.together-btn:hover { background: #2c3d60; }
+#tg-menu-state { color: #9cc3ff; font-weight: 400; }
+.tg-panel { width: min(640px, 100%); }
+.tg-panel h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.tg-me { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: rgba(255, 255, 255, .04); border: 1px solid #2c3446; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { padding: 4px 10px; border-radius: 999px; font-size: .85rem; background: #1b2030; border-color: var(--chip, #4b556b); }
+.chip.on { background: var(--chip, #3f7d2a); border-color: #fff; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
+.chip:disabled { opacity: .55; cursor: default; }
+.tg-start { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+@media (max-width: 560px) { .tg-start { grid-template-columns: 1fr; } }
+.tg-card { padding: 12px; border-radius: 8px; background: rgba(255, 255, 255, .04); border: 1px solid #2c3446; display: flex; flex-direction: column; }
+.tg-card .primary { margin-top: auto; }
+.tg-row { display: flex; gap: 8px; align-items: stretch; margin-top: 8px; }
+.tg-row input { text-transform: uppercase; letter-spacing: .3em; font-weight: 700; font-size: 1.2rem; text-align: center; min-width: 0; }
+.tg-row .primary { width: auto; flex: none; }
+.tg-code-label { margin: 12px 0 2px; text-align: center; color: #9aa3b5; }
+#tg-code-big { text-align: center; font-size: 3rem; font-weight: 800; letter-spacing: .25em; color: #9be06a; text-shadow: 3px 3px 0 #2b5a1e; }
+#tg-players { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 6px; }
+#tg-players li { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 6px; background: #1b2030; }
+button.small { padding: 3px 8px; font-size: .8rem; }
+button.go { background: #3f7d2a; border-color: #66b043; }
+.tg-knock { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; background: #3a3218; border: 2px solid #e6c35c; margin-top: 8px; }
+#tg-chip { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(20, 40, 80, .7); border: 2px solid rgba(90, 150, 255, .7); font-size: .85rem; font-weight: 600; }
+#knock { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 10px; background: rgba(58, 50, 24, .95); border: 2px solid #e6c35c; pointer-events: auto; z-index: 9; max-width: calc(100% - 20px); }
+#knock button { padding: 5px 10px; }
+#knock-yes { background: #3f7d2a; border-color: #66b043; }
+kbd { font: inherit; font-size: .75em; padding: 0 4px; border-radius: 3px; background: rgba(255, 255, 255, .15); }
+body.touch kbd { display: none; }
+#emoji-bar { position: absolute; bottom: 132px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; border-radius: 12px; background: rgba(0, 0, 0, .55); pointer-events: auto; z-index: 9; }
+#emoji-bar button { font-size: 26px; line-height: 1; padding: 6px 8px; background: rgba(255, 255, 255, .08); border-color: transparent; position: relative; }
+#emoji-bar small { position: absolute; right: 3px; bottom: 1px; font-size: 10px; color: #cfd6e4; }
+body.touch #emoji-bar small { display: none; }
+#t-emoji { right: calc(max(24px, env(safe-area-inset-right)) + 100px); bottom: 140px; }
+@media (max-height: 520px) {
+  #t-emoji { right: calc(max(14px, env(safe-area-inset-right)) + 70px); bottom: 154px; }
+  #emoji-bar { bottom: 104px; }
+  #emoji-bar button { font-size: 22px; padding: 4px 6px; }
+}
+
+/* Always-visible close button on pop-up panels */
+.x-close { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 30; width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 20px; font-weight: 700; line-height: 1; background: rgba(20, 24, 34, .92); border: 2px solid #8a93a8; color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
+.x-close:hover { background: #364058; }
+@media (max-height: 520px) { .x-close { width: 40px; height: 40px; top: max(6px, env(safe-area-inset-top)); right: max(6px, env(safe-area-inset-right)); } }

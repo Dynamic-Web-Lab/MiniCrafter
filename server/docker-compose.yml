@@ -1,0 +1,15 @@
+# Runs the relay on its own network with no host ports; the reverse proxy reaches it by name.
+services:
+  minicrafter-rooms:
+    build: .
+    container_name: minicrafter-rooms
+    restart: unless-stopped
+    environment:
+      # The site(s) allowed to use the relay, e.g. https://example.com (set in a .env file next to this one)
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS in .env}
+    networks: [minicrafter_net]
+    read_only: true
+    mem_limit: 128m
+networks:
+  minicrafter_net:
+    name: minicrafter_net

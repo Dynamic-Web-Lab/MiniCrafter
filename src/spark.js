@@ -87,7 +87,7 @@ export class Spark {
     else if (k === 'door') { this.set(x, y, z, id === B.SPARK_DOOR ? B.SPARK_DOOR_OPEN : B.SPARK_DOOR); this.click(300); }
     else return false;
     this.world.flushDirty();
-    this.tick(); // react right away
+    if (!this.passive) this.tick(); // react right away (in Play Together only the host runs circuits)
     return true;
   }
 

@@ -7,6 +7,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { spawn } from 'node:child_process';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
@@ -51,8 +52,9 @@ async function openGame(query = '') {
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
-  await page.goto(base + query);
-  await page.waitForFunction(() => window.minicrafter && window.minicrafter.world, null, { timeout: 30000 });
+  // CI runners are slow with software WebGL (and Play Together runs two games at once), so be patient.
+  await page.goto(base + query, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await page.waitForFunction(() => window.minicrafter && window.minicrafter.world, null, { timeout: 90000 });
   await page.evaluate(() => window.minicrafter.step(40));
   return { page, errors };
 }
@@ -248,6 +250,31 @@ try {
   ok(touch, 'touch controls appear in touch mode');
   ok(t.errors.length === 0, 'no console errors (touch)', t.errors.slice(0, 3).join(' | '));
   await t.page.close();
+
+  // ---------- Play Together: two players through the local relay ----------
+  {
+    const relay = spawn(process.execPath, [join(ROOT, 'server', 'rooms.mjs')], { env: { ...process.env, PORT: '8799' }, stdio: 'ignore' });
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      const rooms = '&rooms=ws://127.0.0.1:8799';
+      const host = await openGame(`?x=1${rooms}`), guest = await openGame(`?x=2${rooms}`);
+      await host.page.evaluate(() => { const m = window.minicrafter; m.setMode('creative'); m.forcePlay(); m.together.host(); });
+      await host.page.waitForFunction(() => window.minicrafter.together.role === 'host', null, { timeout: 10000 });
+      const code = await host.page.evaluate(() => window.minicrafter.together.code);
+      await guest.page.evaluate((c) => { window.minicrafter.forcePlay(); window.minicrafter.together.join(c); }, code);
+      await host.page.waitForFunction(() => window.minicrafter.together.knocks.size === 1, null, { timeout: 10000 });
+      await host.page.evaluate(() => { const t = window.minicrafter.together; t.admit([...t.knocks.keys()][0], true); });
+      await guest.page.waitForFunction(() => window.minicrafter.together.role === 'guest', null, { timeout: 20000 });
+      const cell = await host.page.evaluate(() => { const p = window.minicrafter.player.pos; const c = [Math.floor(p.x) + 2, Math.min(90, Math.floor(p.y) + 4), Math.floor(p.z)]; window.minicrafter.world.setBlock(...c, 10); return c; });
+      const synced = await guest.page.waitForFunction((c) => window.minicrafter.world.getBlock(...c) === 10, cell, { timeout: 10000 }).then(() => true).catch(() => false);
+      await guest.page.evaluate((c) => window.minicrafter.world.setBlock(c[0], c[1] + 1, c[2], 22), cell);
+      const back = await host.page.waitForFunction((c) => window.minicrafter.world.getBlock(c[0], c[1] + 1, c[2]) === 22, cell, { timeout: 10000 }).then(() => true).catch(() => false);
+      const noSave = await guest.page.evaluate(() => window.minicrafter.currentWorldId === null);
+      ok(synced && back && noSave, 'play together: host lets a friend in, blocks sync both ways, guest never saves', code);
+      ok(host.errors.length + guest.errors.length === 0, 'no console errors (play together)', [...host.errors, ...guest.errors].slice(0, 3).join(' | '));
+      await host.page.close(); await guest.page.close();
+    } finally { relay.kill(); }
+  }
 
   // ---------- offline: service worker ----------
   const s = await openGame('?sw=1');
