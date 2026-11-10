@@ -16,7 +16,7 @@ cp site-config.json "${TMPDIR:-/tmp}/site-config.json.keep" 2>/dev/null || true
 printf '{ "online": true, "rooms": "/rooms", "accounts": true }\n' > site-config.json
 trap 'mv -f "${TMPDIR:-/tmp}/site-config.json.keep" site-config.json 2>/dev/null || true' EXIT
 rsync -az --delete \
-  --include='index.html' --include='style.css' --include='sw.js' --include='manifest.webmanifest' --include='site-config.json' \
+  --include='index.html' --include='style.css' --include='privacy.html' --include='terms.html' --include='legal.css' --include='sw.js' --include='manifest.webmanifest' --include='site-config.json' \
   --include='icons/***' --include='src/***' --include='vendor/***' --exclude='*' \
   ./ "$DEPLOY_SSH:$DEPLOY_DIR/"
 ssh "$DEPLOY_SSH" "chmod -R a+rX $DEPLOY_DIR"

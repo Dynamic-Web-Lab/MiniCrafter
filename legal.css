@@ -1,0 +1,27 @@
+/* Privacy Policy and Terms of Use pages */
+* { box-sizing: border-box; }
+html { background: #0b1026; }
+body { margin: 0; color: #e8ecf4; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; background: linear-gradient(180deg, #13203f 0%, #0b1026 320px); }
+.legal { max-width: 760px; margin: 0 auto; padding: 24px max(16px, env(safe-area-inset-left)) 48px; }
+.back { display: inline-block; margin-bottom: 12px; color: #9cc3ff; text-decoration: none; font-weight: 600; }
+.back:hover { text-decoration: underline; }
+h1 { margin: 0; font-size: 2rem; color: #9be06a; text-shadow: 2px 2px 0 #2b5a1e; }
+h2 { margin: 28px 0 8px; font-size: 1.2rem; color: #ffe27a; }
+.meta { margin: 4px 0 18px; color: #9aa3b5; font-size: .9rem; }
+a { color: #9cc3ff; }
+ul { padding-left: 1.2em; }
+li { margin: 4px 0; }
+.kids { padding: 4px 18px 10px; border-radius: 12px; background: rgba(102, 176, 67, .12); border: 2px solid rgba(102, 176, 67, .55); }
+.kids h2 { color: #9be06a; }
+table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: .92rem; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid #2c3446; }
+th { color: #cfd6e4; background: rgba(255, 255, 255, .04); }
+.foot { margin-top: 32px; padding-top: 14px; border-top: 1px solid #2c3446; color: #9aa3b5; }
+@media (max-width: 560px) {
+  h1 { font-size: 1.6rem; }
+  table, tr, td, th { display: block; }
+  tr { margin-bottom: 10px; border: 1px solid #2c3446; border-radius: 8px; }
+  th { display: none; }
+  td { border: 0; padding: 4px 10px; }
+  td:first-child { font-weight: 600; padding-top: 8px; }
+}

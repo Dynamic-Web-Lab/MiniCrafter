@@ -160,6 +160,7 @@ Playing never needs an account. In the online edition, an account unlocks Play T
 - **The username is private:** it's only for logging in. Other players only ever see your picked colour-and-animal name.
 - **Passwords are hashed** (scrypt), and logins are kept in secure, HttpOnly cookies.
 - **Delete your account any time** from the account screen. It's removed straight away, and your worlds on the device stay.
+- **Signing up:** players agree to the [Terms of Use](terms.html) and [Privacy Policy](privacy.html), and the version they agreed to is recorded. The game asks for a birth year only to decide whether a grown-up must help. The year never leaves the device, and players under 13 need a parent or guardian to confirm.
 - Kids: ask a grown-up to help you make one.
 
 ## ⚔️ Adventure mode (for older players)
