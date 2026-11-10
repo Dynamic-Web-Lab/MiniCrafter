@@ -8,9 +8,10 @@
   <meta name="apple-mobile-web-app-title" content="MiniCrafter">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>MiniCrafter</title>
-  <meta name="description" content="A browser voxel sandbox: explore procedural worlds, mine and build.">
+  <meta name="description" content="A free block-building game for kids: explore, build, raise animals and learn to code with Bit the robot. Works offline.">
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="theme-color" content="#3f7d2a">
@@ -61,21 +62,37 @@
   </div>
 
   <div id="menu" class="overlay">
-    <div class="panel">
-      <h1>MiniCrafter</h1>
-      <p class="tag">Explore · Mine · Build</p>
-      <p id="loading">Generating world…</p>
-      <button id="btn-play" class="primary">Play</button>
-      <button id="btn-install" class="wide-btn hidden">📲 Install MiniCrafter as an app</button>
-      <div id="install-help" class="install-help hidden" role="note">
-        <b>📲 Put MiniCrafter on your Home Screen</b>
-        <ol id="install-steps"></ol>
-        <p class="note">Then open it from the icon: it fills the whole screen, works offline, and keeps your worlds safe.</p>
+    <div class="panel menu-panel">
+      <div class="menu-main">
+        <div class="brand">
+          <img src="icons/icon-192.png" alt="" class="logo" width="64" height="64">
+          <div>
+            <h1>MiniCrafter</h1>
+            <p class="tag">Explore · Build · Code</p>
+          </div>
+        </div>
+        <p id="loading">Generating world…</p>
+        <button id="btn-play" class="primary">▶ Play</button>
+        <div class="section world-row">
+          <div><span class="note">World</span><div id="world-name">—</div><div class="note" id="world-info"></div></div>
+          <button id="btn-worlds" type="button">🗂 My worlds</button>
+        </div>
+        <button id="btn-install" class="wide-btn hidden">📲 Install MiniCrafter as an app</button>
+        <div id="install-help" class="install-help hidden" role="note">
+          <b>📲 Put MiniCrafter on your Home Screen</b>
+          <ol id="install-steps"></ol>
+          <p class="note">Then open it from the icon: it fills the whole screen, works offline, and keeps your worlds safe.</p>
+        </div>
+        <button id="btn-quests" class="wide-btn">⭐ Quest book <span id="menu-stars"></span></button>
+        <p id="lock-note" class="note"></p>
+        <div class="idea-card">
+          <span class="idea-label">💡 Today's building idea</span>
+          <p id="idea-text"></p>
+          <button id="btn-idea" type="button">Another idea</button>
+        </div>
       </div>
-      <button id="btn-quests" class="wide-btn">⭐ Quest book <span id="menu-stars"></span></button>
-      <p id="lock-note" class="note"></p>
 
-      <div class="section">
+      <div class="menu-side">
         <div class="mode-pick">
           <span>Game mode</span>
           <div class="seg">
@@ -85,52 +102,48 @@
           </div>
         </div>
         <p class="note" id="mode-desc"></p>
-        <label>Render distance <span id="rd-val"></span>
-          <input id="rd" type="range" min="3" max="12" step="1">
-        </label>
-        <label>Mouse sensitivity <span id="sens-val"></span>
-          <input id="sens" type="range" min="0.2" max="3" step="0.1">
-        </label>
-        <label>Field of view <span id="fov-val"></span>
-          <input id="fov" type="range" min="55" max="100" step="1">
-        </label>
-        <label>Night creatures (⚔️ Adventure only)
-          <select id="monsters"><option value="easy">Easy: fewer, gentler</option><option value="normal">Normal</option></select>
-        </label>
+        <details class="fold" id="settings-fold">
+          <summary>⚙️ Settings</summary>
+          <div class="section">
+            <label>Render distance <span id="rd-val"></span>
+              <input id="rd" type="range" min="3" max="12" step="1">
+            </label>
+            <label>Mouse sensitivity <span id="sens-val"></span>
+              <input id="sens" type="range" min="0.2" max="3" step="0.1">
+            </label>
+            <label>Field of view <span id="fov-val"></span>
+              <input id="fov" type="range" min="55" max="100" step="1">
+            </label>
+            <label>Night creatures (⚔️ Adventure only)
+              <select id="monsters"><option value="easy">Easy: fewer, gentler</option><option value="normal">Normal</option></select>
+            </label>
+          </div>
+        </details>
+        <details class="fold">
+          <summary>🎮 Controls</summary>
+          <table class="controls">
+            <tr><td>W A S D</td><td>Move</td></tr>
+            <tr><td>Mouse</td><td>Look around</td></tr>
+            <tr><td>Space</td><td>Jump / swim up / fly up</td></tr>
+            <tr><td>Shift</td><td>Sprint (fly down while flying)</td></tr>
+            <tr><td>F</td><td>Toggle flying (creative)</td></tr>
+            <tr><td>Left click (hold)</td><td>Break block</td></tr>
+            <tr><td>Right click (hold)</td><td>Place block</td></tr>
+            <tr><td>Middle click</td><td>Pick block into hotbar</td></tr>
+            <tr><td>1–9 / Mouse wheel</td><td>Select hotbar slot</td></tr>
+            <tr><td>E</td><td>Inventory &amp; crafting</td></tr>
+            <tr><td>Right click (food)</td><td>Eat an apple (survival)</td></tr>
+            <tr><td>Right click (lever)</td><td>Flip a Spark Lever or press a Button</td></tr>
+            <tr><td>Hold right click</td><td>Draw the bow / raise the shield (⚔️ Adventure)</td></tr>
+            <tr><td>Q</td><td>Quest book</td></tr>
+            <tr><td>Z / Y</td><td>Undo / redo (creative)</td></tr>
+            <tr><td>F3</td><td>Debug info</td></tr>
+            <tr><td>Esc</td><td>Pause</td></tr>
+          </table>
+        </details>
+        <p class="note touch-only">Touch: left stick walks, drag to look, tap to place or flip, hold to mine or attack. Holding a bow or shield? Hold to draw or block.</p>
+        <p class="note">Your world is saved automatically in this browser. <span id="offline-note"></span></p>
       </div>
-
-      <div class="idea-card">
-        <span class="idea-label">💡 Today's building idea</span>
-        <p id="idea-text"></p>
-        <button id="btn-idea" type="button">Another idea</button>
-      </div>
-      <div class="section world-row">
-        <div><span class="note">World</span><div id="world-name">—</div><div class="note" id="world-info"></div></div>
-        <button id="btn-worlds" type="button">🗂 My worlds</button>
-      </div>
-
-      <details>
-        <summary>Controls</summary>
-        <table class="controls">
-          <tr><td>W A S D</td><td>Move</td></tr>
-          <tr><td>Mouse</td><td>Look around</td></tr>
-          <tr><td>Space</td><td>Jump / swim up / fly up</td></tr>
-          <tr><td>Shift</td><td>Sprint (fly down while flying)</td></tr>
-          <tr><td>F</td><td>Toggle flying (creative)</td></tr>
-          <tr><td>Left click (hold)</td><td>Break block</td></tr>
-          <tr><td>Right click (hold)</td><td>Place block</td></tr>
-          <tr><td>Middle click</td><td>Pick block into hotbar</td></tr>
-          <tr><td>1–9 / Mouse wheel</td><td>Select hotbar slot</td></tr>
-          <tr><td>E</td><td>Inventory &amp; crafting</td></tr>
-          <tr><td>Right click (food)</td><td>Eat an apple (survival)</td></tr>
-          <tr><td>Q</td><td>Quest book</td></tr>
-          <tr><td>Z / Y</td><td>Undo / redo (creative)</td></tr>
-          <tr><td>F3</td><td>Debug info</td></tr>
-          <tr><td>Esc</td><td>Pause</td></tr>
-        </table>
-      </details>
-      <p class="note touch-only">Tablet: left stick walks, drag to look, tap to place, hold to mine.</p>
-      <p class="note">Your world is saved automatically in this browser. <span id="offline-note"></span></p>
     </div>
   </div>
 
@@ -138,6 +151,7 @@
     <div class="panel wide">
       <h2>Blocks</h2>
       <p class="note">Click a block to put it in hotbar slot <b id="inv-slot">1</b>.</p>
+      <div id="inv-tabs" class="tabs" role="tablist"></div>
       <div id="inv-grid"></div>
       <button id="inv-done" class="primary done">Done</button>
     </div>

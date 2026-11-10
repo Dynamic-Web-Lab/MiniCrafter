@@ -140,8 +140,8 @@ for (let d = 0; d < 5; d++) {
     if (v[0] === -x && v[1] === -y && v[2] === -z) return TILE.PISTON_BACK;
     return TILE.PISTON_SIDE;
   });
-  def(B.PISTON + d, 'Spark Piston', TILE.PISTON_SIDE, { spark: 'piston', dir: d, faces: faces(TILE.PISTON_FRONT), base: B.PISTON, ...(d ? { placeable: false } : {}) });
-  def(B.PISTON_OUT + d, 'Spark Piston (pushed out)', TILE.PISTON_SIDE, { spark: 'piston', dir: d, on: true, faces: faces(TILE.PISTON_INNER), base: B.PISTON, placeable: false });
+  def(B.PISTON + d, 'Spark Piston', { top: TILE.PISTON_FRONT, bottom: TILE.PISTON_BACK, side: TILE.PISTON_SIDE }, { spark: 'piston', dir: d, faces: faces(TILE.PISTON_FRONT), base: B.PISTON, ...(d ? { placeable: false } : {}) });
+  def(B.PISTON_OUT + d, 'Spark Piston (pushed out)', { top: TILE.PISTON_INNER, bottom: TILE.PISTON_BACK, side: TILE.PISTON_SIDE }, { spark: 'piston', dir: d, on: true, faces: faces(TILE.PISTON_INNER), base: B.PISTON, placeable: false });
 }
 def(B.PISTON_HEAD, 'Piston Pusher', TILE.PISTON_FRONT, { spark: 'head', placeable: false });
 /** Facing-aware block: turns a placed directional item into the variant facing `dir`. */

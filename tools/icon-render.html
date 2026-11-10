@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MiniCrafter icon renderer</title>
+<!-- Renders the app icons from the game's own textures and Bit's model.
+     Run `node tools/make-icons.mjs` to save them into icons/, or open this page to preview. -->
+<script type="importmap">{ "imports": { "three": "../vendor/three.module.js" } }</script>
+<style>body { background: #333; color: #eee; font: 14px system-ui; } img { margin: 8px; vertical-align: top; background: repeating-conic-gradient(#555 0 25%, #444 0 50%) 0 0 / 16px 16px; }</style>
+</head>
+<body>
+<div id="out"></div>
+<script type="module">
+import * as THREE from 'three';
+import { createAtlas, tileUV } from '../src/textures.js';
+import { BLOCKS, B } from '../src/blocks.js';
+import { Robot } from '../src/robot.js';
+
+const atlas = createAtlas();
+const R = 1024; // render size; scaled down per icon
+
+// ---- 3D scene: a grass block with Bit standing on it, seen from an isometric angle ----
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setSize(R, R, false);
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+renderer.setClearColor(0x000000, 0);
+const scene = new THREE.Scene();
+
+function cube(blockId, shade = [1, 0.62, 0.8]) {
+  const b = BLOCKS[blockId];
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  // BoxGeometry face order: +x, -x, +y, -y, +z, -z (4 verts each)
+  const tiles = [b.side, b.side, b.top, b.bottom, b.side, b.side];
+  const light = [shade[2], shade[1], shade[0], 0.5, shade[1], shade[2]];
+  const uv = geo.attributes.uv, col = [];
+  for (let f = 0; f < 6; f++) {
+    const t = tileUV(tiles[f]);
+    for (let v = 0; v < 4; v++) {
+      const i = f * 4 + v;
+      uv.setXY(i, uv.getX(i) ? t.u1 : t.u0, uv.getY(i) ? t.vTop : t.vBot);
+      col.push(light[f], light[f], light[f]);
+    }
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: atlas.texture, vertexColors: true }));
+  return m;
+}
+
+const world = new THREE.Group();
+scene.add(world);
+const ground = cube(B.GRASS);
+ground.position.set(0, -0.5, 0);
+world.add(ground);
+// A little red flower beside Bit.
+{
+  const t = tileUV(BLOCKS[B.FLOWER_PINK].side);
+  for (const rot of [Math.PI / 4, -Math.PI / 4]) {
+    const g = new THREE.PlaneGeometry(0.42, 0.42);
+    const uv = g.attributes.uv;
+    for (let i = 0; i < 4; i++) uv.setXY(i, uv.getX(i) ? t.u1 : t.u0, uv.getY(i) ? t.vTop : t.vBot);
+    const p = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: atlas.texture, alphaTest: 0.5, side: THREE.DoubleSide }));
+    p.rotation.y = rot; p.position.set(0.3, 0.2, 0.3);
+    world.add(p);
+  }
+}
+// Bit, facing the viewer.
+const bit = new Robot({ scene: world, world: null, getPlayer: () => ({ pos: new THREE.Vector3() }) });
+bit.model.root.visible = true;
+bit.model.root.position.set(-0.05, 0.0, -0.1);
+bit.model.root.scale.setScalar(0.85);
+bit.model.root.rotation.y = Math.PI / 4 - 0.45; // three-quarter view
+bit.model.armL.rotation.z = -2.5; // waving hello
+// Shade Bit's boxes like the blocks (the game lights it at runtime instead).
+bit.model.root.traverse((o) => {
+  if (!o.isMesh || o.userData.emissive) return;
+  const n = o.geometry.attributes.normal, col = [];
+  for (let i = 0; i < n.count; i++) {
+    const k = n.getY(i) > 0.5 ? 1 : n.getY(i) < -0.5 ? 0.5 : Math.abs(n.getX(i)) > 0.5 ? 0.78 : 0.9;
+    col.push(k, k, k);
+  }
+  o.geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  o.material.vertexColors = true;
+});
+
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 50);
+cam.position.set(6, 5.2, 6);
+cam.lookAt(0, 0.12, 0);
+
+/** Draws one icon. pad: how much of the square the artwork may fill (maskable icons need a safe zone). */
+function icon(size, fill) {
+  // Fit the camera so the artwork fills `fill` of the square.
+  // Fit the camera to the artwork's bounding box, centred.
+  cam.updateMatrixWorld();
+  const box = new THREE.Box3().setFromObject(world);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < 8; i++) {
+    const v = new THREE.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).applyMatrix4(cam.matrixWorldInverse);
+    x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
+  }
+  const half = Math.max(x1 - x0, y1 - y0) / 2 / fill, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  cam.left = cx - half; cam.right = cx + half; cam.top = cy + half; cam.bottom = cy - half;
+  cam.updateProjectionMatrix();
+  renderer.render(scene, cam);
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  // Full-bleed sky: the OS rounds the corners itself (iOS fills transparency with black).
+  const g = ctx.createLinearGradient(0, 0, 0, size);
+  g.addColorStop(0, '#7fd3ff'); g.addColorStop(0.62, '#3d8fe0'); g.addColorStop(1, '#2a5fb8');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+  const sun = ctx.createRadialGradient(size * 0.78, size * 0.2, 0, size * 0.78, size * 0.2, size * 0.42);
+  sun.addColorStop(0, 'rgba(255,248,200,0.85)'); sun.addColorStop(0.25, 'rgba(255,240,170,0.35)'); sun.addColorStop(1, 'rgba(255,240,170,0)');
+  ctx.fillStyle = sun; ctx.fillRect(0, 0, size, size);
+  // Soft shadow under the block.
+  ctx.fillStyle = 'rgba(10,30,70,0.28)';
+  ctx.beginPath(); ctx.ellipse(size / 2, size * (0.5 + 0.4 * fill), size * 0.4 * fill, size * 0.1 * fill, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(renderer.domElement, 0, 0, size, size);
+  return c.toDataURL('image/png');
+}
+
+window.ICONS = {
+  'icon-192.png': icon(192, 0.86),
+  'icon-512.png': icon(512, 0.86),
+  'icon-maskable-512.png': icon(512, 0.66),
+  'apple-touch-icon.png': icon(180, 0.82),
+  'favicon-32.png': icon(32, 0.96),
+};
+for (const [name, url] of Object.entries(window.ICONS)) {
+  const im = new Image(); im.src = url; im.title = name; im.width = Math.min(256, parseInt((name.match(/\d+/) || ['128'])[0], 10) * 2);
+  document.getElementById('out').append(im);
+}
+</script>
+</body>
+</html>

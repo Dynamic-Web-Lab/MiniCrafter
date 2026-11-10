@@ -466,10 +466,42 @@ function noteHeld() {
   if (def?.shape || def?.paint === 'block') setTimeout(() => toast(`${itemName(id)}: building with ${itemName(tool.block)}`), 700);
 }
 
+// Creative picker tabs, so kids can find things in 100+ blocks and items.
+const PICKER_TABS = [
+  ['all', '✨ All'], ['build', '🧱 Build'], ['nature', '🌸 Nature'], ['fun', '🎉 Fun'],
+  ['spark', '⚡ Spark'], ['tools', '🪄 Tools'], ['friends', '🐾 Friends'], ['items', '🎒 Items'],
+];
+const NATURE = new Set([B.GRASS, B.DIRT, B.SAND, B.LOG, B.LEAVES, B.SNOW, B.SNOWY_GRASS, B.GRAVEL, B.CACTUS, B.FARMLAND, B.WATER,
+  B.COAL_ORE, B.IRON_ORE, B.GOLD_ORE, B.DIAMOND_ORE, B.STONE]);
+function pickerTab(id) {
+  const def = ITEMS.get(id), blk = id < 256 ? BLOCKS[id] : null;
+  if (blk) {
+    if (blk.spark) return 'spark';
+    if (blk.plant || NATURE.has(id)) return 'nature';
+    if (blk.bounce || blk.speed || blk.slippery || blk.fan || blk.note !== undefined || blk.confetti || blk.portal || blk.star || blk.emissive) return 'fun';
+    return 'build';
+  }
+  if (def?.shape || def?.paint || def?.tool || def?.hoe || def?.water || def?.glider || def?.damage || def?.bow || def?.shield || def?.armor) return 'tools';
+  if (def?.spawns || def?.accessory || id === I.ROBOT) return 'friends';
+  return 'items';
+}
+let pickerFilter = 'all';
+
 function buildCreativePicker() {
+  const tabs = $('inv-tabs');
+  if (!tabs.childElementCount) {
+    for (const [key, label] of PICKER_TABS) {
+      const t = document.createElement('button');
+      t.type = 'button'; t.textContent = label; t.dataset.tab = key; t.setAttribute('role', 'tab');
+      t.addEventListener('click', () => { pickerFilter = key; buildCreativePicker(); });
+      tabs.appendChild(t);
+    }
+  }
+  for (const t of tabs.children) { const on = t.dataset.tab === pickerFilter; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); }
   const grid = $('inv-grid');
   grid.innerHTML = '';
   for (const id of [...PLACEABLE, ...[...ITEMS.keys()].filter((k) => k >= 256)]) {
+    if (pickerFilter !== 'all' && pickerTab(id) !== pickerFilter) continue;
     const b = document.createElement('button');
     b.className = 'inv-item';
     b.innerHTML = `<img alt="" src="${icon(id)}"><span>${itemName(id)}</span>`;
@@ -492,7 +524,7 @@ function refreshMode() {
   $('mode-desc').textContent = {
     creative: 'Creative: unlimited blocks, instant breaking and flying.',
     survival: 'Survival: collect blocks, craft tools and look after your hearts. Gentle: no monsters, no hunger.',
-    adventure: `⚔️ Adventure (older players): hunger, tougher falls, XP levels, and your things drop in a chest where you faint.${adv.hardcore ? ' ☠️ Hardcore: one life only!' : ''} Monsters are coming soon.`,
+    adventure: `⚔️ Adventure (older players): night creatures, swords and bows, hunger, XP levels, and your things drop in a chest where you faint.${adv.hardcore ? ' ☠️ Hardcore: one life only!' : ''}`,
   }[mode];
   survival.adventure = isAdventure();
   if (isSurvival() && !adv.over) player.flying = false;
@@ -1117,8 +1149,15 @@ const touch = touchMode ? new TouchControls({
     player.pitch = Math.max(-Math.PI / 2 + 0.001, Math.min(Math.PI / 2 - 0.001, player.pitch - dy * k));
   },
   tap() { if (state === 'playing') { mouse.right = true; mouse.nextAction = 0; tapRelease = 2; } },
-  holdStart() { if (state === 'playing') { mouse.left = true; mouse.nextAction = 0; } },
-  holdEnd() { mouse.left = false; survival.stopMining(); },
+  holdStart() {
+    if (state !== 'playing') return;
+    // Holding a bow or shield: press and hold draws the bow / raises the shield (like holding right click).
+    const def = ITEMS.get(heldItem());
+    if (isAdventure() && (def?.bow || def?.shield)) mouse.right = true;
+    else mouse.left = true;
+    mouse.nextAction = 0;
+  },
+  holdEnd() { mouse.left = false; mouse.right = false; survival.stopMining(); },
   button(name, down) {
     if (name === 'jump') touchKeys.jump = down;
     else if (name === 'down') touchKeys.down = down;
@@ -1849,6 +1888,8 @@ if ('serviceWorker' in navigator && (!isLocal || new URLSearchParams(location.se
     $('offline-note').textContent = 'It also works offline once it has loaded.';
   }).catch(() => { /* offline support is optional */ });
 }
+// Roomy screens show the settings straight away; phones keep them folded.
+if (matchMedia('(min-width: 720px) and (min-height: 640px)').matches) $('settings-fold').open = true;
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -1910,6 +1951,7 @@ window.minicrafter = {
     state = 'playing'; hasPlayed = true;
     $('menu').classList.add('hidden'); $('hud').classList.remove('hidden');
     $('craft').classList.add('hidden'); $('inventory').classList.add('hidden');
+    touch?.setEnabled(true);
   },
   setTime(t) { timeOfDay = t; },
   /** Dev/test helper: advance the game by n frames of `ms` each (works when rAF is paused). */
