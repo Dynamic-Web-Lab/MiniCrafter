@@ -122,7 +122,7 @@
 - 🔦 **Real light and dark caves:** sunlight spreads into caves and under roofs, and **torches** (stick + coal) and lamps light up warm, cozy circles. Caves get dark, but never pitch black.
 - 🧱 **64 block types** drawn as pixel art, plus tools, apples and spawn eggs. Every texture and sound is generated in code, with **no image or audio files**.
 - 🏊 **Swimming** with an underwater view, sprinting, jumping and flying (creative).
-- 📶 **Works offline and installs like an app:** after the first visit the whole game, including Bit's code editor, is cached, so it keeps working without internet (great for car trips and school Chromebooks). Use **📲 Install MiniCrafter** in the menu, or *Add to Home Screen* on iPad.
+- 📶 **Works offline and installs like an app:** after the first visit the whole game, including Bit's code editor, is cached, so it keeps working without internet (great for car trips and school Chromebooks). Tap **📲 Install MiniCrafter** in the menu. On iPhone and iPad, which have no install popup, the button shows the *Share → Add to Home Screen* steps instead (use Safari). Installing also keeps iPhone/iPad saves safer, because Safari can clear storage for websites you haven't opened in a while.
 - 🔗 **Share a world with one link:** in **My worlds**, tap 🔗 to copy a link to send to a friend or grandparent. Opening it offers to add the world as a new one; it never overwrites anything, and shared data is strictly checked.
 - ⭐ **Hidden Star treasure hunts:** hide a glowing star in a maze or castle; whoever finds it gets a celebration.
 - 🌀 **Portal doors:** place two portals of the same colour and walk through one to pop out of the other. Great for mazes and puzzle houses.
@@ -314,7 +314,7 @@ src/audio.js        Synthesized sounds
 src/noise.js        Seeded Perlin noise and hashes
 ```
 
-- **Tests:** `tests/smoke.mjs` boots the real game in headless Chromium and checks world generation, lighting, Bit, animals, Blockly, worlds, touch mode, offline caching and console errors. It runs on every PR (GitHub Actions). Locally: `npm i --no-save playwright@1.47.2 && SMOKE_CHANNEL=chrome node tests/smoke.mjs`.
+- **Tests:** `tests/smoke.mjs` boots the real game in headless Chromium and checks world generation, lighting, Bit, animals, Blockly, worlds, touch mode, offline caching, a real offline reload and console errors. It runs on every PR (GitHub Actions). Locally: `npm i --no-save playwright@1.47.2 && SMOKE_CHANNEL=chrome node tests/smoke.mjs`.
 - **Adding a block:** add a tile painter in `textures.js` and a `def(...)` line in `blocks.js`.
 - **Debugging:** `window.minicrafter` in the browser console exposes `world`, `player`, `inv`, `robot`, `quests`, `save()`, `setMode()` and `step(n)`. `step(n)` advances frames by hand, which is handy in a background tab.
 
