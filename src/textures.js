@@ -21,6 +21,7 @@ export const TILE = {
   FLOWER_RED: 56, FLOWER_YELLOW: 57, FLOWER_BLUE: 58, FLOWER_PINK: 59, TALL_GRASS: 60,
   FARMLAND: 61, WHEAT_0: 62, WHEAT_1: 63, WHEAT_2: 64, WHEAT_3: 65, LANTERN: 66,
   STAR: 67, PORTAL_BLUE: 68, PORTAL_ORANGE: 69, PORTAL_GREEN: 70, PORTAL_PURPLE: 71,
+  LOST_CHEST: 72, LOST_CHEST_TOP: 73,
 };
 
 /** Rainbow colours for the 8 musical step-stones (do re mi fa sol la ti do). */
@@ -293,6 +294,14 @@ export function createAtlas() {
   swirl(TILE.PORTAL_ORANGE, [255, 140, 30]);
   swirl(TILE.PORTAL_GREEN, [60, 210, 90]);
   swirl(TILE.PORTAL_PURPLE, [170, 80, 240]);
+
+  // Lost Items Chest (Adventure): where your things wait after you faint.
+  paint(TILE.LOST_CHEST, (x, y) => {
+    if (x === 0 || x === T - 1 || y === 0 || y === T - 1 || y === 6) return [70, 45, 25];
+    if (x >= 6 && x <= 9 && y >= 5 && y <= 9) return (x === 6 || x === 9 || y === 9) ? [150, 120, 30] : [250, 210, 60]; // lock
+    return vary(y < 6 ? [150, 95, 50] : [130, 82, 42], 0.1);
+  });
+  paint(TILE.LOST_CHEST_TOP, (x, y) => (x === 0 || x === T - 1 || y === 0 || y === T - 1 ? [70, 45, 25] : vary([150, 95, 50], 0.1)));
 
   // Ores: stone + clusters of mineral pixels.
   const ore = (tile, color, clusters) => {

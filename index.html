@@ -50,8 +50,9 @@
     <div id="celebrate"><div class="c-title">Quest complete!</div><div class="c-name"></div><div class="c-stars"></div><div class="c-reveal"></div></div>
     <div id="status" class="hidden">
       <div id="hearts"></div>
-      <div id="bubbles"></div>
+      <div class="status-right"><div id="bubbles"></div><div id="hunger"></div></div>
     </div>
+    <div id="xpbar" class="hidden"><div id="xp-fill"></div><span id="xp-level">0</span></div>
     <div id="hotbar"></div>
   </div>
 
@@ -71,6 +72,7 @@
           <div class="seg">
             <button id="mode-creative" type="button">Creative</button>
             <button id="mode-survival" type="button">Survival</button>
+            <button id="mode-adventure" type="button">⚔️ Adventure</button>
           </div>
         </div>
         <p class="note" id="mode-desc"></p>
@@ -156,7 +158,8 @@
       <div class="new-world">
         <input id="nw-name" type="text" maxlength="30" placeholder="World name">
         <input id="nw-seed" type="text" maxlength="40" placeholder="Seed (optional: same seed = same world)">
-        <div class="seg"><button id="nw-creative" type="button" class="on">Creative</button><button id="nw-survival" type="button">Survival</button></div>
+        <div class="seg"><button id="nw-creative" type="button" class="on">Creative</button><button id="nw-survival" type="button">Survival</button><button id="nw-adventure" type="button">⚔️ Adventure</button></div>
+        <label id="nw-hardcore-row" class="hc hidden"><input id="nw-hardcore" type="checkbox"> ☠️ Hardcore: one life only</label>
         <button id="nw-create" class="go" type="button">Create</button>
       </div>
       <div class="rb-row">
@@ -215,12 +218,24 @@
     <button id="rb-close" class="primary done">Done</button>
   </div>
 
+  <div id="gate" class="overlay hidden">
+    <div class="panel center">
+      <h2>⚔️ Adventure mode is for older players</h2>
+      <p class="note">It has hunger, tougher falls and losing your things when you faint (monsters are coming soon). Grown-ups, please answer:</p>
+      <p class="gate-q" id="gate-q"></p>
+      <input id="gate-a" type="number" inputmode="numeric" placeholder="Answer">
+      <p class="note" id="gate-err"></p>
+      <div class="rb-row"><button id="gate-cancel" type="button">Back</button><button id="gate-ok" class="go" type="button">Continue</button></div>
+    </div>
+  </div>
+
   <div id="death" class="overlay hidden">
     <div class="panel center">
-      <h1 class="sad">Oops!</h1>
+      <h1 class="sad" id="death-title">Oops!</h1>
       <p id="death-msg">You fainted.</p>
-      <p class="note">Don't worry, you keep all your items.</p>
+      <p class="note" id="death-note">Don't worry, you keep all your items.</p>
       <button id="btn-respawn" class="primary">Try again</button>
+      <button id="btn-spectate" class="primary hidden">👻 Watch the world</button>
     </div>
   </div>
 

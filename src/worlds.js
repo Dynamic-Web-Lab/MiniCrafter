@@ -31,10 +31,10 @@ export class WorldStore {
 
   saveIndex() { write(INDEX, this.worlds); }
 
-  add({ name, seed, mode }) {
+  add({ name, seed, mode, hardcore }) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const now = Date.now();
-    const w = { id, name: (name || '').trim().slice(0, 30) || this.suggestName(), seed: String(seed), mode: mode === 'survival' ? 'survival' : 'creative', created: now, played: now, stars: 0 };
+    const w = { id, name: (name || '').trim().slice(0, 30) || this.suggestName(), seed: String(seed), mode: ['survival', 'adventure'].includes(mode) ? mode : 'creative', hardcore: mode === 'adventure' && !!hardcore, created: now, played: now, stars: 0 };
     this.worlds.unshift(w);
     this.saveIndex();
     return w;

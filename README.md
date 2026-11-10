@@ -130,6 +130,16 @@
 - 🗂️ **Several worlds:** each child can have their own worlds (name, seed, creative or survival), with export and import as a file for backups or sharing with a friend.
 - 💾 **Auto-save:** each world's buildings, inventory, animals, pets, robot program and stars are kept in the browser.
 
+## ⚔️ Adventure mode (for older players)
+
+Want more excitement? **Adventure** is an opt-in third mode for teens and grown-ups. It sits behind a quick grown-up check and never changes the kids' Creative and gentle Survival worlds.
+
+- 🍗 **Hunger:** you get hungry (faster when sprinting, jumping or mining). Eat apples or bread, and only heal when well fed.
+- 🪂 **Tougher falls**, and ⬆️ **XP and levels** from ores, harvests, crafting and quests.
+- 🧳 **Lose your things when you faint:** they wait in a Lost Items Chest where you fell. Go back and get them!
+- ☠️ **Hardcore:** one life. When it's over, it's over (you can still fly around and admire your world).
+- **Coming next:** night creatures and combat, **Spark circuits** (redstone-style wires, levers and pistons), dungeons with loot, and parkour challenges. See the [roadmap](ROADMAP.md).
+
 ## 🧸 Made for kids
 
 | | |
@@ -173,7 +183,7 @@ MiniCrafter turns play into small, rewarding learning moments:
 | Fly on/off (creative) | `F` | 🕊️ button |
 | Glide (holding the Umbrella Glider) | Hold `Space` while falling | Hold ⬆ while falling |
 | Super bounce on a trampoline | Hold `Space` | Hold ⬆ |
-| Pause / settings / game mode | `Esc` | ⏸ button |
+| Pause / settings / game mode (Creative, Survival, ⚔️ Adventure) | `Esc` | ⏸ button |
 | Undo / redo (creative) | `Z` / `Y` | ↶ button |
 | Debug info | `F3` | — |
 
@@ -270,6 +280,7 @@ src/tools.js        Power-tool shapes, live preview, undo / redo history
 src/critters.js     Butterflies and fireflies (instanced, near the player)
 src/share.js        Share links: gzip + base64url in the URL hash, strict validation
 src/ideas.js        Daily building ideas
+src/adventure.js    Adventure mode: XP / levels and the grown-up gate
 src/villages.js     Village placement, layout, villager trades
 src/textures.js     Procedural texture atlas + icons
 src/sky.js          Day/night, sun, moon, stars, clouds

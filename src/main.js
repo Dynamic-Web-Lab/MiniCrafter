@@ -9,7 +9,7 @@ import { Sfx } from './audio.js';
 import { Particles } from './particles.js';
 import { I, ITEMS, itemIcon, itemName, miningInfo, dropFor, STATION_BLOCK } from './items.js';
 import { Inventory } from './inventory.js';
-import { Survival, MAX_HEALTH, MAX_AIR } from './survival.js';
+import { Survival, MAX_HEALTH, MAX_AIR, MAX_HUNGER } from './survival.js';
 import { CraftUI } from './craftui.js';
 import { Mobs, TYPES } from './mobs.js';
 import { TouchControls, isTouchDevice } from './touch.js';
@@ -22,6 +22,7 @@ import { SHAPES, MAX_CELLS, previewBounds, ToolPreview, History } from './tools.
 import { Critters } from './critters.js';
 import { makeShareLink, readSharedFromHash } from './share.js';
 import { IDEAS, ideaOfTheDay } from './ideas.js';
+import { xpNeeded, addXp, MINING_XP, showGate, initGate, gateUnlocked } from './adventure.js';
 
 const SETTINGS_KEY = 'minicrafter:settings:v1';
 const REACH = 6;
@@ -149,7 +150,11 @@ let selected = 0;
 let dirtySave = false;
 let shownTips = new Set();
 
-const isSurvival = () => mode === 'survival';
+// Adventure is survival plus hunger, XP, lost-items chests (and later monsters).
+const isSurvival = () => mode === 'survival' || mode === 'adventure';
+const isAdventure = () => mode === 'adventure';
+const MODE_NAMES = { creative: 'Creative', survival: 'Survival', adventure: '⚔️ Adventure' };
+const adv = { xp: 0, level: 0, hardcore: false, over: false, graves: new Map() }; // graves: "x,y,z" -> inventory JSON
 
 /** Item id held in the selected hotbar slot (or null). */
 function heldItem() {
@@ -171,6 +176,7 @@ function startWorld(seedStr, saved, newMode) {
   attachFunHooks();
   inv = new Inventory();
   survival.reset();
+  adv.xp = 0; adv.level = 0; adv.over = false; adv.graves = new Map();
   shownTips = new Set();
   mobs.reset(world);
   critters.reset(world);
@@ -187,7 +193,10 @@ function startWorld(seedStr, saved, newMode) {
     quests.load(saved.quests);
     selected = saved.selected | 0;
     timeOfDay = saved.time ?? timeOfDay;
-    mode = saved.mode === 'survival' ? 'survival' : 'creative';
+    mode = ['survival', 'adventure'].includes(saved.mode) ? saved.mode : 'creative';
+    adv.xp = saved.xp | 0; adv.level = saved.level | 0; adv.over = !!saved.over;
+    if (Number.isFinite(saved.hunger)) survival.hunger = Math.max(0, Math.min(MAX_HUNGER, saved.hunger));
+    if (Array.isArray(saved.graves)) for (const [k, items] of saved.graves) adv.graves.set(k, items);
     inv = Inventory.fromJSON(saved.inv);
     if (Number.isFinite(saved.health) && saved.health > 0) survival.health = Math.min(MAX_HEALTH, saved.health);
     if (Array.isArray(saved.tips)) shownTips = new Set(saved.tips);
@@ -207,8 +216,10 @@ function startWorld(seedStr, saved, newMode) {
   }
   if (!spawnPoint) spawnPoint = findSpawnColumn();
   const meta = worlds.get(currentWorldId);
+  adv.hardcore = !!meta?.hardcore;
+  if (adv.over) { player.flying = true; }
   $('world-name').textContent = meta?.name || 'My World';
-  $('world-info').textContent = `Seed: ${seedStr} · ${mode === 'survival' ? 'Survival' : 'Creative'}`;
+  $('world-info').textContent = `Seed: ${seedStr} · ${MODE_NAMES[mode]}${adv.hardcore ? ' · ☠️ Hardcore' : ''}${adv.over ? ' (game over)' : ''}`;
   refreshMode();
 }
 
@@ -242,6 +253,7 @@ function save() {
     hotbar: creativeBar, selected, time: timeOfDay,
     mode, inv: inv.toJSON(), health: survival.health, spawn: spawnPoint, tips: [...shownTips], mobs: mobs.serialize(), quests: quests.toJSON(), robot: robot.toJSON(), robotCode: robotUI.getState(),
     crops: [...crops].map(([k, t]) => [...k.split(',').map(Number), Math.round(t)]),
+    xp: adv.xp, level: adv.level, hunger: survival.hunger, over: adv.over, graves: [...adv.graves],
   }, { mode, stars: quests.stars });
   if (ok) dirtySave = false;
 }
@@ -282,6 +294,33 @@ function renderStatus() {
   $('hearts').innerHTML = h;
   const showAir = player?.headInWater || survival.air < MAX_AIR;
   $('bubbles').innerHTML = showAir ? '<span class="bubble">●</span>'.repeat(Math.ceil(survival.air)) : '';
+  let f = '';
+  if (isAdventure()) for (let i = 0; i < MAX_HUNGER / 2; i++) {
+    const v = survival.hunger - (MAX_HUNGER / 2 - 1 - i) * 2; // fills from the right like the hearts mirror
+    f += `<span class="food ${v >= 2 ? '' : v === 1 ? 'half' : 'empty'}">🍗</span>`;
+  }
+  $('hunger').innerHTML = f;
+  renderXp();
+}
+
+function renderXp() {
+  $('xpbar').classList.toggle('hidden', !isAdventure());
+  if (!isAdventure()) return;
+  $('xp-fill').style.width = `${Math.round(adv.xp / xpNeeded(adv.level) * 100)}%`;
+  $('xp-level').textContent = adv.level;
+}
+
+/** Adventure XP: mining ores, harvesting, crafting and quests. */
+function gainXp(n) {
+  if (!isAdventure() || n <= 0) return;
+  const up = addXp(adv, n);
+  if (up) {
+    sfx.fanfare?.();
+    hint(`⬆️ Level up! You are now level ${adv.level}`, 2500);
+    quests.emit('level', adv.level);
+  }
+  renderXp();
+  dirtySave = true;
 }
 survival.onChange = renderStatus;
 
@@ -367,6 +406,7 @@ function renderQuestBook() {
 
 let celebrateTimer;
 quests.onComplete = (q) => {
+  gainXp(q.stars * 5);
   const c = $('celebrate');
   c.querySelector('.c-name').textContent = `${q.icon} ${q.title}`;
   c.querySelector('.c-stars').textContent = starStr(q.stars);
@@ -420,12 +460,17 @@ function buildCreativePicker() {
 }
 
 function refreshMode() {
-  $('mode-creative').classList.toggle('on', !isSurvival());
-  $('mode-survival').classList.toggle('on', isSurvival());
-  $('mode-desc').textContent = isSurvival()
-    ? 'Survival: collect blocks, craft tools and look after your hearts. Gentle: no monsters, no hunger.'
-    : 'Creative: unlimited blocks, instant breaking and flying.';
-  if (isSurvival()) player.flying = false;
+  for (const m of ['creative', 'survival', 'adventure']) {
+    $(`mode-${m}`).classList.toggle('on', mode === m);
+    $(`mode-${m}`).disabled = adv.hardcore && m !== mode; // hardcore worlds stay in Adventure
+  }
+  $('mode-desc').textContent = {
+    creative: 'Creative: unlimited blocks, instant breaking and flying.',
+    survival: 'Survival: collect blocks, craft tools and look after your hearts. Gentle: no monsters, no hunger.',
+    adventure: `⚔️ Adventure (older players): hunger, tougher falls, XP levels, and your things drop in a chest where you faint.${adv.hardcore ? ' ☠️ Hardcore: one life only!' : ''} Monsters are coming soon.`,
+  }[mode];
+  survival.adventure = isAdventure();
+  if (isSurvival() && !adv.over) player.flying = false;
   quests.mode = mode;
   renderQuests();
   updateModeBadge();
@@ -435,6 +480,7 @@ function refreshMode() {
 
 function setMode(m) {
   if (m === mode) return;
+  if (adv.hardcore) { toast('Hardcore worlds stay in Adventure mode'); return; }
   mode = m;
   survival.stopMining();
   if (isSurvival()) survival.health = Math.max(survival.health, 1);
@@ -444,6 +490,8 @@ function setMode(m) {
 }
 $('mode-creative').addEventListener('click', () => setMode('creative'));
 $('mode-survival').addEventListener('click', () => setMode('survival'));
+$('mode-adventure').addEventListener('click', () => setMode('adventure'));
+initGate();
 
 // Survival crafting screen
 /** Crafting stations within 4 blocks of the player. */
@@ -462,6 +510,7 @@ const craftUI = new CraftUI({
   atlasCanvas: atlas.canvas,
   stations: stationsNear,
   onCraft: (r) => {
+    gainXp(1);
     sfx.craft();
     quests.emit('craft', { id: r.out, count: r.count });
     if (r.out === B.CRAFTING_TABLE) tip('placeTable', 'Put the Crafting Table in your hotbar and right-click to place it. Craft tools next to it!');
@@ -664,6 +713,8 @@ function startPlaying() {
 }
 
 function enterPlay() {
+  // Adventure worlds sit behind the grown-up gate (once per browser session).
+  if (isAdventure() && !gateUnlocked()) { showGate(() => enterPlay(), () => showMenu()); return; }
   if (touchMode) startPlaying();
   else { state = 'locking'; lock(); }
 }
@@ -693,8 +744,8 @@ function openWorld(id) {
   loadingShown = true;
 }
 
-function createWorld(name, seed, newMode) {
-  const w = worlds.add({ name, seed: seed || String(Math.floor(Math.random() * 1e9)), mode: newMode });
+function createWorld(name, seed, newMode, hardcore = false) {
+  const w = worlds.add({ name, seed: seed || String(Math.floor(Math.random() * 1e9)), mode: newMode, hardcore });
   openWorld(w.id);
   return w;
 }
@@ -715,7 +766,7 @@ function renderWorlds() {
   for (const w of worlds.sorted()) {
     const el = document.createElement('div');
     el.className = 'w-item' + (w.id === currentWorldId ? ' current' : '');
-    el.innerHTML = `<div><div class="w-name"></div><div class="w-meta">${w.mode === 'survival' ? '❤️ Survival' : '🎨 Creative'} · ⭐ ${w.stars || 0} · seed ${String(w.seed).slice(0, 14)} · ${ago(w.played)}</div></div>
+    el.innerHTML = `<div><div class="w-name"></div><div class="w-meta">${w.mode === 'adventure' ? (w.hardcore ? '☠️ Hardcore' : '⚔️ Adventure') : w.mode === 'survival' ? '❤️ Survival' : '🎨 Creative'} · ⭐ ${w.stars || 0} · seed ${String(w.seed).slice(0, 14)} · ${ago(w.played)}</div></div>
       <div class="w-actions">
         ${w.id === currentWorldId ? '<button disabled>Playing</button>' : '<button data-a="play" class="go">▶ Play</button>'}
         <button data-a="rename" title="Rename">✏️</button>
@@ -728,8 +779,8 @@ function renderWorlds() {
     box.appendChild(el);
   }
   $('nw-name').placeholder = worlds.suggestName();
-  $('nw-creative').classList.toggle('on', newWorldMode === 'creative');
-  $('nw-survival').classList.toggle('on', newWorldMode === 'survival');
+  for (const m of ['creative', 'survival', 'adventure']) $(`nw-${m}`).classList.toggle('on', newWorldMode === m);
+  $('nw-hardcore-row').classList.toggle('hidden', newWorldMode !== 'adventure');
 }
 
 function worldAction(action, w) {
@@ -771,8 +822,10 @@ $('btn-worlds').addEventListener('click', openWorlds);
 $('w-done').addEventListener('click', closeWorlds);
 $('nw-creative').addEventListener('click', () => { newWorldMode = 'creative'; renderWorlds(); });
 $('nw-survival').addEventListener('click', () => { newWorldMode = 'survival'; renderWorlds(); });
+$('nw-adventure').addEventListener('click', () => { newWorldMode = 'adventure'; renderWorlds(); });
 $('nw-create').addEventListener('click', () => {
-  createWorld($('nw-name').value || $('nw-name').placeholder, $('nw-seed').value.trim(), newWorldMode);
+  createWorld($('nw-name').value || $('nw-name').placeholder, $('nw-seed').value.trim(), newWorldMode, newWorldMode === 'adventure' && $('nw-hardcore').checked);
+  $('nw-hardcore').checked = false;
   $('nw-name').value = ''; $('nw-seed').value = '';
   closeWorlds();
   toast('New world created!');
@@ -799,7 +852,19 @@ survival.onDamage = () => {
 survival.onDeath = (reason) => {
   state = 'dead';
   clearInput();
-  $('death-msg').textContent = reason === 'drown' ? 'You ran out of air.' : reason === 'fall' ? 'That was a big fall!' : 'You fainted.';
+  $('death-msg').textContent = reason === 'drown' ? 'You ran out of air.' : reason === 'fall' ? 'That was a big fall!' : reason === 'hunger' ? 'You were too hungry.' : 'You fainted.';
+  $('death-title').textContent = 'Oops!';
+  $('btn-respawn').classList.remove('hidden');
+  $('btn-spectate').classList.add('hidden');
+  if (isAdventure() && adv.hardcore) {
+    $('death-title').textContent = '☠️ Game Over';
+    $('death-note').textContent = `Hardcore: one life only. You reached level ${adv.level}. You can still fly around and look at your world.`;
+    $('btn-respawn').classList.add('hidden');
+    $('btn-spectate').classList.remove('hidden');
+  } else if (isAdventure()) {
+    const where = dropLostItems();
+    $('death-note').textContent = where ? `Your things are in a chest where you fainted (${where}). Go and get them back!` : 'You had nothing to drop.';
+  } else $('death-note').textContent = "Don't worry, you keep all your items.";
   $('death').classList.remove('hidden');
   $('hud').classList.add('hidden');
   touch?.setEnabled(false);
@@ -811,6 +876,50 @@ $('btn-respawn').addEventListener('click', () => {
   $('death').classList.add('hidden');
   enterPlay();
 });
+$('btn-spectate').addEventListener('click', () => {
+  adv.over = true;                 // hardcore: the world becomes look-only
+  survival.reset();
+  player.flying = true;
+  $('death').classList.add('hidden');
+  dirtySave = true;
+  save();
+  enterPlay();
+});
+
+/** Adventure: put the whole inventory into a Lost Items Chest where you fainted. Returns "x, y, z". */
+function dropLostItems() {
+  if (inv.slots.every((s) => !s)) return null;
+  let x = Math.floor(player.pos.x), y = Math.max(1, Math.floor(player.pos.y)), z = Math.floor(player.pos.z);
+  for (let i = 0; i < 12 && world.getBlock(x, y, z) !== B.AIR && world.getBlock(x, y, z) !== B.WATER; i++) y++;
+  world.setBlock(x, y, z, B.LOST_CHEST);
+  world.flushDirty();
+  adv.graves.set(`${x},${y},${z}`, inv.toJSON());
+  inv = new Inventory();
+  renderHotbar();
+  dirtySave = true;
+  save();
+  return `${x}, ${y}, ${z}`;
+}
+
+/** Clicking a Lost Items Chest gives your things back. */
+function openLostChest(now) {
+  mouse.nextAction = now + 0.5;
+  mouse.left = mouse.right = false;
+  survival.stopMining();
+  const { x, y, z } = target;
+  const key = `${x},${y},${z}`;
+  const stored = Inventory.fromJSON(adv.graves.get(key) || []);
+  let left = 0;
+  for (const st of stored.slots) if (st) left += inv.add(st.id, st.count);
+  adv.graves.delete(key);
+  world.setBlock(x, y, z, B.AIR);
+  world.flushDirty();
+  renderHotbar();
+  sfx.craft();
+  toast(left ? `Got most things back (${left} didn't fit)` : 'You got your things back!');
+  quests.emit('recover', {});
+  dirtySave = true;
+}
 
 // ---------- input ----------
 document.addEventListener('keydown', (e) => {
@@ -1041,7 +1150,9 @@ function placeBlock(id) {
 let lastHitSound = 0;
 function act(now, dt) {
   if (fireflyTarget && (mouse.left || mouse.right) && now >= mouse.nextAction) return catchFirefly(now);
+  if (adv.over) return; // hardcore game over: look, don't touch
   if (target?.id === B.STAR && (mouse.left || mouse.right) && now >= mouse.nextAction) return foundStar(now);
+  if (target?.id === B.LOST_CHEST && (mouse.left || mouse.right) && now >= mouse.nextAction) return openLostChest(now);
   if (robotTarget) return actRobot(now);
   if (mobTarget) return actMob(now);
   if (isSurvival()) return actSurvival(now, dt);
@@ -1262,11 +1373,12 @@ function actSurvival(now, dt) {
   const held = heldItem();
   // Eating works without a target.
   if (mouse.right && now >= mouse.nextAction && held != null && ITEMS.get(held)?.food) {
-    if (survival.heal(ITEMS.get(held).food)) {
+    if (isAdventure() ? survival.eat(ITEMS.get(held).food) : survival.heal(ITEMS.get(held).food)) {
+      if (isAdventure() && survival.hunger <= MAX_HUNGER / 2 + ITEMS.get(held).food) quests.emit('feast', {});
       inv.takeFromSlot(selected, 1);
       sfx.eat(); renderHotbar(); dirtySave = true;
       quests.emit('eat', {});
-    } else toast('Your hearts are already full');
+    } else toast(isAdventure() ? "You're not hungry right now" : 'Your hearts are already full');
     mouse.nextAction = now + 0.5;
     return;
   }
@@ -1282,7 +1394,9 @@ function actSurvival(now, dt) {
       particles.burst(x, y, z, BLOCKS[id].side);
       sfx.dig(id);
       quests.emit('mine', { id });
+      survival.exhaust(0.03);
       if (info.canHarvest) {
+        gainXp((MINING_XP[id] || 0) + (id === B.WHEAT_3 ? 1 : 0));
         const drop = dropFor(id);
         if (drop != null) {
           const left = inv.add(drop, 1);
@@ -1428,7 +1542,8 @@ function funBlocks(dt) {
 function trackMovement(dt, input, wasOnGround, dist) {
   if (player.inWater) moveAcc.swim += dist;
   else if (!player.flying) moveAcc.walk += dist;
-  if (input.jump && wasOnGround && !player.onGround && player.vel.y > 0 && player.vel.y < 10 && !player.inWater && !player.flying) { quests.emit('jump', {}); sfx.whoosh(); }
+  if (input.jump && wasOnGround && !player.onGround && player.vel.y > 0 && player.vel.y < 10 && !player.inWater && !player.flying) { quests.emit('jump', {}); sfx.whoosh(); survival.exhaust(input.sprint ? 0.2 : 0.05); }
+  if (!player.flying) survival.exhaust(dist * (input.sprint ? 0.1 : 0.01));
   moveAcc.timer += dt;
   if (moveAcc.timer >= 0.5) {
     moveAcc.timer = 0;
@@ -1467,7 +1582,7 @@ function frame(now, manual = false) {
     tickCrops(dt);
     if (wasFlying !== player.flying) updateModeBadge();
     if (player.pos.y < -20) { spawn(); toast('You fell out of the world'); }
-    if (isSurvival()) {
+    if (isSurvival() && !adv.over) {
       survival.update(dt, player);
       if (player.headInWater !== wasHeadInWater) { wasHeadInWater = player.headInWater; renderStatus(); }
     }
@@ -1598,7 +1713,7 @@ window.addEventListener('appinstalled', () => $('btn-install').classList.add('hi
 // Expose for debugging in the console.
 window.minicrafter = {
   get world() { return world; }, get player() { return player; }, get target() { return target; },
-  get inv() { return inv; }, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
+  get inv() { return inv; }, adv, gainXp, isAdventure, createWorld, history, tool, undoRedo, crops, waterAt, critters, findPortals, get fireflyTarget() { return fireflyTarget; }, worlds, get currentWorldId() { return currentWorldId; }, openWorld, get mobTarget() { return mobTarget; }, get robotTarget() { return robotTarget; }, survival, mobs, quests, robot, robotUI, keys, mouse, save, setMode,
   select: (i) => select(i),
   openOverlay: () => openOverlay(),
   /** Dev/test helper: enter play mode without pointer lock (for automated testing). */

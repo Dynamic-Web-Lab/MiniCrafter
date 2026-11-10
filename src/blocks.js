@@ -15,6 +15,7 @@ export const B = {
   FLOWER_RED: 50, FLOWER_YELLOW: 51, FLOWER_BLUE: 52, FLOWER_PINK: 53, TALL_GRASS: 54,
   FARMLAND: 55, WHEAT_0: 56, WHEAT_1: 57, WHEAT_2: 58, WHEAT_3: 59,
   LANTERN: 60, STAR: 61, PORTAL_BLUE: 62, PORTAL_ORANGE: 63, PORTAL_GREEN: 64, PORTAL_PURPLE: 65,
+  LOST_CHEST: 66,
 };
 
 export const BLOCKS = [];
@@ -98,6 +99,8 @@ def(B.PORTAL_BLUE, 'Blue Portal', TILE.PORTAL_BLUE, portal('blue'));
 def(B.PORTAL_ORANGE, 'Orange Portal', TILE.PORTAL_ORANGE, portal('orange'));
 def(B.PORTAL_GREEN, 'Green Portal', TILE.PORTAL_GREEN, portal('green'));
 def(B.PORTAL_PURPLE, 'Purple Portal', TILE.PORTAL_PURPLE, portal('purple'));
+// Adventure: when you faint, your things wait for you in this chest (click it to get them back).
+def(B.LOST_CHEST, 'Lost Items Chest', { top: TILE.LOST_CHEST_TOP, bottom: TILE.LOST_CHEST_TOP, side: TILE.LOST_CHEST }, { placeable: false, lostChest: true });
 
 // Fast lookup tables used in hot loops (meshing, physics).
 export const SOLID = new Uint8Array(256);

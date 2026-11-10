@@ -5,6 +5,7 @@ import { mulberry32 } from './noise.js';
 
 export const MAX_HEALTH = 20; // 10 hearts
 export const MAX_AIR = 10;    // seconds of breath (generous for kids)
+export const MAX_HUNGER = 20; // 10 drumsticks (Adventure mode only)
 const REGEN_DELAY = 4;        // seconds after damage before healing starts
 const REGEN_EVERY = 2.5;      // seconds per half-heart healed
 const STAGES = 8;
@@ -42,6 +43,11 @@ export class Survival {
     this.onDamage = null;  // (amount, reason)
     this.onDeath = null;   // (reason)
     this.onChange = null;  // HUD refresh
+    // Adventure mode: hunger, tougher falls. Off for the gentle modes.
+    this.adventure = false;
+    this.hunger = MAX_HUNGER;
+    this.exhaustion = 0;
+    this.starveTimer = 0;
 
     this.mining = null;    // { x, y, z, id, progress, time }
     this.crackTex = crackTexture();
@@ -57,6 +63,7 @@ export class Survival {
 
   reset() {
     this.health = MAX_HEALTH; this.air = MAX_AIR; this.sinceDamage = 99; this.drownTimer = 0;
+    this.hunger = MAX_HUNGER; this.exhaustion = 0; this.starveTimer = 0;
     this.stopMining();
     this.onChange?.();
   }
@@ -78,9 +85,9 @@ export class Survival {
     return this.health !== before;
   }
 
-  /** Called when the player lands. Falls of more than 4 blocks hurt a little. */
+  /** Called when the player lands. Gentle: falls over 4 blocks hurt a little. Adventure: over 3. */
   landed(dist) {
-    const dmg = Math.floor(dist - 4);
+    const dmg = Math.floor(dist - (this.adventure ? 3 : 4));
     if (dmg > 0) this.damage(dmg, 'fall');
   }
 
@@ -101,12 +108,42 @@ export class Survival {
     }
     if (Math.ceil(this.air) !== prevAir || (prevAirRaw < MAX_AIR && this.air === MAX_AIR)) this.onChange?.();
 
-    // Regeneration
+    // Hunger (Adventure): you slowly get hungry, faster when sprinting, jumping and mining.
+    if (this.adventure) {
+      this.exhaust(dt * 0.03);
+      if (this.hunger === 0) {
+        this.starveTimer += dt;
+        // Starving hurts, but never below half a heart: you always get a chance to eat.
+        if (this.starveTimer >= 4) { this.starveTimer = 0; if (this.health > 1) this.damage(1, 'hunger'); }
+      } else this.starveTimer = 0;
+    }
+
+    // Regeneration (Adventure: only while well fed, and it uses up a little food)
     this.sinceDamage += dt;
-    if (this.sinceDamage > REGEN_DELAY && this.health < MAX_HEALTH) {
+    const fed = !this.adventure || this.hunger >= 14;
+    if (fed && this.sinceDamage > REGEN_DELAY && this.health < MAX_HEALTH) {
       this.regenTimer += dt;
-      if (this.regenTimer >= REGEN_EVERY) { this.regenTimer = 0; this.heal(1); }
+      if (this.regenTimer >= REGEN_EVERY) { this.regenTimer = 0; if (this.heal(1) && this.adventure) this.exhaust(1.2); }
     } else this.regenTimer = 0;
+  }
+
+  /** Adds tiredness; every 4 points costs half a drumstick. */
+  exhaust(amount) {
+    if (!this.adventure || this.dead) return;
+    this.exhaustion += amount;
+    while (this.exhaustion >= 4) {
+      this.exhaustion -= 4;
+      if (this.hunger > 0) { this.hunger--; this.onChange?.(); }
+    }
+  }
+
+  /** Eating in Adventure fills the hunger bar. Returns false when already full. */
+  eat(food) {
+    if (this.hunger >= MAX_HUNGER) return false;
+    this.hunger = Math.min(MAX_HUNGER, this.hunger + food);
+    this.exhaustion = 0;
+    this.onChange?.();
+    return true;
   }
 
   // ---------- mining ----------
