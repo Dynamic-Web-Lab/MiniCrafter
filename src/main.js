@@ -1862,7 +1862,42 @@ $('btn-install').addEventListener('click', async () => {
   installPrompt = null;
   $('btn-install').classList.add('hidden');
 });
-window.addEventListener('appinstalled', () => $('btn-install').classList.add('hidden'));
+window.addEventListener('appinstalled', () => { $('btn-install').classList.add('hidden'); $('install-help').classList.add('hidden'); });
+
+// iPhone and iPad never show an install popup (and Android browsers sometimes don't),
+// so the install button opens step-by-step "Add to Home Screen" help instead.
+const ua = navigator.userAgent;
+const isIPad = /iPad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isIOS = isIPad || /iPhone|iPod/.test(ua);
+const isAndroid = /Android/.test(ua);
+const installed = navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+function installSteps() {
+  if (isIOS) {
+    const inApp = /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok/.test(ua);
+    if (inApp) return ["This app's built-in browser can't add games to the Home Screen.", 'Tap ••• or the compass icon and choose <b>Open in Safari</b>, then come back to this button.'];
+    const other = /CriOS|FxiOS|EdgiOS/.test(ua);
+    return [
+      `Tap the <b>Share</b> button <span class="share-icon">⬆</span> ${other ? '(in the address bar or the ⋯ menu)' : (isIPad ? 'at the top right' : 'at the bottom of Safari')}.`,
+      'Scroll down and tap <b>Add to Home Screen</b> ➕.',
+      'Tap <b>Add</b>. The MiniCrafter icon appears on your Home Screen!',
+      ...(other ? ['Don\'t see it? Open this page in <b>Safari</b> and try again.'] : []),
+    ];
+  }
+  return [
+    'Open your browser menu <b>⋮</b> (top right in Chrome).',
+    'Tap <b>Install app</b> or <b>Add to Home screen</b>.',
+    'Tap <b>Install</b>. MiniCrafter appears with your other apps!',
+  ];
+}
+if (!installed && (isIOS || isAndroid)) {
+  $('install-steps').innerHTML = installSteps().map((t) => `<li>${t}</li>`).join('');
+  // On iPhone/iPad show the button at once; on Android give the real install popup a moment first.
+  setTimeout(() => { if (!installPrompt) $('btn-install').classList.remove('hidden'); }, isIOS ? 0 : 4000);
+}
+$('btn-install').addEventListener('click', () => {
+  if (installPrompt) return; // the real install popup handles it
+  $('install-help').classList.toggle('hidden');
+});
 
 // Expose for debugging in the console.
 window.minicrafter = {

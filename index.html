@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="MiniCrafter">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>MiniCrafter</title>
   <meta name="description" content="A browser voxel sandbox: explore procedural worlds, mine and build.">
   <link rel="stylesheet" href="style.css">
@@ -65,6 +67,11 @@
       <p id="loading">Generating world…</p>
       <button id="btn-play" class="primary">Play</button>
       <button id="btn-install" class="wide-btn hidden">📲 Install MiniCrafter as an app</button>
+      <div id="install-help" class="install-help hidden" role="note">
+        <b>📲 Put MiniCrafter on your Home Screen</b>
+        <ol id="install-steps"></ol>
+        <p class="note">Then open it from the icon: it fills the whole screen, works offline, and keeps your worlds safe.</p>
+      </div>
       <button id="btn-quests" class="wide-btn">⭐ Quest book <span id="menu-stars"></span></button>
       <p id="lock-note" class="note"></p>
 

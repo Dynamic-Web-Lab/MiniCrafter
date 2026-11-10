@@ -234,3 +234,9 @@ body #status { bottom: 92px; }
 #charge-fill { height: 100%; width: 0; background: #ffe27a; border-radius: 3px; }
 #armor-ind { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: .75rem; font-weight: 700; color: #cfe3ff; text-shadow: 1px 1px 0 #000; white-space: nowrap; }
 select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 2px solid #4b556b; background: #121622; color: #fff; }
+
+/* "Add to Home Screen" guide (iPhone/iPad have no install popup) */
+.install-help { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(90, 160, 230, .14); border: 1px solid rgba(90, 160, 230, .45); text-align: left; font-size: .92rem; }
+.install-help ol { margin: 6px 0 4px 20px; padding: 0; }
+.install-help li { margin: 4px 0; }
+.install-help .share-icon { display: inline-block; padding: 0 5px; border: 1px solid currentColor; border-radius: 4px; font-size: .8em; }
