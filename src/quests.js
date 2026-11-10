@@ -18,6 +18,8 @@ export const QUESTS = [
   { id: 'table', track: 'survival', icon: '🛠️', title: 'Crafting Time', text: 'Open your inventory and craft a Crafting Table from 4 planks.', event: 'craft', test: (d) => d.id === B.CRAFTING_TABLE, count: 1, stars: 1 },
   { id: 'place10', track: 'all', icon: '🔟', title: 'Count to 10', text: 'Place 10 blocks. Count them out loud: 1, 2, 3…', event: 'place', count: 10, stars: 1 },
   { id: 'pick', track: 'survival', icon: '⛏️', title: 'My First Tool', text: 'Stand next to your Crafting Table and craft a Wooden Pickaxe.', event: 'craft', test: (d) => d.id === I.WOOD_PICK, count: 1, stars: 1 },
+  { id: 'bounce', track: 'all', icon: '🦘', title: 'Boing Boing!', text: 'Build a yellow Trampoline and bounce 6 blocks high. Hold jump for a super bounce!', event: 'bounce', value: (d) => Math.floor(d), count: 6, stars: 2 },
+  { id: 'song', track: 'all', icon: '🎵', title: 'Little Composer', text: 'Walk over 5 different Music Stones to play a tune. Do, re, mi…', event: 'note', distinct: (d) => d.note, count: 5, stars: 2 },
   { id: 'math1', track: 'all', icon: '➕', title: 'Math Miner', text: 'Break 3 + 4 blocks of dirt or grass. How many is that?', reveal: '3 + 4 = 7', event: 'mine', test: (d) => SOFT.has(d.id), count: 7, stars: 2 },
   { id: 'shear', track: 'all', icon: '🐑', title: 'Woolly Jumper', text: 'Right-click (or tap) a sheep to shear its wool.', event: 'shear', count: 1, stars: 1 },
   { id: 'stone', track: 'survival', icon: '🪨', title: 'Stone Age', text: 'Use your pickaxe to collect 10 Cobblestone.', event: 'collect', test: (d) => d.id === B.COBBLE, count: 10, stars: 2, reward: [I.APPLE, 2] },

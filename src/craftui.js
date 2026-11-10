@@ -88,7 +88,7 @@ export class CraftUI {
       const ins = r.inputs.map(([id, n], k) => `<span class="${have[k] < n ? 'missing' : ''}"><img alt="" src="${this.icon(id)}">${have[k]}/${n} ${itemName(id)}</span>`).join('');
       const badge = r.station ? (stationOk ? `Uses ${STATION_LABEL[r.station]}` : `Needs ${STATION_LABEL[r.station]}`) : 'Craft anywhere';
       b.innerHTML = `<img class="out" alt="" src="${this.icon(r.out)}">
-        <div><div class="name">${itemName(r.out)}${r.count > 1 ? ` ×${r.count}` : ''}</div><div class="ins">${ins}</div></div>
+        <div><div class="name">${r.label || itemName(r.out)}${r.count > 1 ? ` ×${r.count}` : ''}</div><div class="ins">${ins}</div></div>
         <span class="badge">${badge}</span>`;
       b.disabled = !ok;
       b.addEventListener('click', () => this.craft(r));
@@ -108,6 +108,7 @@ export class CraftUI {
     const inv = this.getInv();
     if (!this.check(r).ok) return;
     for (const [id, n] of r.inputs) inv.remove(id, n);
+    for (const [id, n] of r.extra || []) inv.add(id, n); // bundle recipes (e.g. all 8 music stones)
     const left = inv.add(r.out, r.count);
     if (left > 0) { // inventory full: hand the rest to the cursor if empty, else give back ingredients
       if (!this.cursor) this.cursor = { id: r.out, count: left };

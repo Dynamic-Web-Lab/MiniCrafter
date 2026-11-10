@@ -110,6 +110,22 @@ try {
     out.blockly = !!m.robotUI.ws;
     m.robotUI.close();
 
+    // Phase 1 fun blocks: a trampoline bounces you up, and the music set recipe gives all 8 notes.
+    const { B } = await import('./src/blocks.js');
+    const { RECIPES } = await import('./src/items.js');
+    const tx = x + 4;
+    for (let h = 1; h < 12; h++) W.setBlock(tx, y + h, z, 0);
+    W.setBlock(tx, y, z, B.TRAMPOLINE);
+    p.flying = false; p.pos.set(tx + 0.5, y + 4, z + 0.5); p.vel.set(0, 0, 0); p.onGround = false;
+    let peak = 0, bounced = false;
+    const idle = { forward: 0, back: 0, left: 0, right: 0, jump: 0, down: 0, sprint: false };
+    const prevBounce = p.onBounce; p.onBounce = () => { bounced = true; };
+    for (let i = 0; i < 180; i++) { p.update(1 / 60, idle); if (bounced) peak = Math.max(peak, p.pos.y - (y + 1)); }
+    p.onBounce = prevBounce;
+    out.bounce = bounced && peak > 3;
+    const music = RECIPES.find((r) => r.label && r.label.startsWith('Music Stones'));
+    out.musicSet = !!music && 1 + music.extra.length === 8;
+
     // Worlds: create a second world, switch back, save round trip.
     const first = m.currentWorldId;
     const w = m.worlds.add({ name: 'CI World', seed: 'ci', mode: 'survival' });
@@ -127,6 +143,8 @@ try {
   ok(features.robotStatus === 'done' && features.tower, 'Bit builds a 5-block tower', features.robotStatus);
   ok(features.animals, 'animals spawn and a dog can be tamed');
   ok(features.blockly, 'Blockly code editor loads');
+  ok(features.bounce, 'trampolines bounce the player more than 3 blocks');
+  ok(features.musicSet, 'music stones recipe gives all 8 notes');
   ok(features.switched && features.back && features.saved, 'worlds: create, switch and save');
   ok(errors.length === 0, 'no console errors (desktop)', errors.slice(0, 3).join(' | '));
   if (failures) await page.screenshot({ path: 'smoke-desktop.png' });

@@ -11,18 +11,38 @@ const CHANCE = 40;       // % of regions with a village (region 0,0 always has o
 const HOUSE_DIST = 11;   // from the well
 const HALF = 2;          // houses are 5x5 (centre +-2)
 
-/** Is the land around (x, z) dry, grassy and flat enough for a village? */
-function siteOK(T, x, z) {
+/**
+ * Is the land around (x, z) dry and flat enough for a village?
+ * `maxSpread` is the allowed height difference; the stamping flattens the rest.
+ */
+function siteOK(T, x, z, maxSpread = 5) {
   const c = T.column(x, z);
-  if (c.desert || c.h < SEA + 2 || c.h > SEA + 20) return null;
+  if (c.desert || c.h < SEA + 2 || c.h > SEA + 20 + maxSpread) return null;
   let lo = c.h, hi = c.h;
   for (let dz = -16; dz <= 16; dz += 4) for (let dx = -16; dx <= 16; dx += 4) {
     const h = T.column(x + dx, z + dz);
     if (h.desert || h.h <= SEA) return null;
     lo = Math.min(lo, h.h); hi = Math.max(hi, h.h);
-    if (hi - lo > 5) return null;
+    if (hi - lo > maxSpread) return null;
   }
   return c.h;
+}
+
+/** Home village fallback: the least hilly dry spot found further out (always returns one). */
+function bestHomeSite(T) {
+  // Relaxed: a bit hillier is fine, and look further away.
+  for (let d = 40; d <= 220; d += 12) for (let a = 0; a < 16; a++) {
+    const x = Math.round(Math.cos(a * Math.PI / 8 + d) * d), z = Math.round(Math.sin(a * Math.PI / 8 + d) * d);
+    const h = siteOK(T, x, z, 10);
+    if (h != null) return [x, z, h];
+  }
+  // Last resort (e.g. an ocean or desert start): the closest dry land.
+  for (let d = 30; d <= 400; d += 10) for (let a = 0; a < 16; a++) {
+    const x = Math.round(Math.cos(a * Math.PI / 8) * d), z = Math.round(Math.sin(a * Math.PI / 8) * d);
+    const c = T.column(x, z);
+    if (c.h > SEA + 1) return [x, z, Math.min(c.h, SEA + 20)];
+  }
+  return [40, 0, SEA + 2];
 }
 
 /** Returns the village for a region (or null). Cached on the terrain object. */
@@ -45,6 +65,8 @@ export function villageForRegion(T, rx, rz) {
       const h = siteOK(T, x, z);
       if (h != null) { v = makeLayout(x, z, h, r); break; }
     }
+    // Every world promises a village near the start: never leave the home region empty.
+    if (!v && rx === 0 && rz === 0) { const [x, z, h] = bestHomeSite(T); v = makeLayout(x, z, h, r); }
   }
   T.villageCache.set(key, v);
   return v;

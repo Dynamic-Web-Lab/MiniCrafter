@@ -1,5 +1,5 @@
 // Tiny synthesized sound effects (no audio files). Uses filtered noise bursts.
-import { B } from './blocks.js';
+import { B, NOTE_FREQS } from './blocks.js';
 
 const SOFT = new Set([B.GRASS, B.DIRT, B.SAND, B.GRAVEL, B.LEAVES, B.SNOW, B.SNOWY_GRASS,
   B.WOOL_WHITE, B.WOOL_RED, B.WOOL_BLUE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLACK, B.CACTUS]);
@@ -108,3 +108,13 @@ Sfx.prototype.animal = function (type, baby) {
 Sfx.prototype.fanfare = function () {
   [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, i === 3 ? 0.35 : 0.14, 'triangle', 0.22), i * 110));
 };
+
+// Phase 1 fun sounds.
+Sfx.prototype.note = function (i) {
+  const f = NOTE_FREQS[i] || 523.25;
+  this.tone(f, 0.6, 'sine', 0.22);
+  this.tone(f * 2, 0.25, 'triangle', 0.06);
+};
+Sfx.prototype.boing = function () { this.tone(180, 0.35, 'sine', 0.25, 520); };
+Sfx.prototype.whoosh = function () { this.burst(700, 0.7, 0.18, 0.18); };
+Sfx.prototype.yay = function () { [784, 988, 1175].forEach((f, i) => setTimeout(() => this.tone(f, 0.12, 'square', 0.07), i * 70)); this.burst(2500, 0.5, 0.3, 0.12); };

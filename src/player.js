@@ -1,7 +1,7 @@
 // First-person player: AABB collision against the voxel grid, walking,
 // sprinting, jumping, swimming and creative flight.
 import * as THREE from 'three';
-import { B, SOLID } from './blocks.js';
+import { B, BLOCKS, SOLID } from './blocks.js';
 
 export const HALF_W = 0.3;
 export const HEIGHT = 1.8;
@@ -27,6 +27,12 @@ export class Player {
     this.hitWall = false;
     this.fallStart = null; // highest Y since leaving the ground
     this.onLand = null;    // callback(fallDistance)
+    this.onBounce = null;  // callback(bounceVelocity) when landing on a trampoline
+    this.boost = 0;        // seconds of speed-strip boost left
+    this.safeFall = false; // set by trampolines, fans and gliding: next landing does no harm
+    this.inFan = false;
+    this.gliding = false;
+    this.ground = 0;       // block id under the feet (last frame)
   }
 
   get eye() { return new THREE.Vector3(this.pos.x, this.pos.y + EYE, this.pos.z); }
@@ -64,9 +70,29 @@ export class Player {
     const len = Math.hypot(wx, wz);
     if (len > 1) { wx /= len; wz /= len; } // keep analog (joystick) magnitude below 1
 
+    // What we're standing on (fun blocks change how we move).
+    const gb = this.onGround ? BLOCKS[this.ground] : null;
+    const onIce = !!gb?.slippery;
+    if (gb?.speed) this.boost = 1.4;
+    this.boost = Math.max(0, this.boost - dt);
+    // Fan vents push you up if one is below you within 8 blocks of open air.
+    this.inFan = false;
+    if (!this.flying) {
+      const fx = Math.floor(this.pos.x), fz = Math.floor(this.pos.z), fy = Math.floor(this.pos.y + 0.01);
+      for (let d = 1; d <= 9; d++) {
+        const id = w.getBlock(fx, fy - d, fz);
+        if (BLOCKS[id]?.fan) { this.inFan = true; break; }
+        if (SOLID[id]) break;
+      }
+    }
+    this.gliding = !!input.glide && !this.onGround && !this.flying && !this.inWater && !this.inFan && this.vel.y < 0;
+
     let speed = this.flying ? FLY * (input.sprint ? 1.8 : 1) : input.sprint && f > 0 ? SPRINT : WALK;
     if (this.inWater && !this.flying) speed *= 0.55;
-    const accel = this.flying ? 10 : this.onGround ? 14 : this.inWater ? 6 : 3.5;
+    if (this.boost > 0 && !this.flying) speed *= 1.9;
+    if (this.gliding) speed *= 1.35;
+    if (onIce) speed *= 1.15;
+    const accel = this.flying ? 10 : onIce ? 1.1 : this.onGround ? 14 : this.inWater ? 6 : this.gliding ? 5 : 3.5;
     const k = Math.min(1, accel * dt);
     this.vel.x += (wx * speed - this.vel.x) * k;
     this.vel.z += (wz * speed - this.vel.z) * k;
@@ -83,7 +109,10 @@ export class Player {
       this.vel.y -= GRAVITY * dt;
       this.vel.y = Math.max(this.vel.y, -55);
       if (input.jump && this.onGround) this.vel.y = JUMP_V;
+      if (this.inFan) { this.vel.y += (8 - this.vel.y) * Math.min(1, 6 * dt); this.safeFall = true; }
+      if (this.gliding) { this.vel.y = Math.max(this.vel.y, -2.2); this.safeFall = true; }
     }
+    this.jumpHeld = !!input.jump;
 
     this.onGround = false;
     this.hitWall = false;
@@ -97,13 +126,15 @@ export class Player {
     if (this.flying && this.onGround) this.flying = false; // land to stop flying
 
     // Fall tracking (for gentle fall damage in survival).
-    if (this.flying || this.inWater) this.fallStart = null;
+    if (this.flying || this.inWater) { this.fallStart = null; this.safeFall = false; }
     else if (!this.onGround) this.fallStart = Math.max(this.fallStart ?? this.pos.y, this.pos.y);
     else if (this.fallStart !== null) {
       const dist = this.fallStart - this.pos.y;
       this.fallStart = null;
-      this.onLand?.(dist);
+      if (this.safeFall) this.safeFall = false; // trampolines, fans and gliders never hurt
+      else this.onLand?.(dist);
     }
+    this.ground = this.onGround ? w.getBlock(Math.floor(this.pos.x), Math.floor(this.pos.y - 0.05), Math.floor(this.pos.z)) : 0;
   }
 
   moveAxis(axis, amt) {
@@ -115,7 +146,17 @@ export class Player {
     if (axis === 'y') {
       if (amt < 0) { p.y = Math.floor(p.y) + 1; this.onGround = true; }
       else p.y = Math.floor(p.y + HEIGHT) - HEIGHT - EPS;
+      const falling = this.vel.y;
       this.vel.y = 0;
+      // Trampolines: bounce instead of landing (hold jump to go higher).
+      if (amt < 0 && !this.flying && BLOCKS[this.world.getBlock(Math.floor(p.x), Math.floor(p.y) - 1, Math.floor(p.z))]?.bounce) {
+        this.vel.y = Math.max(this.jumpHeld ? 21 : 15, Math.min(24, -falling * 0.9));
+        this.onGround = false;
+        this.safeFall = true;
+        this.fallStart = null;
+        this.onBounce?.(this.vel.y);
+        return;
+      }
     } else {
       if (amt > 0) p[axis] = Math.floor(p[axis] + HALF_W) - HALF_W - EPS;
       else p[axis] = Math.floor(p[axis] - HALF_W) + 1 + HALF_W + EPS;
