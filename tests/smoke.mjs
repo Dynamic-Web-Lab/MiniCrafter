@@ -23,6 +23,10 @@ const srcFiles = (await readdir(join(ROOT, 'src'))).filter((f) => f.endsWith('.j
 const sw = await readFile(join(ROOT, 'sw.js'), 'utf8');
 const missing = srcFiles.filter((f) => !sw.includes(`'./src/${f}'`));
 ok(missing.length === 0, 'sw.js precaches every src/*.js file', missing.length ? `missing: ${missing.join(', ')}` : `${srcFiles.length} files`);
+// iPhones have no Pointer Lock API: a bare document.exitPointerLock() throws there (it froze Bit's panel).
+const bareLock = [];
+for (const f of srcFiles) for (const [i, line] of (await readFile(join(ROOT, 'src', f), 'utf8')).split('\n').entries()) if (/exitPointerLock\(\)/.test(line)) bareLock.push(`${f}:${i + 1}`);
+ok(bareLock.length === 0, 'no bare exitPointerLock() calls (iOS has no Pointer Lock)', bareLock.join(', ') || 'use exitLock()');
 
 // ---------- tiny static server ----------
 const server = http.createServer(async (req, res) => {
@@ -340,6 +344,19 @@ try {
       });
       ok(legal, 'privacy policy and terms pages are served (company, contact, version)');
       ok(synced && back && noSave, 'play together: host lets a friend in, blocks sync both ways, guest never saves', code);
+      // Insights: the visit was counted on load, and a problem report arrives with its steps.
+      await host.page.evaluate(() => { const i = window.minicrafter.insights; i.step('smoke step'); i.error('smoke test error', 'smoke.mjs:1:1'); });
+      const insight = await (async () => {
+        for (let k = 0; k < 50; k++) {
+          const { counts, errors } = await dev.stats.summary(1);
+          const e = errors.find((x) => x.message === 'smoke test error');
+          if (e && counts.some((c) => c.key === 'visit')) return { e, visits: counts.find((c) => c.key === 'visit').n };
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        return null;
+      })();
+      const statsLocked = (await fetch(`${dev.url}api/stats`)).status === 401;
+      ok(insight && insight.e.kind === 'error' && insight.e.steps.includes('smoke step') && statsLocked, 'insights: visits and problem reports (with steps) reach the server; stats need the key', insight ? `${insight.visits} visits` : 'nothing arrived');
       ok(host.errors.length + guest.errors.length === 0, 'no console errors (online edition)', [...host.errors, ...guest.errors].slice(0, 3).join(' | '));
       await host.page.close(); await guest.page.close();
     } finally { dev.server.close(); }
@@ -370,6 +387,7 @@ try {
     const m = window.minicrafter;
     return m && m.world && [...m.world.chunks.values()].some((c) => c.meshed) ? m.world.chunks.size : 0;
   }, null, { timeout: 30000 }).then((h) => h.jsonValue()).catch(() => 0);
+  ok(!(await s.page.evaluate(() => window.minicrafter.insights.enabled)), 'insights: off in the free edition (site-config.json in Git)');
   ok(offline > 0 && offlineErrors.length === 0, 'game starts with no network (offline reload)', offlineErrors.slice(0, 3).join(' | ') || `${offline} chunks`);
   await s.page.context().setOffline(false);
   await s.page.close();

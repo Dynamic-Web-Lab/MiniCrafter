@@ -157,6 +157,7 @@
         </details>
         <p class="note touch-only">Touch: left stick walks, drag to look, tap to place or flip, hold to mine or attack. Holding a bow or shield? Hold to draw or block.</p>
         <p class="note">Your world is saved automatically in this browser. <span id="offline-note"></span> <span id="game-version"></span></p>
+        <button id="btn-report" class="wide-btn report-btn hidden" type="button">🐞 Report a problem</button>
         <p class="note legal-links"><a href="features.html" target="_blank" rel="noopener">✨ All features</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a></p>
       </div>
     </div>
@@ -235,6 +236,15 @@
       </div>
       <p id="acc-msg" class="note" role="status"></p>
       <button id="acc-done" class="wide-btn" type="button">Back</button>
+    </div>
+  </div>
+
+  <div id="report" class="overlay hidden">
+    <div class="panel report-panel">
+      <h2>🐞 Report a problem</h2>
+      <p class="note">What went wrong? Pick one. We'll also get your device type, browser, game version and your last few steps in the game (nothing about who you are) so we can fix it.</p>
+      <div id="report-choices" class="report-choices"></div>
+      <button id="report-done" class="wide-btn" type="button">Cancel</button>
     </div>
   </div>
 

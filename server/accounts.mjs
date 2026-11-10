@@ -234,10 +234,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (let i = 1; ; i++) { // the database may still be starting up
     try { await store.init(); break; } catch (e) { if (i >= 30) throw e; await new Promise((r) => setTimeout(r, 2000)); }
   }
-  const acc = createAccounts({ store, origins: (process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean), secureCookie: process.env.SECURE_COOKIE !== '0' });
+  const origins = (process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const acc = createAccounts({ store, origins, secureCookie: process.env.SECURE_COOKIE !== '0' });
+  // Anonymous usage counts and error reports share the database (see stats.mjs).
+  const { createStats, PgStats, MemoryStats } = await import('./stats.mjs');
+  const statsStore = store.pool ? new PgStats(store.pool) : new MemoryStats();
+  await statsStore.init();
+  const stats = createStats({ store: statsStore, origins, token: process.env.STATS_TOKEN || '' });
   const server = http.createServer(async (req, res) => {
     if (req.url === '/health') { res.writeHead(200); return res.end('ok'); }
     if (await acc.handleInternal(req, res)) return;
+    if (await stats.handle(req, res)) return;
     if (await acc.handle(req, res)) return;
     res.writeHead(404); res.end();
   });
